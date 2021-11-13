@@ -1,5 +1,5 @@
 run:
-	@go run main.go bit.go gate.go alu.go sequential.go plumbing.go ram.go builtin.go peripherals.go mda.go
+	@go run main.go bit.go gate.go alu.go sequential.go plumbing.go ram.go builtin.go peripherals.go mda.go cpu.go
 test:
 	@go test -count=1 ./...
 testrace:

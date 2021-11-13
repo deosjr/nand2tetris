@@ -56,7 +56,9 @@ func runPeripherals(computer *Computer) func() {
 
 func main() {
     interactive := true
-    computer := NewComputer()
+    cpu := NewPCRegisterCPU()
+    //cpu := NewBuiltinCPU()
+    computer := NewComputer(cpu)
     computer.LoadProgram(NewROM32K(drawAv2))
 
     /*

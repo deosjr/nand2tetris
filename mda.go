@@ -231,3 +231,115 @@ var drawAv2 = []uint16{
     0x3C3C,
     0xEC10, 0x11, 0xEA87,
 }
+
+// use pcregistercpu to reduce ops when retrieving char info
+var drawAv3 = []uint16{
+    // @32 // def A start
+    0x20,
+    // D=A: 1110 1100 0001 0000
+    0xEC10,
+    // @i // init location var i, say 0x42
+    0x42,
+    // M=D // i=32
+    0xE308,
+    // @0x4000
+    0x4000,
+    // D=A
+    0xEC10,
+    // @screen // init location var screen, say 0x99
+    0x99,
+    // M=D // screen = 0x4000
+    0xE308,
+    // (LOOP)
+    // @i
+    0x42,
+    // D=M // D=i
+    0xFC10,
+    // @96
+    0x60,
+    // D=D-A //D=i-80 (i starts at 32 so loop 16x, each instr is 4 ops)
+    // 1110 0100 1101 0000
+    0xE4D0,
+    // @END
+    0x1E,
+    // D;JGE // if (i-80)>=0 goto END
+    // 1110 0011 0000 0011
+    0xE303,
+    // @i
+    0x42,
+    // A=M // A=M;JMP is too risky, conflicting use of A register
+    0xFC20,
+    // 0;JMP(pcrl) // goto i, which does A=value and then D=A + jmp back to next instr below
+    0xAA87,
+    // @screen
+    0x99,
+    // A=M // A=screen
+    // 1111 1100 0010 0000
+    0xFC20,
+    // M=D // mem[screen] = linevalue out of ROM
+    0xE308,
+    // // i = i + 4
+    // @4
+    0x4,
+    // D=A
+    0xEC10,
+    // @i
+    0x42,
+    // M=D+M
+    // 1111 0000 1000 1000
+    0xF088,
+    // // screen = screen + 16
+    // @16
+    0x10,
+    // D=A
+    0xEC10,
+    // @screen
+    0x99,
+    // M=D+M
+    0xF088,
+    // @LOOP
+    0x8,
+    // 0;JMP // goto LOOP
+    0xEA87,
+    // ------------
+    // inf loop is canonical end
+    // (END)
+    //      @END
+    0x1E,
+    //      0;JMP 1110 1010 1000 0111
+    0xEA87,
+    // A
+    0x00,
+    // D=A(pcrl), PCR+1;JMPPCR
+    0xAC10, 0x87C7,
+    0x00,
+    0xAC10, 0x87C7,
+    0x03C0,
+    0xAC10, 0x87C7,
+    0x03C0,
+    0xAC10, 0x87C7,
+    0x0FF0,
+    0xAC10, 0x87C7,
+    0x0FF0,
+    0xAC10, 0x87C7,
+    0x3C3C,
+    0xAC10, 0x87C7,
+    0x3C3C,
+    0xAC10, 0x87C7,
+    0x3C3C,
+    0xAC10, 0x87C7,
+    0x3C3C,
+    0xAC10, 0x87C7,
+    0x3FFC,
+    0xAC10, 0x87C7,
+    0x3FFC,
+    0xAC10, 0x87C7,
+    0x3C3C,
+    0xAC10, 0x87C7,
+    0x3C3C,
+    0xAC10, 0x87C7,
+    0x3C3C,
+    0xAC10, 0x87C7,
+    0x3C3C,
+    0xAC10, 0x87C7,
+}
