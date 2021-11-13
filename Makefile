@@ -1,0 +1,6 @@
+run:
+	@go run main.go bit.go gate.go alu.go sequential.go plumbing.go ram.go builtin.go peripherals.go mda.go
+test:
+	@go test -count=1 ./...
+testrace:
+	@go test -race -count=1 ./...
