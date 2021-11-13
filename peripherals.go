@@ -58,6 +58,7 @@ func (s *Screen256x512) ClockTick() {
     s.ram.ClockTick()
 }
 
+// TODO: separate textmode screen that only writes characters?
 func (s *Screen256x512) RunScreen(win *pixelgl.Window) {
     // listen to mem and show in a window using pixelgl
     // NOTE: pixelgl y increases UP, nand2tetris DOWN
@@ -70,7 +71,7 @@ func (s *Screen256x512) RunScreen(win *pixelgl.Window) {
             for c:=0;c<16;c++ {
                 b := nthBit(word, uint16(c))
                 if b {
-                    invrow := (512-row)
+                    invrow := (511-row)
                     pd.Pix[invrow*256+16*r+c] = white
                 }
             }

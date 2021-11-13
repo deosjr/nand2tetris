@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 // these are the more optimised versions of the chips defined earlier
 // where we abstract a little more over the clock
 
@@ -157,7 +159,9 @@ func NewROM32K(program []uint16) *ROM32K {
     rams := [2]*BuiltinRAM16K{
             NewBuiltinRAM16K(), NewBuiltinRAM16K(),
     }
+    fmt.Println("loading ROM")
     for i, instr := range program {
+        fmt.Printf("%d: %04x\n", i, instr)
         if i < 16384 {
             rams[0].mem[i] = instr
             continue
@@ -263,7 +267,6 @@ func NewComputer(cpu CPU) *Computer {
     datamem := NewMemory()
     return &Computer{
         cpu: cpu,
-        instr_mem: NewROM32K(nil),
         data_mem: datamem,
     }
 }
@@ -283,6 +286,9 @@ func (c *Computer) SendReset(reset bool) {
 }
 
 func (c *Computer) ClockTick() {
+    if c.data_mem == nil {
+        panic("no ROM loaded")
+    }
     c.cpu.SendInstr(c.instr_mem.Out())
     c.cpu.ClockTick()
     c.data_mem.SendLoad(c.cpu.WriteM())
