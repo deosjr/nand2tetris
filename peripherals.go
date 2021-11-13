@@ -69,7 +69,7 @@ func (s *Screen256x512) RunScreen(win *pixelgl.Window) {
             addr := row*16+r
             word := s.ram.mem[addr]
             for c:=0;c<16;c++ {
-                b := nthBit(word, uint16(c))
+                b := nthBit(word, uint16(15-c))
                 if b {
                     invrow := (511-row)
                     pd.Pix[invrow*256+16*r+c] = white

@@ -20,7 +20,10 @@ func run(computer *Computer) {
         //fmt.Printf("%02d: %04x %04x", cpu.PC(), computer.instr_mem.Out(), cpu.inM)
         computer.ClockTick()
         //fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
+        //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x42], computer.data_mem.ram.mem[0x99])
+        //fmt.Printf(" %04x\n", computer.data_mem.screen.(*Screen256x512).ram.mem[0x42])//, computer.data_mem.ram.mem[0x3])
         //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x3])
+        //time.Sleep(1*time.Nanosecond)
         time.Sleep(1*time.Millisecond)
     }
 }

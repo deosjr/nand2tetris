@@ -161,7 +161,7 @@ func NewROM32K(program []uint16) *ROM32K {
     }
     fmt.Println("loading ROM")
     for i, instr := range program {
-        fmt.Printf("%d: %04x\n", i, instr)
+        //fmt.Printf("%d: %04x\n", i, instr)
         if i < 16384 {
             rams[0].mem[i] = instr
             continue
@@ -225,7 +225,17 @@ func (m *Memory) SendIn(in uint16) {
 }
 
 func (m *Memory) SendLoad(load bool) {
-    m.ram.SendLoad(load)
+    bit1, address := splitaddr(m.address)
+    if bit1 == 0 {
+        m.ram.SendLoad(load)
+        return
+    }
+    if address >= 8192 { // 2**13 
+        if address > 0x6000 {
+            panic("access memory beyond 0x6000")
+        }
+        return //load to keyboard is ignored
+    }
     m.screen.SendLoad(load)
 }
 

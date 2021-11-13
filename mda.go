@@ -11,18 +11,36 @@ package main
 
 // input: char in R2 (i.e. M[0x2]) (is overwritten in the process
 // uses: @i at 0x42, @screen at 0x99, R3
-// TODO: still writes some garbage to screen at start?
 var drawChar = []uint16{
-    // @65
-    0x41,
+    // @0x4000
+    0x4000,
     // D=A
     0xEC10,
+    // @screen // init location var screen, say 0x99
+    0x99,
+    // M=D // screen = 0x4000
+    0xE308,
+
+    // (WAIT)
+    // @keyboard
+    0x6000,
+    // D=M
+    0xFC10,
+    // @WAIT
+    0x4,
+    // D;JEQ
+    0xE302,
+
+    // @65
+    0x41,
+    // D=D-A
+    0xE4D0,
     // @R2
     0x2,
-    // M=M-D // R2=R2-65
-    0xF1C8,
+    // M=D //R2=keyboard-65
+    0xE308,
     // @DEFA
-    0x38,
+    0x41,
     // D=A
     0xEC10,
     // @R3
@@ -32,15 +50,15 @@ var drawChar = []uint16{
 
     // each char takes 16x3 ops space
     // loop R2-65 times to get D=(R2-65)*48
-    // (INIT) 8
+    // (INIT) 16
     // @R2
     0x2,
     // DM=M-1
     0xFC98,
     // @ENDINIT
-    0x14,
-    // D;JLE
-    0xE306,
+    0x1C,
+    // D;JLT
+    0xE304,
     // @R3
     0x3,
     // D=M
@@ -54,10 +72,10 @@ var drawChar = []uint16{
     // M=D     // R3 = R3+48
     0xE308,
     // @INIT
-    0x8,
+    0x10,
     // 0;JMP 
     0xEA87,
-    // (ENDINIT) 20
+    // (ENDINIT) 28
 
     // @R3
     0x3,
@@ -66,8 +84,8 @@ var drawChar = []uint16{
 
     // @i // init location var i, say 0x42
     0x42,
-    // DM=D // i=offset start
-    0xE318,
+    // M=D // i=offset start
+    0xE308,
 
     // @48
     0x30,
@@ -78,15 +96,7 @@ var drawChar = []uint16{
     // M=D // R3 = i+48 (3x16, charsize in ROM)
     0xE308,
 
-    // @0x4000
-    0x4000,
-    // D=A
-    0xEC10,
-    // @screen // init location var screen, say 0x99
-    0x99,
-    // M=D // screen = 0x4000
-    0xE308,
-    // (LOOP) 32
+    // (LOOP) 36
     // @i
     0x42,
     // D=M // D=i
@@ -96,8 +106,8 @@ var drawChar = []uint16{
 
     // D=M-D // D= R3 - i
     0xF1D0,
-    // @END
-    0x36,
+    // @WAIT
+    0x3A,
     // D;JEQ
     0xE302,
     // @i
@@ -106,10 +116,9 @@ var drawChar = []uint16{
     0xFC20,
     // 0;JMP(pcrl) // goto i, which does A=value and then D=A + jmp back to next instr below
     0xAA87,
-    // @screen (we come back here after getting line of A
+    // @screen (we come back here after getting line of A)
     0x99,
     // A=M // A=screen
-    // 1111 1100 0010 0000
     0xFC20,
     // M=D // mem[screen] = linevalue out of ROM
     0xE308,
@@ -121,7 +130,6 @@ var drawChar = []uint16{
     // @i
     0x42,
     // M=D+M
-    // 1111 0000 1000 1000
     0xF088,
     // // screen = screen + 16
     // @16
@@ -133,17 +141,25 @@ var drawChar = []uint16{
     // M=D+M
     0xF088,
     // @LOOP
-    0x20,
+    0x24,
     // 0;JMP // goto LOOP
     0xEA87,
-    // ------------
-    // inf loop is canonical end
-    // (END) 54
-    //      @END
-    0x36,
-    //      0;JMP 1110 1010 1000 0111
+    // (END)
+    // advance screen pointer
+    // @256 
+    0x100,
+    // D=A
+    0xEC10,
+    // @screen
+    0x99,
+    // D=M-D
+    0xF1D0,
+    // M=D+1
+    0xE7C8,
+    0x4,
     0xEA87,
-    // (DEFA) 56
+    // ------------
+    // (DEFA) 65
     0x00, 0xAC10, 0xC7C7,
     0x00, 0xAC10, 0xC7C7,
     0x03C0, 0xAC10, 0xC7C7,
@@ -160,7 +176,42 @@ var drawChar = []uint16{
     0x3C3C, 0xAC10, 0xC7C7,
     0x3C3C, 0xAC10, 0xC7C7,
     0x3C3C, 0xAC10, 0xC7C7,
+    // B
+    0x00, 0xAC10, 0xC7C7,
+    0x00, 0xAC10, 0xC7C7,
+    0x3FFC, 0xAC10, 0xC7C7,
+    0x3FFC, 0xAC10, 0xC7C7,
+    0x0F0F, 0xAC10, 0xC7C7,
+    0x0F0F, 0xAC10, 0xC7C7,
+    0x0F0F, 0xAC10, 0xC7C7,
+    0x0F0F, 0xAC10, 0xC7C7,
+    0x0FFC, 0xAC10, 0xC7C7,
+    0x0FFC, 0xAC10, 0xC7C7,
+    0x0F0F, 0xAC10, 0xC7C7,
+    0x0F0F, 0xAC10, 0xC7C7,
+    0x0F0F, 0xAC10, 0xC7C7,
+    0x0F0F, 0xAC10, 0xC7C7,
+    0x3FFC, 0xAC10, 0xC7C7,
+    0x3FFC, 0xAC10, 0xC7C7,
 }
+
+// 200% version with space-offset
+//                //0x00
+//                //0x00
+//  xxxxxxxxxxxx  //0x3FFC
+//  xxxxxxxxxxxx  //0x3FFC
+//    xxxx    xxxx//0x0F0F
+//    xxxx    xxxx//0x0F0F
+//    xxxx    xxxx//0x0F0F
+//    xxxx    xxxx//0x0F0F
+//    xxxxxxxxxx  //0x0FFC
+//    xxxxxxxxxx  //0x0FFC
+//    xxxx    xxxx//0x0F0F
+//    xxxx    xxxx//0x0F0F
+//    xxxx    xxxx//0x0F0F
+//    xxxx    xxxx//0x0F0F
+//  xxxxxxxxxxxx  //0x3FFC
+//  xxxxxxxxxxxx  //0x3FFC
 
 // 100% version
 //        //0x00
@@ -277,7 +328,6 @@ var drawA = []uint16{
 
 // char values now need to be valid A instructions so need to start with 0
 // hence we change the offset of our characters from space-at-end to start
-// TODO: writes some garbage to screen at start?
 var drawAv2 = []uint16{
     // @32 // def A start
     0x20,
