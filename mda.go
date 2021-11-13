@@ -9,15 +9,21 @@ package main
 // I couldve just written a temp value to memory storing pc...
 // -> still that wouldve been slower
 
-// input: char in R2 (i.e. M[0x2]) (is overwritten in the process
-// uses: @i at 0x42, @screen at 0x99, R3
+// uses: R2, R3 (temp), R4 (@i), R5 (@screen)
+//
+// NOTES: 
+// - screen % 16 = char column (of which there are 16)
+// - ( screen >> 4 ) % 16 = drawline ( 16 per char )
+// - ( screen >> 8 ) % 16 = char row (of which there are 32)
+// - I can do some shifts by masking and subtracting (?)
+// - Im tempted to implement a barrel shifter circuit..
 var drawChar = []uint16{
     // @0x4000
     0x4000,
     // D=A
     0xEC10,
-    // @screen // init location var screen, say 0x99
-    0x99,
+    // @screen
+    0x5,
     // M=D // screen = 0x4000
     0xE308,
 
@@ -28,7 +34,7 @@ var drawChar = []uint16{
     0xFC10,
     // @WAIT
     0x4,
-    // D;JEQ
+    // D;JEQ // loop until keyboard != 0
     0xE302,
 
     // @65
@@ -37,10 +43,10 @@ var drawChar = []uint16{
     0xE4D0,
     // @R2
     0x2,
-    // M=D //R2=keyboard-65
+    // M=D // R2=keyboard-65
     0xE308,
     // @DEFA
-    0x41,
+    0x4B,
     // D=A
     0xEC10,
     // @R3
@@ -50,6 +56,7 @@ var drawChar = []uint16{
 
     // each char takes 16x3 ops space
     // loop R2-65 times to get D=(R2-65)*48
+    // *48 is *3*16 is 3 times << 4
     // (INIT) 16
     // @R2
     0x2,
@@ -75,7 +82,7 @@ var drawChar = []uint16{
     0x10,
     // 0;JMP 
     0xEA87,
-    // (ENDINIT) 28
+    // (ENDINIT) 28 // now R3 = DEFA + (keyboard-65)*48
 
     // @R3
     0x3,
@@ -83,41 +90,19 @@ var drawChar = []uint16{
     0xFC10,
 
     // @i // init location var i, say 0x42
-    0x42,
+    0x4,
     // M=D // i=offset start
     0xE308,
 
-    // @48
-    0x30,
-    // D=D+A
-    0xE090,
-    // @R3
-    0x3,
-    // M=D // R3 = i+48 (3x16, charsize in ROM)
-    0xE308,
-
-    // (LOOP) 36
+    // (LOOP) 32
     // @i
-    0x42,
-    // D=M // D=i
-    0xFC10,
-    // @R3
-    0x3,
-
-    // D=M-D // D= R3 - i
-    0xF1D0,
-    // @WAIT
-    0x3A,
-    // D;JEQ
-    0xE302,
-    // @i
-    0x42,
+    0x4,
     // A=M // A=M;JMP is too risky, conflicting use of A register
     0xFC20,
     // 0;JMP(pcrl) // goto i, which does A=value and then D=A + jmp back to next instr below
     0xAA87,
     // @screen (we come back here after getting line of A)
-    0x99,
+    0x5,
     // A=M // A=screen
     0xFC20,
     // M=D // mem[screen] = linevalue out of ROM
@@ -128,7 +113,7 @@ var drawChar = []uint16{
     // D=A
     0xEC10,
     // @i
-    0x42,
+    0x4,
     // M=D+M
     0xF088,
     // // screen = screen + 16
@@ -137,29 +122,74 @@ var drawChar = []uint16{
     // D=A
     0xEC10,
     // @screen
-    0x99,
-    // M=D+M
+    0x5,
+    // DM=D+M // TODO: seems to set D=D+M but M=M+M+D ?
+    //0xF098,
+    //M=D+M
     0xF088,
+    //D=M
+    0xFC10,
+    // if 0<=screen%256<16, we are done
+    // get screen%256 by masking, ignore last 4 bits and compare to 0
+    0xF0,
+    // D=D&A
+    0xE010,
+
+    // @END
+    0x35,
+    // D;JEQ
+    0xE302,
     // @LOOP
-    0x24,
+    0x20,
     // 0;JMP // goto LOOP
     0xEA87,
-    // (END)
+    // (END) 53
     // advance screen pointer
+    // set screen pointer back up
+    // @screen
+    0x5,
+    // if screen % 16 == 15, add 256-15=241 (linebreak) else add 1
+    // x % 16 == 15 if x+1 % 16 == 0
+    // D=M+1
+    0xFDD0,
+    // @15
+    0xF,
+    // D=D&A
+    0xE010,
+    // @LINEBREAK
+    0x3F,
+    // D;JEQ
+    0xE302,
+    // (ADD1)
+    0x5,
+    // M=M+1
+    0xFDC8,
+    // GOTO BACK
+    0x45,
+    0xEA87,
+    // (LINEBREAK) 63
+    // set lowest 4 bits to 0
+    0x7FF0,
+    // D=A
+    0xEC10,
+    0x5,
+    // M=D&M
+    0xF008,
+    // then add 256 (but those would be removed again in back so just jump to WAIT)
+    0x4,
+    0xEA87,
+    // (BACK) // -256 and goto WAIT // 69
     // @256 
     0x100,
     // D=A
     0xEC10,
-    // @screen
-    0x99,
-    // D=M-D
-    0xF1D0,
-    // M=D+1
-    0xE7C8,
+    0x5,
+    // M=M-D
+    0xF1C8,
     0x4,
     0xEA87,
     // ------------
-    // (DEFA) 65
+    // (DEFA) 75
     0x00, 0xAC10, 0xC7C7,
     0x00, 0xAC10, 0xC7C7,
     0x03C0, 0xAC10, 0xC7C7,

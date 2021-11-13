@@ -16,11 +16,17 @@ func run(computer *Computer) {
     fmt.Println("booting...")
     //fmt.Println("pc: inst| in | ax | dx | out")
     for {
-        //cpu := computer.cpu.(*PCRegisterCPU)
+        cpu := computer.cpu.(*PCRegisterCPU)
         //fmt.Printf("%02d: %04x %04x", cpu.PC(), computer.instr_mem.Out(), cpu.inM)
         computer.ClockTick()
+        /*
+        if cpu.PC() >= 63 && cpu.PC() < 67 {
+            fmt.Printf("%02d: %04x %04x %04x ", cpu.PC(), computer.instr_mem.Out(), cpu.a.Out(), cpu.d.Out())
+            fmt.Printf("%04x\n", computer.data_mem.ram.mem[0x5])
+        }
+        */
         //fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
-        //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x42], computer.data_mem.ram.mem[0x99])
+        //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x4], computer.data_mem.ram.mem[0x5])
         //fmt.Printf(" %04x\n", computer.data_mem.screen.(*Screen256x512).ram.mem[0x42])//, computer.data_mem.ram.mem[0x3])
         //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x3])
         //time.Sleep(1*time.Nanosecond)
