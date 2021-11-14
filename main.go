@@ -58,7 +58,8 @@ func main() {
     interactive := true
     cpu := NewPCRegisterCPU()
     computer := NewComputer(cpu)
-    computer.LoadProgram(NewROM32K(drawChar))
+    program := append(keyboardLoop, drawChar...)
+    computer.LoadProgram(NewROM32K(program))
 
     if interactive {
         go run(computer)
