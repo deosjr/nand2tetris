@@ -100,25 +100,19 @@ func TestPCRegisterCPU(t *testing.T) {
             sequence: func(b *PCRegisterCPU) {
                 b.SendInstr(0x0007) // @7
                 b.ClockTick()
-                //t.Error(b.PC(), b.pcr.Out(), b.pcrl.Out())
                 b.SendInstr(0xAA87) // 0;JMP and switch pcrl
                 b.ClockTick()
-                b.SendInstr(0xEA80) // noop, calculate 0 and dont store nor jump
+                b.SendInstr(0xFFFF) // store highest 16(!)bit value in A
                 b.ClockTick()
-                b.SendInstr(0x7FFF) // store highest 15bit value in A
-                b.ClockTick()
-                b.SendInstr(0xAA80) // noop switching pcrl (could toggle in previous if it wasnt A instr)
-                b.ClockTick()
-                b.SendInstr(0x87C7) // PCR+1;JMPPCR //1000011111000111
-                b.ClockTick()
-                b.SendInstr(0xEA80) // noop
-                b.ClockTick()
+                //b.SendInstr(0xEA80) // noop
+                //b.ClockTick()
+                //t.Error(b.PC(), b.pcr.Out(), b.pcrl.Out(), b.a.Out(), b.WriteM())
             },
-            wantOutM: 0,
+            wantOutM: 1,
             wantWriteM: false,
-            wantAddressM: 32767,
-            wantPC: 3,
-            wantPCR: 10,
+            wantAddressM: 65535,
+            wantPC: 2,
+            wantPCR: 7,
         },
     }{
         cpu := NewPCRegisterCPU()
