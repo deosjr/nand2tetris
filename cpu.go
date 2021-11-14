@@ -93,8 +93,10 @@ func (b *BuiltinCPU) ClockTick() {
     j3 := Not(Xor(jump[2], isPos))
     // j1 and j3 need to match OR j2 matches and j2 = true
     // meaning: either we should be zero and are zero, or match pos/neg correctly
+    // NOTE: fails in the JNE case, so hardcode it and find a nice solution later
     // one of the three above needs to match
-    shouldJump := bool(And(isC, Or(And(j1, j3), And(j2, jump[1]))))
+    jne := And(And(jump[0], And(Not(jump[1]), jump[2])), Not(isZero))
+    shouldJump := bool(And(isC, Or(Or(And(j1, j3), And(j2, jump[1])), jne)))
 
     b.pc.SendIn(outA)
     // we either jump or incr pc, never both
@@ -209,8 +211,10 @@ func (b *PCRegisterCPU) ClockTick() {
     j3 := Not(Xor(jump[2], isPos))
     // j1 and j3 need to match OR j2 matches and j2 = true
     // meaning: either we should be zero and are zero, or match pos/neg correctly
+    // NOTE: fails in the JNE case, so hardcode it and find a nice solution later
     // one of the three above needs to match
-    shouldJump := bool(Or(pcrlout, And(isC, Or(And(j1, j3), And(j2, jump[1])))))
+    jne := And(And(jump[0], And(Not(jump[1]), jump[2])), Not(isZero))
+    shouldJump := bool(Or(pcrlout, And(isC, Or(Or(And(j1, j3), And(j2, jump[1])), jne))))
 
     pcrPlus1 := Add16(toBit16(pcrout), toBit16(1))
     b.pc.SendIn(fromBit16(Mux16(toBit16(outA), pcrPlus1, pcrlout)))

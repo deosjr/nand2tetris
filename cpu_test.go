@@ -38,6 +38,64 @@ func TestBuiltinCPU(t *testing.T) {
             wantAddressM: 7,
             wantPC: 2,
         },
+        {
+            sequence: func(b *BuiltinCPU) {
+                b.SendInstr(0)
+                b.ClockTick()
+                b.SendInstr(0xEC10)
+                b.ClockTick()
+                b.SendInstr(7)
+                b.ClockTick()
+                b.SendInstr(0xE302)
+                b.ClockTick()
+            },
+            wantPC: 7,
+            wantAddressM: 7,
+        },
+        {
+            sequence: func(b *BuiltinCPU) {
+                b.SendInstr(7)
+                b.ClockTick()
+                b.SendInstr(0xEC10)
+                b.ClockTick()
+                b.SendInstr(7)
+                b.ClockTick()
+                b.SendInstr(0xE302)
+                b.ClockTick()
+            },
+            wantPC: 4,
+            wantAddressM: 7,
+            wantOutM: 7,
+        },
+        {
+            sequence: func(b *BuiltinCPU) {
+                b.SendInstr(0)
+                b.ClockTick()
+                b.SendInstr(0xEC10)
+                b.ClockTick()
+                b.SendInstr(7)
+                b.ClockTick()
+                b.SendInstr(0xE305)
+                b.ClockTick()
+            },
+            wantPC: 4,
+            wantAddressM: 7,
+        },
+        {
+            sequence: func(b *BuiltinCPU) {
+                b.SendInstr(7)
+                b.ClockTick()
+                b.SendInstr(0xEC10)
+                b.ClockTick()
+                b.SendInstr(7)
+                b.ClockTick()
+                b.SendInstr(0xE305)
+                b.ClockTick()
+            },
+            wantPC: 7,
+            wantAddressM: 7,
+            wantOutM: 7,
+        },
     }{
         cpu := NewBuiltinCPU()
         tt.sequence(cpu)
