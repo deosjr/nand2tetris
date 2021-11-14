@@ -16,7 +16,7 @@ func run(computer *Computer) {
     fmt.Println("booting...")
     //fmt.Println("pc: inst| in | ax | dx | out")
     for {
-        cpu := computer.cpu.(*PCRegisterCPU)
+        //cpu := computer.cpu.(*PCRegisterCPU)
         //fmt.Printf("%02d: %04x %04x", cpu.PC(), computer.instr_mem.Out(), cpu.inM)
         computer.ClockTick()
         /*
@@ -59,8 +59,6 @@ func main() {
     cpu := NewPCRegisterCPU()
     computer := NewComputer(cpu)
     computer.LoadProgram(NewROM32K(drawChar))
-
-    computer.data_mem.ram.mem[2] = 0x41
 
     if interactive {
         go run(computer)
