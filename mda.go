@@ -45,7 +45,7 @@ var keyboardLoop = []uint16{
     0xEC10, // D=A
     0x0,    // @R0
     0xE308, // M=D // R0=ref
-    0x34,   // @52, first instr after this func (assumed start of drawChar)
+    0x36,   // @54, first instr after this func (assumed start of drawChar)
     0xEA87, // 0;JMP
 
     // (SCRN) 26
@@ -62,7 +62,8 @@ var keyboardLoop = []uint16{
     // (ADD1) 32
     0x5,    // @screen
     0xFDC8, // M=M+1
-    0x2E,   // @DELAY
+    // TODO: if this means we go out of bounds, linebreak instead (?)
+    0x2C,   // @DELAY
     0xEA87, // 0;JMP // goto DELAY
 
     // (LINEBREAK) 36
@@ -76,24 +77,111 @@ var keyboardLoop = []uint16{
     0xEC10, // D=A
     0x5,    // @screen
     0xF088, // M=D+M
-    // TODO: these two lines not needed, falls through
-    0x2E,   // @DELAY
-    0xEA87, // 0;JMP // goto DELAY
 
-    // (DELAY) 46 // wait until keyboard == 0
+    // (DELAY) 44 // wait until keyboard == 0
     0x6000, // @keyboard
     0xFC10, // D=M
-    0x2E,   // @DELAY
+    0x2C,   // @DELAY
     0xE305, // D;JNE // loop until keyboard == 0 
     0x4,    // @WAIT
     0xEA87, // 0;JMP // goto WAIT
+
+    // 4x noop so we end at same level as helloworld
+    0xEA80,
+    0xEA80,
+    0xEA80,
+    0xEA80,
+}
+
+// R0: instr pointer between routines (but lets not invent a complete stackpointer yet)
+// R1: memory pointer starting at 0x1000
+// R5: screenpointer starting at 0x4000
+var helloworld = []uint16{
+    0x0FFF, // @0x1000 - 1, since we start LOOP by incr
+    0xEC10, // D=A
+    0x1,    // @R1
+    0xE308, // M=D // R1 = 0x1000-1
+    0x4000, // @0x4000
+    0xEC10, // D=A
+    0x5,    // @R5
+    0xE308, // M=D // R5 = 0x4000
+
+    // (LOOP) 8
+    // read value from mem
+    0x1,    // @R1
+    // AM=M+1 // TODO: check if not broken, do M=M+1 and A=M instead for now
+    0xFDC8, // M=M+1
+    0xFC20, // A=M
+    0xFC10, // D=M
+    // if D==0 goto END
+    0x34,   // @END
+    0xE302, // D;JEQ
+    // if D==0x80 (ENTER) goto LINEBREAK
+    0x80,   // ascii ENTER
+    0xE4D0, // D=D-A
+    0x2A,   // @LINEBREAK
+    0xE302, // D;JEQ
+    // if D==0x20 (SPACE) goto ADD1
+    0x60,   // 0x80 - 0x20
+    0xE090, // D=D+A
+    0x26,   // @ADD1
+    0xE302, // D;JEQ
+    // otherwise set D back to read value
+    0x20,   // ascii SPACE
+    0xE090, // D=D+A
+
+    // write char
+    0x2,    // @R2
+    0xE308, // M=D // R2=ascii from mem
+    0x20,   // @SCRN
+    0xEC10, // D=A
+    0x0,    // @R0
+    0xE308, // M=D // R0=ref
+    0x36,   // @54, first instr after this func (assumed start of drawChar)
+    0xEA87, // 0;JMP
+
+    // (SCRN) 32
+    // advance screen pointer, set screen pointer back up
+    // if screen % 16 == 15, add 256-15=241 (linebreak) else add 1
+    // x % 16 == 15 if x+1 % 16 == 0
+    0x5,    // @screen
+    0xFDD0, // D=M+1
+    0xF,    // @15
+    0xE010, // D=D&A
+    0x2A,   // @LINEBREAK
+    0xE302, // D;JEQ
+
+    // (ADD1) 38
+    0x5,    // @screen
+    0xFDC8, // M=M+1
+    // TODO: if this means we go out of bounds, linebreak instead (?)
+    0x8,    // @LOOP
+    0xEA87, // 0;JMP // goto LOOP
+
+    // (LINEBREAK) 42
+    // set lowest 4 bits to 0 // sets to start of line
+    0x7FF0, // 0111111111110000 // TODO: first bit cant be 1, will that be a problem? why not?
+    0xEC10, // D=A
+    0x5,    // @screen
+    0xF008, // M=D&M
+    // then add 256 // jumps a char row down
+    0x100,  // @256
+    0xEC10, // D=A
+    0x5,    // @screen
+    0xF088, // M=D+M
+    0x8,    // @LOOP
+    0xEA87, // 0;JMP // goto LOOP
+
+    // (END) 52
+    0x34,   // @END
+    0xEA87, // 0;JMP // goto END
 }
 
 // R0: assumed to store a ref back to caller instruction
 // R2: keyboard readout ascii value
 // uses: R3 (temp), R4 (@i), R5 (@screen)
 // NOTES: 
-// - since drawChar is directly after keyboardLoop, we need to add 52 to each pointer
+// - since drawChar is directly after keyboardLoop, we need to add 54 to each pointer
 // - screen % 16 = char column (of which there are 16)
 // - ( screen >> 4 ) % 16 = drawline ( 16 per char )
 // - ( screen >> 8 ) % 16 = char row (of which there are 32)
@@ -107,17 +195,17 @@ var drawChar = []uint16{
     0xE4D0, // D=D-A
     0x2,    // @R2
     0xE308, // M=D // R2=keyboard-48
-    0x74,   // @DEF0
+    0x76,   // @DEF0
     0xEC10, // D=A
     0x3,    // @R3
-    0xE308, // M=D // R3=DEFA
+    0xE308, // M=D // R3=DEF0
 
     // each char takes 8 ops space
     // loop R2-48 times to get D=(R2-48)*8
-    // (INIT) 10 -> 62
+    // (INIT) 10 -> 64
     0x2,    // @R2
     0xFC98, // DM=M-1
-    0x4A,   // @ENDINIT
+    0x4C,   // @ENDINIT
     0xE304, // D;JLT
     0x3,    // @R3
     0xFC10, // D=M
@@ -125,16 +213,16 @@ var drawChar = []uint16{
     0xE090, // D=D+A
     0x3,    // @R3
     0xE308, // M=D     // R3 = R3+8
-    0x3E,   // @INIT
+    0x40,   // @INIT
     0xEA87, // 0;JMP
 
-    // (ENDINIT) 22 -> 74 // now R3 = DEF0 + (keyboard-48)*8
+    // (ENDINIT) 22 -> 76 // now R3 = DEF0 + (keyboard-48)*8
     0x3,    // @R3
     0xFC10, // D=M // D = start offset char
     0x4,    // @i // init location var i
     0xE308, // M=D // i=offset start
 
-    // (LOOP) 26 -> 78
+    // (LOOP) 26 -> 80
     0x4,    // @i
     0xFC20, // A=M // A=M;JMP is too risky, conflicting use of A register
     0xAA87, // 0;JMP(pcrl) // goto i, which does A=value jmp back to next instr below without touching A!
@@ -170,12 +258,12 @@ var drawChar = []uint16{
     // get screen%256 by masking, ignore last 4 bits and compare to 0
     0xF0,   // 0000000011110000
     0xE010, // D=D&A
-    0x6D,   // @END
+    0x6F,   // @END
     0xE302, // D;JEQ
-    0x4E,   // @LOOP
+    0x50,   // @LOOP
     0xEA87, // 0;JMP // goto LOOP
 
-    // (END) 57 -> 109
+    // (END) 57 -> 111
     // subtract 256 from @screen, setting it back
     0x100,  // @256
     0xEC10, // D=A
@@ -187,7 +275,7 @@ var drawChar = []uint16{
     0xEA87, // 0;JMP // goto SCRN
 
     // ------------
-    // (DEF0) 64 -> 116
+    // (DEF0) 64 -> 118
     // 0
     0x3FF0,
     0xF03C,
@@ -198,23 +286,86 @@ var drawChar = []uint16{
     0x3FF0,
     0x00,
     // 1
-    0,0,0,0,0,0,0,0,
+    0x0F00,
+    0x3F00,
+    0x0F00,
+    0x0F00,
+    0x0F00,
+    0x0F00,
+    0xFFF0,
+    0x00,
     // 2
-    0,0,0,0,0,0,0,0,
+    0x3FC0,
+    0xF0F0,
+    0x00F0,
+    0x0FC0,
+    0x3C00,
+    0xF0F0,
+    0xFFF0,
+    0x00,
     // 3
-    0,0,0,0,0,0,0,0,
+    0x3FC0,
+    0xF0F0,
+    0x00F0,
+    0x0FC0,
+    0x00F0,
+    0xF0F0,
+    0x3FC0,
+    0x00,
     // 4
-    0,0,0,0,0,0,0,0,
-    // 5
-    0,0,0,0,0,0,0,0,
+    0x03F0,
+    0x0FF0,
+    0x3CF0,
+    0xF0F0,
+    0xFFFC,
+    0x00F0,
+    0x03FC,
+    0x00,
+    // 5 
+    0xFFF0,
+    0xF000,
+    0xFFC0,
+    0x00F0,
+    0x00F0,
+    0xF0F0,
+    0x3FC0,
+    0x00,
     // 6
-    0,0,0,0,0,0,0,0,
-    // 7
-    0,0,0,0,0,0,0,0,
-    // 8
-    0,0,0,0,0,0,0,0,
-    // 9
-    0,0,0,0,0,0,0,0,
+    0x0FC0,
+    0x3C00,
+    0xF000,
+    0xFFC0,
+    0xF0F0,
+    0xF0F0,
+    0x3FC0,
+    0x00,
+    // 7 
+    0xFFF0,
+    0xF0F0,
+    0x00F0,
+    0x03C0,
+    0x0F00,
+    0x0F00,
+    0x0F00,
+    0x00,
+    // 8 
+    0x3FC0,
+    0xF0F0,
+    0xF0F0,
+    0x3FC0,
+    0xF0F0,
+    0xF0F0,
+    0x3FC0,
+    0x00,
+    // 9 
+    0x3FC0,
+    0xF0F0,
+    0xF0F0,
+    0x3FF0,
+    0x00F0,
+    0x03C0,
+    0x3F00,
+    0x00,
     // :
     0,0,0,0,0,0,0,0,
     // ;
@@ -283,113 +434,189 @@ var drawChar = []uint16{
     0x3C00,
     0xFF00,
     0x00,
+    // G
+    0x0FF0,
+    0x3C3C,
+    0xF000,
+    0xF000,
+    0xF0FC,
+    0x3C3C,
+    0x0FFC,
+    0x00,
+    // H
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0xFFF0,
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0x00,
+    // I
+    0x3FC0,
+    0x0F00,
+    0x0F00,
+    0x0F00,
+    0x0F00,
+    0x0F00,
+    0x3FC0,
+    0x00,
+    // J
+    0x03FC,
+    0x00F0,
+    0x00F0,
+    0x00F0,
+    0xF0F0,
+    0xF0F0,
+    0x3FC0,
+    0x00,
+    // K
+    0xFC3C,
+    0x3C3C,
+    0x3CF0,
+    0x3FC0,
+    0x3CF0,
+    0x3C3C,
+    0xFC3C,
+    0x00,
+    // L
+    0xFF00,
+    0x3C00,
+    0x3C00,
+    0x3C00,
+    0x3C00,
+    0x3C3C,
+    0xFFFC,
+    0x00,
+    // M
+    0xF03C,
+    0xFCFC,
+    0xFFFC,
+    0xFFFC,
+    0xF33C,
+    0xF03C,
+    0xF03C,
+    0x00,
+    // N
+    0xF03C,
+    0xFC3C,
+    0xFF3C,
+    0xF3FC,
+    0xF0FC,
+    0xF03C,
+    0xF03C,
+    0x00,
+    // O 
+    0x0FC0,
+    0x3CF0,
+    0xF03C,
+    0xF03C,
+    0xF03C,
+    0x3CF0,
+    0x0FC0,
+    0x00,
+    // P
+    0xFFF0,
+    0x3C3C,
+    0x3C3C,
+    0x3FF0,
+    0x3C00,
+    0x3C00,
+    0xFF00,
+    0x00,
+    // Q
+    0x3FC0,
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0xF3F0,
+    0x3FC0,
+    0x03FC,
+    0x00,
+    // R
+    0xFFF0,
+    0x3C3C,
+    0x3C3C,
+    0x3FF0,
+    0x3CF0,
+    0x3C3C,
+    0xFC3C,
+    0x00,
+    // S
+    0x3FC0,
+    0xF0F0,
+    0x3C00,
+    0x0F00,
+    0x03C0,
+    0xF0F0,
+    0x3FC0,
+    0x00,
+    // T
+    0xFFF0,
+    0xCF30,
+    0x0F00,
+    0x0F00,
+    0x0F00,
+    0x0F00,
+    0x3FC0,
+    0x00,
+    // U
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0xFFF0,
+    0x00,
+    // V
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0x3FC0,
+    0x0F00,
+    0x00,
+    // W
+    0xF03C,
+    0xF03C,
+    0xF03C,
+    0xF33C,
+    0xFFFC,
+    0xFCFC,
+    0xF03C,
+    0x00,
+    // X
+    0xF03C,
+    0xF03C,
+    0x3CF0,
+    0x0FC0,
+    0x0FC0,
+    0x3FF0,
+    0xF03C,
+    0x00,
+    // Y
+    0xF0F0,
+    0xF0F0,
+    0xF0F0,
+    0x3FC0,
+    0x0F00,
+    0x0F00,
+    0x3FC0,
+    0x00,
+    // Z
+    0xFFFC,
+    0xF03C,
+    0xC0F0,
+    0x03C0,
+    0x0F0C,
+    0x3C3C,
+    0xFFFC,
+    0x00,
 }
 
-// 200% versions
 
-//    xxxx        //0x0F00
-//    xxxx        //0x0F00
-//  xxxxxxxx      //0x3FC0
-//  xxxxxxxx      //0x3FC0
-//xxxx    xxxx    //0xF0F0
-//xxxx    xxxx    //0xF0F0
-//xxxx    xxxx    //0xF0F0
-//xxxx    xxxx    //0xF0F0
-//xxxxxxxxxxxx    //0xFFF0
-//xxxxxxxxxxxx    //0xFFF0
-//xxxx    xxxx    //0xF0F0
-//xxxx    xxxx    //0xF0F0
-//xxxx    xxxx    //0xF0F0
-//xxxx    xxxx    //0xF0F0
-//                //0x00
-//                //0x00
-
-//xxxxxxxxxxxx    //0xFFF0
-//xxxxxxxxxxxx    //0xFFF0
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxxxxxxxx    //0x3FF0
-//  xxxxxxxxxx    //0x3FF0
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//xxxxxxxxxxxx    //0xFFF0
-//xxxxxxxxxxxx    //0xFFF0
-//                //0x00
-//                //0x00
-
-//    xxxxxxxx    //0x0FF0
-//    xxxxxxxx    //0x0FF0
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//xxxx            //0xF000
-//xxxx            //0xF000
-//xxxx            //0xF000
-//xxxx            //0xF000
-//xxxx            //0xF000
-//xxxx            //0xF000
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//    xxxxxxxx    //0x0FF0
-//    xxxxxxxx    //0x0FF0
-//                //0x00
-//                //0x00
-
-//xxxxxxxxxx      //0xFFC0
-//xxxxxxxxxx      //0xFFC0
-//  xxxx  xxxx    //0x3CF0
-//  xxxx  xxxx    //0x3CF0
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxx    xxxx  //0x3C3C
-//  xxxx  xxxx    //0x3CF0
-//  xxxx  xxxx    //0x3CF0
-//xxxxxxxxxx      //0xFFC0
-//xxxxxxxxxx      //0xFFC0
-//                //0x00
-//                //0x00
-
-//xxxxxxx //0xFFFC
-// xx   x //0x3C0C
-// xx x   //0x3CC0
-// xxxx   //0x3FC0
-// xx x   //0x3CC0
-// xx   x //0x3C0C
-//xxxxxxx //0xFFFC
-//        //0x00
-
-//xxxxxxx //0xFFFC
-// xx   x //0x3C0C
-// xx x   //0x3CC0
-// xxxx   //0x3FC0
-// xx x   //0x3CC0
-// xx     //0x3C00
-//xxxx    //0xFF00
-//        //0x00
-
-// xxxxx  //0x3FF0
-//xx   xx //0xF03C
-//xx  xxx //0xF0FC
-//xx xxxx //0xF3FC
-//xxxx xx //0xFF3C
-//xxx  xx //0xFC3C
-// xxxxx  //0x3FF0
-//        //0x00
-
-//        //0x00
-//        //0x00
-//        //0x00
-//        //0x00
-//        //0x00
-//        //0x00
-//xxxxxx  //0x00
-//        //0x00
 
 //        //0x00
 //        //0x00

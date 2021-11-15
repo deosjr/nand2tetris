@@ -160,21 +160,21 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
     case win.Pressed(pixelgl.KeyR):
         k.reg.SendIn(0x52)
     case win.Pressed(pixelgl.KeyS):
-        k.reg.SendIn(0x52)
-    case win.Pressed(pixelgl.KeyT):
         k.reg.SendIn(0x53)
-    case win.Pressed(pixelgl.KeyU):
+    case win.Pressed(pixelgl.KeyT):
         k.reg.SendIn(0x54)
-    case win.Pressed(pixelgl.KeyV):
+    case win.Pressed(pixelgl.KeyU):
         k.reg.SendIn(0x55)
-    case win.Pressed(pixelgl.KeyW):
+    case win.Pressed(pixelgl.KeyV):
         k.reg.SendIn(0x56)
-    case win.Pressed(pixelgl.KeyX):
+    case win.Pressed(pixelgl.KeyW):
         k.reg.SendIn(0x57)
-    case win.Pressed(pixelgl.KeyY):
+    case win.Pressed(pixelgl.KeyX):
         k.reg.SendIn(0x58)
-    case win.Pressed(pixelgl.KeyZ):
+    case win.Pressed(pixelgl.KeyY):
         k.reg.SendIn(0x59)
+    case win.Pressed(pixelgl.KeyZ):
+        k.reg.SendIn(0x5A)
     case win.Pressed(pixelgl.KeySpace):
         k.reg.SendIn(0x20)
     case win.Pressed(pixelgl.KeyEnter):

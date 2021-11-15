@@ -8,12 +8,33 @@ import (
     "github.com/faiface/pixel/pixelgl"
 )
 
+var headless = false
+
+//var program = append(keyboardLoop, drawChar...)
+var program = append(helloworld, drawChar...)
+
 // maybe take an output func that prints to terminal?
 func run(computer *Computer) {
     computer.SendReset(true)
     computer.ClockTick()
     computer.SendReset(false)
     fmt.Println("booting...")
+
+    // set test data in ram
+    ram := computer.data_mem.ram
+    ram.mem[0x1] = 0x0FFF
+    ram.mem[0x1000] = 0x48
+    ram.mem[0x1001] = 0x45
+    ram.mem[0x1002] = 0x4C
+    ram.mem[0x1003] = 0x4C
+    ram.mem[0x1004] = 0x4F
+    ram.mem[0x1005] = 0x20
+    ram.mem[0x1006] = 0x57
+    ram.mem[0x1007] = 0x4F
+    ram.mem[0x1008] = 0x52
+    ram.mem[0x1009] = 0x4C
+    ram.mem[0x100A] = 0x44
+
     //fmt.Println("pc: inst| in | ax | dx | out")
     for {
         //cpu := computer.cpu.(*PCRegisterCPU)
@@ -29,7 +50,7 @@ func run(computer *Computer) {
         //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x4], computer.data_mem.ram.mem[0x5])
         //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x3])
         time.Sleep(1*time.Nanosecond)
-        //time.Sleep(1*time.Millisecond)
+        //time.Sleep(100*time.Millisecond)
     }
 }
 
@@ -54,16 +75,14 @@ func runPeripherals(computer *Computer) func() {
 }
 
 func main() {
-    interactive := true
     cpu := NewPCRegisterCPU()
     computer := NewComputer(cpu)
-    program := append(keyboardLoop, drawChar...)
     computer.LoadProgram(NewROM32K(program))
 
-    if interactive {
+    if headless {
+        run(computer)
+    } else {
         go run(computer)
         pixelgl.Run(runPeripherals(computer))
-    } else {
-        run(computer)
     }
 }
