@@ -101,6 +101,10 @@ func (k *SimpleKeyboard) ClockTick() {
     k.reg.ClockTick()
 }
 
+func shift(win *pixelgl.Window) bool {
+    return win.Pressed(pixelgl.KeyLeftShift) || win.Pressed(pixelgl.KeyRightShift)
+}
+
 func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
     switch {
     case win.Pressed(pixelgl.Key0):
@@ -123,6 +127,12 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
         k.reg.SendIn(0x38)
     case win.Pressed(pixelgl.Key9):
         k.reg.SendIn(0x39)
+    case win.Pressed(pixelgl.KeyEqual):
+        if shift(win) {
+            k.reg.SendIn(0x2B)
+        } else {
+            k.reg.SendIn(0x3D)
+        }
     case win.Pressed(pixelgl.KeyA):
         k.reg.SendIn(0x41)
     case win.Pressed(pixelgl.KeyB):

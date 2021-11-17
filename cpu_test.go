@@ -192,3 +192,44 @@ func TestPCRegisterCPU(t *testing.T) {
         }
     }
 }
+
+func TestBarrelShiftCPU(t *testing.T) {
+    for i, tt := range []struct{
+        sequence func(*BarrelShiftCPU)
+        wantOutM uint16
+        wantWriteM bool
+        wantAddressM uint16
+        wantPC uint16
+    }{
+        {
+            sequence: func(b *BarrelShiftCPU) {
+                b.SendInstr(0x0007) // @7
+                b.ClockTick()
+                b.SendInstr(0xC280) // << 5
+                b.ClockTick()
+                //b.SendInstr(0xEA80) // noop
+                //b.ClockTick()
+                //t.Error(b.PC(), b.pcr.Out(), b.pcrl.Out(), b.a.Out(), b.WriteM())
+            },
+            wantOutM: 224,
+            wantWriteM: false,
+            wantAddressM: 7,
+            wantPC: 2,
+        },
+    }{
+        cpu := NewBarrelShiftCPU()
+        tt.sequence(cpu)
+        if cpu.OutM() != tt.wantOutM {
+            t.Errorf("%d) got %d but wantOutM %d", i, cpu.OutM(), tt.wantOutM)
+        }
+        if cpu.WriteM() != tt.wantWriteM {
+            t.Errorf("%d) got %t but wantWriteM %t", i, cpu.WriteM(), tt.wantWriteM)
+        }
+        if cpu.AddressM() != tt.wantAddressM {
+            t.Errorf("%d) got %d but wantAddressM %d", i, cpu.AddressM(), tt.wantAddressM)
+        }
+        if cpu.PC() != tt.wantPC {
+            t.Errorf("%d) got %d but wantPC %d", i, cpu.PC(), tt.wantPC)
+        }
+    }
+}

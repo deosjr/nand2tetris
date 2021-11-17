@@ -1,6 +1,7 @@
 package main
 
 import (
+    "math/bits"
     "math/rand"
     "testing"
     "time"
@@ -136,6 +137,20 @@ func TestAlu(t *testing.T) {
             if ng != (got<0) {
                 t.Errorf("expected ng to match out: %t %d", ng, got)
             }
+        }
+    }
+}
+
+func TestShift(t *testing.T) {
+    for i:=0; i<10; i++ {
+        in := uint16(rand.Intn(65536))
+        n := uint16(rand.Intn(16))
+        n16 := toBit16(n)
+        n4 := [4]bit{n16[12], n16[13], n16[14], n16[15]}
+        got := fromBit16(Shift(toBit16(in), n4))
+        want := bits.RotateLeft16(in, int(n))
+        if got != want {
+            t.Errorf("got %d but want %d", got, want)
         }
     }
 }

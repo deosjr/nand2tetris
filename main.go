@@ -10,8 +10,9 @@ import (
 
 var headless = false
 
+var program = append(writeHex, drawChar...)
+//var program = append(helloworld, drawChar...)
 //var program = append(keyboardLoop, drawChar...)
-var program = append(helloworld, drawChar...)
 
 // maybe take an output func that prints to terminal?
 func run(computer *Computer) {
@@ -22,7 +23,8 @@ func run(computer *Computer) {
 
     // set test data in ram
     ram := computer.data_mem.ram
-    ram.mem[0x1] = 0x0FFF
+    ram.mem[0x1000] = 0x7345
+    /*
     ram.mem[0x1000] = 0x48
     ram.mem[0x1001] = 0x45
     ram.mem[0x1002] = 0x4C
@@ -34,16 +36,17 @@ func run(computer *Computer) {
     ram.mem[0x1008] = 0x52
     ram.mem[0x1009] = 0x4C
     ram.mem[0x100A] = 0x44
+    */
 
     //fmt.Println("pc: inst| in | ax | dx | out")
     for {
-        //cpu := computer.cpu.(*PCRegisterCPU)
+        //cpu := computer.cpu.(*BarrelShiftCPU)
         //fmt.Printf("%02d: %04x %04x", cpu.PC(), computer.instr_mem.Out(), cpu.inM)
         computer.ClockTick()
         /*
-        if cpu.PC() >= 63 && cpu.PC() < 67 {
+        if cpu.PC() >= 0 && cpu.PC() < 30 {
             fmt.Printf("%02d: %04x %04x %04x ", cpu.PC(), computer.instr_mem.Out(), cpu.a.Out(), cpu.d.Out())
-            fmt.Printf("%04x\n", computer.data_mem.ram.mem[0x5])
+            fmt.Printf("%04x\n", computer.data_mem.ram.mem[0x2])
         }
         */
         //fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
@@ -75,7 +78,7 @@ func runPeripherals(computer *Computer) func() {
 }
 
 func main() {
-    cpu := NewPCRegisterCPU()
+    cpu := NewBarrelShiftCPU()
     computer := NewComputer(cpu)
     computer.LoadProgram(NewROM32K(program))
 
