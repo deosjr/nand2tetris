@@ -114,33 +114,28 @@ var helloworld = []uint16{
     0xFC20, // A=M
     0xFC10, // D=M
     // if D==0 goto END
-    0x34,   // @END
+    0x30,   // @END
     0xE302, // D;JEQ
     // if D==0x80 (ENTER) goto LINEBREAK
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
     0x2A,   // @LINEBREAK
     0xE302, // D;JEQ
-    // if D==0x20 (SPACE) goto ADD1
-    0x60,   // 0x80 - 0x20
-    0xE090, // D=D+A
-    0x26,   // @ADD1
-    0xE302, // D;JEQ
     // otherwise set D back to read value
-    0x20,   // ascii SPACE
+    0x80,   // ascii ENTER
     0xE090, // D=D+A
 
     // write char
     0x2,    // @R2
     0xE308, // M=D // R2=ascii from mem
-    0x20,   // @SCRN
+    0x1C,   // @SCRN
     0xEC10, // D=A
     0x0,    // @R0
     0xE308, // M=D // R0=ref
     0x36,   // @54, first instr after this func (assumed start of drawChar)
     0xEA87, // 0;JMP
 
-    // (SCRN) 32
+    // (SCRN) 28
     // advance screen pointer, set screen pointer back up
     // if screen % 16 == 15, add 256-15=241 (linebreak) else add 1
     // x % 16 == 15 if x+1 % 16 == 0
@@ -148,17 +143,17 @@ var helloworld = []uint16{
     0xFDD0, // D=M+1
     0xF,    // @15
     0xE010, // D=D&A
-    0x2A,   // @LINEBREAK
+    0x26,   // @LINEBREAK
     0xE302, // D;JEQ
 
-    // (ADD1) 38
+    // (ADD1) 34
     0x5,    // @screen
     0xFDC8, // M=M+1
     // TODO: if this means we go out of bounds, linebreak instead (?)
     0x8,    // @LOOP
     0xEA87, // 0;JMP // goto LOOP
 
-    // (LINEBREAK) 42
+    // (LINEBREAK) 38
     // set lowest 4 bits to 0 // sets to start of line
     0x7FF0, // 0111111111110000 // TODO: first bit cant be 1, will that be a problem? why not?
     0xEC10, // D=A
@@ -172,9 +167,14 @@ var helloworld = []uint16{
     0x8,    // @LOOP
     0xEA87, // 0;JMP // goto LOOP
 
-    // (END) 52
-    0x34,   // @END
+    // (END) 48
+    0x30,   // @END
     0xEA87, // 0;JMP // goto END
+    // noops
+    0xEA80,
+    0xEA80,
+    0xEA80,
+    0xEA80,
 }
 
 // R0: assumed to store a ref back to caller instruction
@@ -187,8 +187,8 @@ var helloworld = []uint16{
 // - ( screen >> 8 ) % 16 = char row (of which there are 32)
 var drawChar = []uint16{
 
-    // lets calculate D=DEF0 + (8*(R2-43)), where *8 is <<3
-    0x2B,   // @43
+    // lets calculate D=DEF0 + (8*(R2-32)), where *8 is <<3
+    0x20,   // @32
     0xEC10, // D=A
     0x2,    // @R2
     0xF1D0, // D=M-D
@@ -252,6 +252,35 @@ var drawChar = []uint16{
 
     // ------------
     // (DEF0) 47 -> 101
+    // space
+    0,0,0,0,0,0,0,0,
+    // !
+    0x0F00,
+    0x3FC0,
+    0x3FC0,
+    0x0F00,
+    0x0F00,
+    0x00,
+    0x0F00,
+    0x00,
+    // "
+    0,0,0,0,0,0,0,0,
+    // #
+    0,0,0,0,0,0,0,0,
+    // $
+    0,0,0,0,0,0,0,0,
+    // %
+    0,0,0,0,0,0,0,0,
+    // &
+    0,0,0,0,0,0,0,0,
+    // '
+    0,0,0,0,0,0,0,0,
+    // (
+    0,0,0,0,0,0,0,0,
+    // )
+    0,0,0,0,0,0,0,0,
+    // *
+    0,0,0,0,0,0,0,0,
     // +
     0x00,
     0x0F00,
@@ -362,7 +391,14 @@ var drawChar = []uint16{
     // :
     0,0,0,0,0,0,0,0,
     // ;
-    0,0,0,0,0,0,0,0,
+    0x00,
+    0x0F00,
+    0x0F00,
+    0x00,
+    0x0F00,
+    0x0F00,
+    0x3C00,
+    0x00,
     // <
     0,0,0,0,0,0,0,0,
     // =
@@ -379,7 +415,14 @@ var drawChar = []uint16{
     // ?
     0,0,0,0,0,0,0,0,
     // @
-    0,0,0,0,0,0,0,0,
+    0x3FF0,
+    0xF03C,
+    0xF3FC,
+    0xF3FC,
+    0xF3FC,
+    0xF000,
+    0x3FC0,
+    0x00,
     // A
     0x0F00,
     0x3FC0,

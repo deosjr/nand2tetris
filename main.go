@@ -23,8 +23,6 @@ func run(computer *Computer) {
 
     // set test data in ram
     ram := computer.data_mem.ram
-    ram.mem[0x1000] = 0x7345
-    /*
     ram.mem[0x1000] = 0x48
     ram.mem[0x1001] = 0x45
     ram.mem[0x1002] = 0x4C
@@ -36,7 +34,7 @@ func run(computer *Computer) {
     ram.mem[0x1008] = 0x52
     ram.mem[0x1009] = 0x4C
     ram.mem[0x100A] = 0x44
-    */
+    ram.mem[0x100B] = 0x21
 
     //fmt.Println("pc: inst| in | ax | dx | out")
     for {
@@ -44,9 +42,9 @@ func run(computer *Computer) {
         //fmt.Printf("%02d: %04x %04x", cpu.PC(), computer.instr_mem.Out(), cpu.inM)
         computer.ClockTick()
         /*
-        if cpu.PC() >= 0 && cpu.PC() < 30 {
+        if cpu.PC() >= 0 && cpu.PC() < 40 {
             fmt.Printf("%02d: %04x %04x %04x ", cpu.PC(), computer.instr_mem.Out(), cpu.a.Out(), cpu.d.Out())
-            fmt.Printf("%04x\n", computer.data_mem.ram.mem[0x2])
+            fmt.Printf("%04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x7])
         }
         */
         //fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())

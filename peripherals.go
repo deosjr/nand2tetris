@@ -110,9 +110,17 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
     case win.Pressed(pixelgl.Key0):
         k.reg.SendIn(0x30)
     case win.Pressed(pixelgl.Key1):
-        k.reg.SendIn(0x31)
+        if shift(win) {
+            k.reg.SendIn(0x21)
+        } else {
+            k.reg.SendIn(0x31)
+        }
     case win.Pressed(pixelgl.Key2):
-        k.reg.SendIn(0x32)
+        if shift(win) {
+            k.reg.SendIn(0x40)
+        } else {
+            k.reg.SendIn(0x32)
+        }
     case win.Pressed(pixelgl.Key3):
         k.reg.SendIn(0x33)
     case win.Pressed(pixelgl.Key4):
@@ -127,6 +135,8 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
         k.reg.SendIn(0x38)
     case win.Pressed(pixelgl.Key9):
         k.reg.SendIn(0x39)
+    case win.Pressed(pixelgl.KeySemicolon):
+        k.reg.SendIn(0x3B)
     case win.Pressed(pixelgl.KeyEqual):
         if shift(win) {
             k.reg.SendIn(0x2B)
