@@ -19,21 +19,21 @@ var keyboardLoop = []uint16{
     0x5,    // @screen
     0xE308, // M=D // screen = 0x4000
 
-    // (WAIT) 4
+    // (WAIT) 4 + 809 = 813
     0x6000, // @keyboard
     0xFC10, // D=M
-    0x4,    // @WAIT
+    0x32D,  // @WAIT
     0xE302, // D;JEQ // loop until keyboard != 0
 
     // if D==0x80 (ENTER) goto LINEBREAK
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0x24,   // @LINEBREAK
+    0x34D,  // @LINEBREAK
     0xE302, // D;JEQ
     // if D==0x20 (SPACE) goto ADD1
     0x60,   // 0x80 - 0x20
     0xE090, // D=D+A
-    0x20,   // @ADD1
+    0x349,  // @ADD1
     0xE302, // D;JEQ
     // otherwise set D back to read value
     0x20,   // ascii SPACE
@@ -41,14 +41,14 @@ var keyboardLoop = []uint16{
 
     0x2,    // @R2
     0xE308, // M=D // R2=keyboard
-    0x1A,   // @SCRN
+    0x343,  // @SCRN
     0xEC10, // D=A
     0x0,    // @R0
     0xE308, // M=D // R0=ref
-    0x36,   // @54, first instr after this func (assumed start of drawChar)
+    0x2,    // @2 (start of drawChar)
     0xEA87, // 0;JMP
 
-    // (SCRN) 26
+    // (SCRN) 26 + 809 = 835
     // advance screen pointer, set screen pointer back up
     // if screen % 16 == 15, add 256-15=241 (linebreak) else add 1
     // x % 16 == 15 if x+1 % 16 == 0
@@ -56,17 +56,17 @@ var keyboardLoop = []uint16{
     0xFDD0, // D=M+1
     0xF,    // @15
     0xE010, // D=D&A
-    0x24,   // @LINEBREAK
+    0x34D,  // @LINEBREAK
     0xE302, // D;JEQ
 
-    // (ADD1) 32
+    // (ADD1) 32 + 809 = 841
     0x5,    // @screen
     0xFDC8, // M=M+1
     // TODO: if this means we go out of bounds, linebreak instead (?)
-    0x2C,   // @DELAY
+    0x355,  // @DELAY
     0xEA87, // 0;JMP // goto DELAY
 
-    // (LINEBREAK) 36
+    // (LINEBREAK) 36 + 809 = 845
     // set lowest 4 bits to 0 // sets to start of line
     0x7FF0, // 0111111111110000 // TODO: first bit cant be 1, will that be a problem? why not?
     0xEC10, // D=A
@@ -78,19 +78,13 @@ var keyboardLoop = []uint16{
     0x5,    // @screen
     0xF088, // M=D+M
 
-    // (DELAY) 44 // wait until keyboard == 0
+    // (DELAY) 44 + 809 = 853
     0x6000, // @keyboard
     0xFC10, // D=M
-    0x2C,   // @DELAY
+    0x355,  // @DELAY
     0xE305, // D;JNE // loop until keyboard == 0 
-    0x4,    // @WAIT
+    0x32D,  // @WAIT
     0xEA87, // 0;JMP // goto WAIT
-
-    // 4x noop so we end at same level as helloworld
-    0xEA80,
-    0xEA80,
-    0xEA80,
-    0xEA80,
 }
 
 // R0: instr pointer between routines (but lets not invent a complete stackpointer yet)
@@ -106,7 +100,7 @@ var helloworld = []uint16{
     0x5,    // @R5
     0xE308, // M=D // R5 = 0x4000
 
-    // (LOOP) 8
+    // (LOOP) 8 + 809 = 817
     // read value from mem
     0x1,    // @R1
     // AM=M+1 // TODO: check if not broken, do M=M+1 and A=M instead for now
@@ -114,12 +108,12 @@ var helloworld = []uint16{
     0xFC20, // A=M
     0xFC10, // D=M
     // if D==0 goto END
-    0x30,   // @END
+    0x359,  // @END
     0xE302, // D;JEQ
     // if D==0x80 (ENTER) goto LINEBREAK
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0x2A,   // @LINEBREAK
+    0x34F,  // @LINEBREAK
     0xE302, // D;JEQ
     // otherwise set D back to read value
     0x80,   // ascii ENTER
@@ -128,14 +122,14 @@ var helloworld = []uint16{
     // write char
     0x2,    // @R2
     0xE308, // M=D // R2=ascii from mem
-    0x1C,   // @SCRN
+    0x345,  // @SCRN
     0xEC10, // D=A
     0x0,    // @R0
     0xE308, // M=D // R0=ref
-    0x36,   // @54, first instr after this func (assumed start of drawChar)
+    0x2,    // @2, start of drawChar
     0xEA87, // 0;JMP
 
-    // (SCRN) 28
+    // (SCRN) 28 + 809 = 837
     // advance screen pointer, set screen pointer back up
     // if screen % 16 == 15, add 256-15=241 (linebreak) else add 1
     // x % 16 == 15 if x+1 % 16 == 0
@@ -143,17 +137,17 @@ var helloworld = []uint16{
     0xFDD0, // D=M+1
     0xF,    // @15
     0xE010, // D=D&A
-    0x26,   // @LINEBREAK
+    0x34F,  // @LINEBREAK
     0xE302, // D;JEQ
 
     // (ADD1) 34
     0x5,    // @screen
     0xFDC8, // M=M+1
     // TODO: if this means we go out of bounds, linebreak instead (?)
-    0x8,    // @LOOP
+    0x331,   // @LOOP
     0xEA87, // 0;JMP // goto LOOP
 
-    // (LINEBREAK) 38
+    // (LINEBREAK) 38 + 809 = 847
     // set lowest 4 bits to 0 // sets to start of line
     0x7FF0, // 0111111111110000 // TODO: first bit cant be 1, will that be a problem? why not?
     0xEC10, // D=A
@@ -164,24 +158,19 @@ var helloworld = []uint16{
     0xEC10, // D=A
     0x5,    // @screen
     0xF088, // M=D+M
-    0x8,    // @LOOP
+    0x331,   // @LOOP
     0xEA87, // 0;JMP // goto LOOP
 
-    // (END) 48
-    0x30,   // @END
+    // (END) 48 + 809 = 857
+    0x359,  // @END
     0xEA87, // 0;JMP // goto END
-    // noops
-    0xEA80,
-    0xEA80,
-    0xEA80,
-    0xEA80,
 }
 
 // R0: assumed to store a ref back to caller instruction
 // R2: keyboard readout ascii value
 // uses: R4 (@i), R5 (@screen)
 // NOTES: 
-// - since drawChar is directly after keyboardLoop, we need to add 54 to each pointer
+// - length: 807 instructions. each pointer +2 because of jmp at start of ROM
 // - screen % 16 = char column (of which there are 16)
 // - ( screen >> 4 ) % 16 = drawline ( 16 per char )
 // - ( screen >> 8 ) % 16 = char row (of which there are 32)
@@ -193,12 +182,12 @@ var drawChar = []uint16{
     0x2,    // @R2
     0xF1D0, // D=M-D
     0xC990, // D=D<<3 // not safe if offset too big
-    0x65,   // @DEF0
+    0x31,   // @DEF0
     0xE090, // D=D+A
     0x4,    // @i // init location var i
     0xE308, // M=D // i=offset start
 
-    // (LOOP) 9 -> 63
+    // (LOOP) 9 -> 11
     0x4,    // @i
     0xFC20, // A=M // A=M;JMP is too risky, conflicting use of A register
     0xAA87, // 0;JMP(pcrl) // goto i, which does A=value jmp back to next instr below without touching A!
@@ -234,12 +223,12 @@ var drawChar = []uint16{
     // get screen%256 by masking, ignore last 4 bits and compare to 0
     0xF0,   // 0000000011110000
     0xE010, // D=D&A
-    0x5E,   // @END
+    0x2A,   // @END
     0xE302, // D;JEQ
-    0x3F,   // @LOOP
+    0xB,    // @LOOP
     0xEA87, // 0;JMP // goto LOOP
 
-    // (END) 40 -> 94
+    // (END) 40 -> 42
     // subtract 256 from @screen, setting it back
     0x100,  // @256
     0xEC10, // D=A
@@ -251,7 +240,7 @@ var drawChar = []uint16{
     0xEA87, // 0;JMP // goto SCRN
 
     // ------------
-    // (DEF0) 47 -> 101
+    // (DEF0) 47 -> 49
     // space
     0,0,0,0,0,0,0,0,
     // !
@@ -657,6 +646,78 @@ var drawChar = []uint16{
     0x3C3C,
     0xFFFC,
     0x00,
+    // [
+    0,0,0,0,0,0,0,0,
+    // \
+    0,0,0,0,0,0,0,0,
+    // ]
+    0,0,0,0,0,0,0,0,
+    // ^
+    0,0,0,0,0,0,0,0,
+    // _
+    0,0,0,0,0,0,0,0,
+    // `
+    0,0,0,0,0,0,0,0,
+    // a
+    0,0,0,0,0,0,0,0,
+    // b
+    0,0,0,0,0,0,0,0,
+    // c
+    0,0,0,0,0,0,0,0,
+    // d
+    0,0,0,0,0,0,0,0,
+    // e
+    0,0,0,0,0,0,0,0,
+    // f
+    0,0,0,0,0,0,0,0,
+    // g
+    0,0,0,0,0,0,0,0,
+    // h
+    0,0,0,0,0,0,0,0,
+    // i
+    0,0,0,0,0,0,0,0,
+    // j
+    0,0,0,0,0,0,0,0,
+    // k
+    0,0,0,0,0,0,0,0,
+    // l
+    0,0,0,0,0,0,0,0,
+    // m
+    0,0,0,0,0,0,0,0,
+    // n
+    0,0,0,0,0,0,0,0,
+    // o
+    0,0,0,0,0,0,0,0,
+    // p
+    0,0,0,0,0,0,0,0,
+    // q
+    0,0,0,0,0,0,0,0,
+    // r
+    0,0,0,0,0,0,0,0,
+    // s
+    0,0,0,0,0,0,0,0,
+    // t
+    0,0,0,0,0,0,0,0,
+    // u
+    0,0,0,0,0,0,0,0,
+    // v
+    0,0,0,0,0,0,0,0,
+    // w
+    0,0,0,0,0,0,0,0,
+    // x
+    0,0,0,0,0,0,0,0,
+    // y
+    0,0,0,0,0,0,0,0,
+    // z
+    0,0,0,0,0,0,0,0,
+    // {
+    0,0,0,0,0,0,0,0,
+    // |
+    0,0,0,0,0,0,0,0,
+    // }
+    0,0,0,0,0,0,0,0,
+    // ~
+    0,0,0,0,0,0,0,0,
 }
 
 
