@@ -14,6 +14,7 @@ var headless = false
 var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), helloworld...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), keyboardLoop...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), writeHex...)
+//var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), assembleStatement...)
 
 // maybe take an output func that prints to terminal?
 func run(computer *Computer) {
@@ -24,6 +25,17 @@ func run(computer *Computer) {
 
     // set test data in ram
     ram := computer.data_mem.ram
+    // M=D;JMP
+    /*
+    ram.mem[0x1000] = 0x4D
+    ram.mem[0x1001] = 0x3D
+    ram.mem[0x1002] = 0x44
+    ram.mem[0x1003] = 0x3B
+    ram.mem[0x1004] = 0x4A
+    ram.mem[0x1005] = 0x4D
+    ram.mem[0x1006] = 0x50
+    */
+    // HELLO WORLD!
     ram.mem[0x1000] = 0x48
     ram.mem[0x1001] = 0x45
     ram.mem[0x1002] = 0x4C
@@ -50,9 +62,9 @@ func run(computer *Computer) {
         */
         //fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
         //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x4], computer.data_mem.ram.mem[0x5])
-        //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x3])
+        //fmt.Printf(" %04x %04x %04x\n", computer.data_mem.ram.mem[0x0], computer.data_mem.ram.mem[0x10], computer.data_mem.ram.mem[0x11])
         time.Sleep(1*time.Nanosecond)
-        //time.Sleep(100*time.Millisecond)
+        //time.Sleep(10*time.Millisecond)
     }
 }
 

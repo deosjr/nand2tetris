@@ -28,104 +28,27 @@ var keyboardLoop = []uint16{
     // if D==0x80 (ENTER) goto LINEBREAK
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0x34D,  // @LINEBREAK
+    0x34F,  // @LINEBREAK
     0xE302, // D;JEQ
     // if D==0x20 (SPACE) goto ADD1
     0x60,   // 0x80 - 0x20
     0xE090, // D=D+A
-    0x349,  // @ADD1
+    0x34B,  // @ADD1
     0xE302, // D;JEQ
     // otherwise set D back to read value
     0x20,   // ascii SPACE
     0xE090, // D=D+A
 
-    0x2,    // @R2
-    0xE308, // M=D // R2=keyboard
-    0x343,  // @SCRN
-    0xEC10, // D=A
-    0x0,    // @R0
-    0xE308, // M=D // R0=ref
-    0x2,    // @2 (start of drawChar)
-    0xEA87, // 0;JMP
-
-    // (SCRN) 26 + 809 = 835
-    // advance screen pointer, set screen pointer back up
-    // if screen % 16 == 15, add 256-15=241 (linebreak) else add 1
-    // x % 16 == 15 if x+1 % 16 == 0
-    0x5,    // @screen
-    0xFDD0, // D=M+1
-    0xF,    // @15
-    0xE010, // D=D&A
-    0x34D,  // @LINEBREAK
-    0xE302, // D;JEQ
-
-    // (ADD1) 32 + 809 = 841
-    0x5,    // @screen
-    0xFDC8, // M=M+1
-    // TODO: if this means we go out of bounds, linebreak instead (?)
-    0x355,  // @DELAY
-    0xEA87, // 0;JMP // goto DELAY
-
-    // (LINEBREAK) 36 + 809 = 845
-    // set lowest 4 bits to 0 // sets to start of line
-    0x7FF0, // 0111111111110000 // TODO: first bit cant be 1, will that be a problem? why not?
-    0xEC10, // D=A
-    0x5,    // @screen
-    0xF008, // M=D&M
-    // then add 256 // jumps a char row down
-    0x100,  // @256
-    0xEC10, // D=A
-    0x5,    // @screen
-    0xF088, // M=D+M
-
-    // (DELAY) 44 + 809 = 853
-    0x6000, // @keyboard
-    0xFC10, // D=M
-    0x355,  // @DELAY
-    0xE305, // D;JNE // loop until keyboard == 0 
-    0x32D,  // @WAIT
-    0xEA87, // 0;JMP // goto WAIT
-}
-
-// R0: instr pointer between routines (but lets not invent a complete stackpointer yet)
-// R1: memory pointer starting at 0x1000
-// R5: screenpointer starting at 0x4000
-var helloworld = []uint16{
-    0x0FFF, // @0x1000 - 1, since we start LOOP by incr
-    0xEC10, // D=A
-    0x1,    // @R1
-    0xE308, // M=D // R1 = 0x1000-1
-    0x4000, // @0x4000
-    0xEC10, // D=A
-    0x5,    // @R5
-    0xE308, // M=D // R5 = 0x4000
-
-    // (LOOP) 8 + 809 = 817
-    // read value from mem
-    0x1,    // @R1
-    // AM=M+1 // TODO: check if not broken, do M=M+1 and A=M instead for now
-    0xFDC8, // M=M+1
-    0xFC20, // A=M
-    0xFC10, // D=M
-    // if D==0 goto END
-    0x359,  // @END
-    0xE302, // D;JEQ
-    // if D==0x80 (ENTER) goto LINEBREAK
-    0x80,   // ascii ENTER
-    0xE4D0, // D=D-A
-    0x34F,  // @LINEBREAK
-    0xE302, // D;JEQ
-    // otherwise set D back to read value
-    0x80,   // ascii ENTER
-    0xE090, // D=D+A
-
     // write char
     0x2,    // @R2
     0xE308, // M=D // R2=ascii from mem
+    // set MEM[R0] to SCRN, set R0 to R0+1
     0x345,  // @SCRN
     0xEC10, // D=A
     0x0,    // @R0
-    0xE308, // M=D // R0=ref
+    0xFDC8, // M=M+1
+    0xFCA0, // A=M-1
+    0xE308, // M=D
     0x2,    // @2, start of drawChar
     0xEA87, // 0;JMP
 
@@ -140,12 +63,12 @@ var helloworld = []uint16{
     0x34F,  // @LINEBREAK
     0xE302, // D;JEQ
 
-    // (ADD1) 34
+    // (ADD1) 34 + 809 = 843
     0x5,    // @screen
     0xFDC8, // M=M+1
     // TODO: if this means we go out of bounds, linebreak instead (?)
-    0x331,   // @LOOP
-    0xEA87, // 0;JMP // goto LOOP
+    0x357,  // @DELAY
+    0xEA87, // 0;JMP // goto DELAY
 
     // (LINEBREAK) 38 + 809 = 847
     // set lowest 4 bits to 0 // sets to start of line
@@ -158,11 +81,97 @@ var helloworld = []uint16{
     0xEC10, // D=A
     0x5,    // @screen
     0xF088, // M=D+M
-    0x331,   // @LOOP
+
+    // (DELAY) 46 + 809 = 855
+    0x6000, // @keyboard
+    0xFC10, // D=M
+    0x357,  // @DELAY
+    0xE305, // D;JNE // loop until keyboard == 0 
+    0x32D,  // @WAIT
+    0xEA87, // 0;JMP // goto WAIT
+}
+
+// R0: stack pointer
+// R1: memory pointer starting at 0x1000
+// R5: screenpointer starting at 0x4000
+var helloworld = []uint16{
+    0x10,   // @0x10
+    0xEC10, // D=A
+    0x0,    // @R0
+    0xE308, // M=D
+    0x0FFF, // @0x1000 - 1, since we start LOOP by incr
+    0xEC10, // D=A
+    0x1,    // @R1
+    0xE308, // M=D // R1 = 0x1000-1
+    0x4000, // @0x4000
+    0xEC10, // D=A
+    0x5,    // @R5
+    0xE308, // M=D // R5 = 0x4000
+
+    // (LOOP) 12 + 809 = 821
+    // read value from mem
+    0x1,    // @R1
+    0xFDE8, // AM=M+1
+    0xFC10, // D=M
+    // if D==0 goto END
+    0x35E,  // @END
+    0xE302, // D;JEQ
+    // if D==0x80 (ENTER) goto LINEBREAK
+    0x80,   // ascii ENTER
+    0xE4D0, // D=D-A
+    0x354,  // @LINEBREAK
+    0xE302, // D;JEQ
+    // otherwise set D back to read value
+    0x80,   // ascii ENTER
+    0xE090, // D=D+A
+
+    // write char
+    0x2,    // @R2
+    0xE308, // M=D // R2=ascii from mem
+    // set MEM[R0] to SCRN, set R0 to R0+1
+    0x34A,  // @SCRN
+    0xEC10, // D=A
+    0x0,    // @R0
+    0xFDC8, // M=M+1
+    0xFCA0, // A=M-1
+    0xE308, // M=D
+    0x2,    // @2, start of drawChar
+    0xEA87, // 0;JMP
+
+    // (SCRN) 33 + 809 = 842
+    // advance screen pointer, set screen pointer back up
+    // if screen % 16 == 15, add 256-15=241 (linebreak) else add 1
+    // x % 16 == 15 if x+1 % 16 == 0
+    0x5,    // @screen
+    0xFDD0, // D=M+1
+    0xF,    // @15
+    0xE010, // D=D&A
+    0x354,  // @LINEBREAK
+    0xE302, // D;JEQ
+
+    // (ADD1) 39
+    0x5,    // @screen
+    0xFDC8, // M=M+1
+    // TODO: if this means we go out of bounds, linebreak instead (?)
+    0x335,  // @LOOP
     0xEA87, // 0;JMP // goto LOOP
 
-    // (END) 48 + 809 = 857
-    0x359,  // @END
+    // (LINEBREAK) 43 + 809 = 852
+    // set lowest 4 bits to 0 // sets to start of line
+    0x7FF0, // 0111111111110000 // TODO: first bit cant be 1, will that be a problem? why not?
+    0xEC10, // D=A
+    0x5,    // @screen
+    0xF008, // M=D&M
+    // then add 256 // jumps a char row down
+    0x100,  // @256
+    0xEC10, // D=A
+    0x5,    // @screen
+    0xF088, // M=D+M
+    0x335,  // @LOOP
+    0xEA87, // 0;JMP // goto LOOP
+
+    // (END) 53 + 809 = 862
+    0x35E,  // @END
     0xEA87, // 0;JMP // goto END
 }
 
@@ -215,27 +224,26 @@ var drawChar = []uint16{
     0x10,   // @16
     0xEC10, // D=A
     0x5,    // @screen
-    //0xF098 // DM=D+M // TODO: seems to set D=D+M but M=M+M+D ?
-    0xF088, // M=D+M
-    0xFC10, // D=M
+    0xF098, // DM=D+M
 
     // if 0<=screen%256<16, we are done
     // get screen%256 by masking, ignore last 4 bits and compare to 0
     0xF0,   // 0000000011110000
     0xE010, // D=D&A
-    0x2A,   // @END
+    0x29,   // @END
     0xE302, // D;JEQ
     0xB,    // @LOOP
     0xEA87, // 0;JMP // goto LOOP
 
-    // (END) 40 -> 42
+    // (END) 39 -> 41
     // subtract 256 from @screen, setting it back
     0x100,  // @256
     0xEC10, // D=A
     0x5,    // @screen
     0xF1C8, // M=M-D
-    // goto @R0 (SCRN) in keyboardloop func
+    // goto the address @R0 points to, decrementing stack pointer in the process
     0x0,    // @R0
+    0xFCA8, // AM=M-1
     0xFC20, // A=M
     0xEA87, // 0;JMP // goto SCRN
 

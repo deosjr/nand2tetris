@@ -16,6 +16,7 @@ type CPU interface {
 type BuiltinCPU struct {
     inM uint16
     instr uint16
+    outM uint16
     a *BuiltinRegister
     d *BuiltinRegister
     pc *BuiltinCounter
@@ -62,8 +63,7 @@ func (b *BuiltinCPU) SendReset(reset bool) {
 }
 
 func (b *BuiltinCPU) OutM() uint16 {
-    outM, _, _ := b.evalALU()
-    return outM
+    return b.outM
 }
 
 func (b *BuiltinCPU) WriteM() bool {
@@ -81,6 +81,7 @@ func (b *BuiltinCPU) PC() uint16 {
 
 func (b *BuiltinCPU) ClockTick() {
     outM, isZero, isNeg := b.evalALU()
+    b.outM = outM
     isPos := Not(isNeg)
     outA := b.a.Out()
     isC, _, dest, jump := b.decode()
@@ -122,6 +123,7 @@ func (b *BuiltinCPU) ClockTick() {
 type PCRegisterCPU struct {
     inM uint16
     instr uint16
+    outM uint16
     a *BuiltinRegister
     d *BuiltinRegister
     pc *BuiltinCounter
@@ -177,8 +179,7 @@ func (b *PCRegisterCPU) SendReset(reset bool) {
 }
 
 func (b *PCRegisterCPU) OutM() uint16 {
-    outM, _, _ := b.evalALU()
-    return outM
+    return b.outM
 }
 
 func (b *PCRegisterCPU) WriteM() bool {
@@ -196,6 +197,7 @@ func (b *PCRegisterCPU) PC() uint16 {
 
 func (b *PCRegisterCPU) ClockTick() {
     outM, isZero, isNeg := b.evalALU()
+    b.outM = outM
     isPos := Not(isNeg)
     outA := b.a.Out()
     isC, pcrl, _, dest, jump := b.decode()
@@ -254,6 +256,7 @@ func (b *PCRegisterCPU) ClockTick() {
 type BarrelShiftCPU struct {
     inM uint16
     instr uint16
+    outM uint16
     a *BuiltinRegister
     d *BuiltinRegister
     pc *BuiltinCounter
@@ -311,8 +314,7 @@ func (b *BarrelShiftCPU) SendReset(reset bool) {
 }
 
 func (b *BarrelShiftCPU) OutM() uint16 {
-    outM, _, _ := b.evalALU()
-    return outM
+    return b.outM
 }
 
 func (b *BarrelShiftCPU) WriteM() bool {
@@ -330,6 +332,7 @@ func (b *BarrelShiftCPU) PC() uint16 {
 
 func (b *BarrelShiftCPU) ClockTick() {
     outM, isZero, isNeg := b.evalALU()
+    b.outM = outM
     isPos := Not(isNeg)
     outA := b.a.Out()
     isC, pcrl, _, _, dest, jump := b.decode()

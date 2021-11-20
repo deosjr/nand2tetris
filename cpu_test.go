@@ -111,6 +111,34 @@ func TestBuiltinCPU(t *testing.T) {
             wantOutM: 6,
             wantWriteM: true,
         },
+        {
+            sequence: func(b *BuiltinCPU) {
+                b.SendInstr(7)
+                b.ClockTick()
+                b.SendInstr(0xEC10) // D=7
+                b.ClockTick()
+                b.SendInM(3) // contents of RAM[7]
+                b.SendInstr(0xF098) // DM=D+M
+                b.ClockTick()
+            },
+            wantPC: 3,
+            wantOutM: 10,
+            wantWriteM: true,
+            wantAddressM: 7,
+        },
+        {
+            sequence: func(b *BuiltinCPU) {
+                b.SendInstr(7)
+                b.ClockTick()
+                b.SendInM(3) // contents of RAM[7]
+                b.SendInstr(0xFCA8) // AM=M-1
+                b.ClockTick()
+            },
+            wantPC: 2,
+            wantOutM: 2,
+            wantWriteM: true,
+            wantAddressM: 2,
+        },
     }{
         cpu := NewBuiltinCPU()
         tt.sequence(cpu)

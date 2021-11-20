@@ -15,33 +15,134 @@ package main
 // read and print line, parse, print output in hex
 // helloworld, actual assembler, writeHex
 // statement starts at 0x1000 in memory
+// strategy: parse by character, setting flags for mode
 
 // R0: shared stack pointer
 // stack memory starting at 0x10 and growing down. R0 points to (empty) top of stack
 // R1: memory pointer starting at 0x1000
 // R2: shared arg value
+// R4: used by drawChar
 // R5: shared screen pointer
-// used by others: R4, R6, R7 ?
+// R6: mode
+// R7: dest
+// R8: comp
+// R9: jmp
 var assembleStatement = []uint16{
+    // init vars
     0x10,   // @0x10
     0xEC10, // D=A
     0x0,    // @R0
     0xE308, // M=D // R0 = 0x10
-    0x1000, // @0x1000
-    0xEC10, // D=A
-    0x1,    // @R1
-    0xE308, // M=D // R1 = 0x1000
     0x4000, // @0x4000
     0xEC10, // D=A
     0x5,    // @R5
     0xE308, // M=D // R5 = 0x4000
+    0x1000, // @0x1000
+    0xEC10, // D=A
+    0x1,    // @R1
+    0xE308, // M=D // R1 = 0x1000
 
+    // (PARSE)
+    // read char
     0x1,    // @R1
     0xFC20, // A=M
     0xFC10, // D=M
+    0x2,    // @R2
+    0xE308, // M=D // R2=ascii from mem
     // write char
-    // switch: start of line. AMD= / @ / //
-    // TODO
+    // set MEM[R0] to next line, set R0 to R0+1
+    0,  // @SWITCH
+    0xEC10, // D=A
+    0x0,    // @R0
+    0xFDC8, // M=M+1
+    0xFCA0, // A=M-1
+    0xE308, // M=D
+    0,  // @WRITECHAR
+    0xEA87, // 0;JMP // goto WRITECHAR
+
+    // (SWITCH) 25 -> 834
+    // R2 should still contain last read char from mem
+    0x2,    // @R2
+    0xFC10, // D=M
+    // if D==0 goto END 
+    0,  // @END
+    0xE302, // D;JEQ
+    // if D==0x2F (/) goto COMMENT
+    0x2F,   // ascii /
+    0xE4D0, // D=D-A
+    0,  // @COMMENT
+    0xE302, // D;JEQ
+    // if D==0x3B (;) goto JUMP
+    0x0B,   // ascii ; - ascii /
+    0xE4D0, // D=D-A
+    0,  // @JUMP
+    0xE302, // D;JEQ
+    // if D==0x3D (=) goto EQUALS
+    0x2,    // ascii = - ascii ;
+    0xE4D0, // D=D-A
+    0,  // @EQUALS
+    0xE302, // D;JEQ
+    // if D==0x40 (@) goto AINSTR
+    0x3,    // ascii @ - ascii =
+    0xE4D0, // D=D-A
+    0,  // @AINSTR
+    0xE302, // D;JEQ
+    // if D=0x41 (A) goto PARSEA
+    0x1,    // ascii A - ascii @
+    0xE4D0, // D=D-A
+    0,  // @PARSEA
+    0xE302, // D;JEQ
+    // if D=0x44 (D) goto PARSED
+    0x3,    // ascii D - ascii A
+    0xE4D0, // D=D-A
+    0,  // @PARSED
+    0xE302, // D;JEQ
+    // if D=0x4D (M) goto PARSEM
+    0x9,    // ascii M - ascii D
+    0xE4D0, // D=D-A
+    0,  // @PARSEM
+    0xE302, // D;JEQ
+    // TODO: if we reach here, we have a syntax error
+
+    // (COMMENT) -> consume rest of the line
+
+    // (JUMP) -> parse last 2 jump symbols
+
+    // (EQUALS)
+
+    // (AINSTR) -> only at start, parse rest as hex value
+
+    // (PARSEA)
+
+    // (PARSED)
+
+    // (PARSEM)
+
+    // end of parse loop
+    // @PARSE
+    // 0;JMP // goto PARSE
+
+    // (WRITECHAR) 27 -> 836
+    0,  // @JUMPBACK
+    0xEC10, // D=A
+    0x0,    // @R0
+    0xFDC8, // M=M+1
+    0xFCA0, // A=M-1
+    0xE308, // M=D
+    0x2,    // @2, start of drawChar
+    0xEA87, // 0;JMP
+    // (JUMPBACK) 35 -> 844
+    0x5,    // @screen
+    0xFDC8, // M=M+1  // @screen+=1
+    // goto the address @R0 points to, decrementing stack pointer in the process
+    0x0,    // @R0
+    0xFCA8, // AM=M-1
+    0xFC20, // A=M
+    0xEA87, // 0;JMP // goto caller of WRITECHAR
+
+    // (END) 41 -> 850
+    0,  // @END
+    0xEA87, // 0;JMP // goto END
 }
 
 // R0: shared instr pointer
@@ -92,16 +193,19 @@ var writeHex = []uint16{
 
     // write char
     0x2,    // @R2
-    0xE308, // M=D // R2=char to write, in ascii
-    0x34E,  // @DECRI
+    0xE308, // M=D // R2=ascii from mem
+    // set MEM[R0] to SCRN, set R0 to R0+1
+    0x350,  // @DECRI
     0xEC10, // D=A
     0x0,    // @R0
-    0xE308, // M=D // R0=ref
-    0x2,    // @2 (start of drawChar)
+    0xFDC8, // M=M+1
+    0xFCA0, // A=M-1
+    0xE308, // M=D
+    0x2,    // @2, start of drawChar
     0xEA87, // 0;JMP
 
     // we come back here after drawChar
-    // (DECRI) 37 -> 846
+    // (DECRI) 39 -> 848
     0x7,    // @R7
     0xFC98, // MD=M-1
     0x5,    // R5
@@ -109,7 +213,7 @@ var writeHex = []uint16{
     0x33A,  // @LOOP
     0xE305, // D;JNE
 
-    // (END) 43 -> 852
-    0x354,  // @END
+    // (END) 45 -> 854
+    0x356,  // @END
     0xEA87, // 0;JMP // goto END
 }

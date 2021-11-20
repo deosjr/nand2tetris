@@ -300,12 +300,12 @@ func (c *Computer) ClockTick() {
         panic("no ROM loaded")
     }
     c.cpu.SendInstr(c.instr_mem.Out())
+    c.data_mem.SendAddress(c.cpu.AddressM())
+    c.cpu.SendInM(c.data_mem.Out())
     c.cpu.ClockTick()
     c.data_mem.SendLoad(c.cpu.WriteM())
     c.data_mem.SendIn(c.cpu.OutM())
-    c.data_mem.SendAddress(c.cpu.AddressM())
     c.data_mem.ClockTick()
-    c.cpu.SendInM(c.data_mem.Out())
     c.instr_mem.SendAddress(c.cpu.PC())
     c.instr_mem.ClockTick()
 }
