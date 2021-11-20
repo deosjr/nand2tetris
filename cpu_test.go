@@ -259,6 +259,19 @@ func TestBarrelShiftCPU(t *testing.T) {
             wantAddressM: 7,
             wantPC: 2,
         },
+        {
+            sequence: func(b *BarrelShiftCPU) {
+                b.SendInstr(0x0007) // @7
+                b.ClockTick()
+                b.SendInM(0x0004) // M[7] = 4
+                b.SendInstr(0xD208) // << 4
+                b.ClockTick()
+            },
+            wantOutM: 64,
+            wantWriteM: true,
+            wantAddressM: 7,
+            wantPC: 2,
+        },
     }{
         cpu := NewBarrelShiftCPU()
         tt.sequence(cpu)

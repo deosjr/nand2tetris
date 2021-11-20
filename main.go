@@ -11,10 +11,10 @@ import (
 var headless = false
 
 // first instr jumps to main program, drawchar comes first though (easier)
-var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), helloworld...)
+//var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), helloworld...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), keyboardLoop...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), writeHex...)
-//var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), assembleStatement...)
+var program = assembleStatement
 
 // maybe take an output func that prints to terminal?
 func run(computer *Computer) {

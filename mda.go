@@ -217,10 +217,10 @@ var drawChar = []uint16{
     0xFC20, // A=M // A=screen
     0xE308, // M=D // mem[screen] = linevalue out of ROM
 
-    // // i = i + 1
+    // i = i + 1
     0x4,    // @i
     0xFDC8, // M=M+1
-    // // screen = screen + 16
+    // screen = screen + 16
     0x10,   // @16
     0xEC10, // D=A
     0x5,    // @screen

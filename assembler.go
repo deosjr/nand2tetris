@@ -1,147 +1,166 @@
 package main
 
 // first pass assembler, no symbols. supported instructions:
-// dest=comp;jump
-// - dest can be A, M, D (or a combination but lets support that later)
-// - = will remain even if no destination
+// (dest=)comp(;jump) , both dest and jump are optional
+// - dest can be A, M, D or a combination
 // - comp is A/M/D operator A/M/D (cant deal with shifts yet)
-// - ; will remain even if no jump
 // - jump is JGT, JEQ, JGE, JLT, JNE, JLE, JMP or missing
-// @hexvalue
+// @hexvalue (for now expect always %4, i.e. 0x1 = 0001)
 // - will get translated to hexvalue instr setting A=hexvalue
 // line starting with // which will get ignored
+// any failures are syntax errors, which for now just jump to END
+// maybe this first assembler only deals with happy path
+// smarter validation can be written in assembly later :)
 
 // translate statement in mem to machine binary
-// read and print line, parse, print output in hex
-// helloworld, actual assembler, writeHex
 // statement starts at 0x1000 in memory
-// strategy: parse by character, setting flags for mode
+// output starts at 0x2000 in memory
 
 // R0: shared stack pointer
 // stack memory starting at 0x10 and growing down. R0 points to (empty) top of stack
 // R1: memory pointer starting at 0x1000
-// R2: shared arg value
+// R2: memory pointer starting at 0x2000
 // R4: used by drawChar
 // R5: shared screen pointer
-// R6: mode
-// R7: dest
-// R8: comp
-// R9: jmp
+// R6: temp var
 var assembleStatement = []uint16{
     // init vars
     0x10,   // @0x10
     0xEC10, // D=A
     0x0,    // @R0
     0xE308, // M=D // R0 = 0x10
-    0x4000, // @0x4000
-    0xEC10, // D=A
-    0x5,    // @R5
-    0xE308, // M=D // R5 = 0x4000
     0x1000, // @0x1000
     0xEC10, // D=A
     0x1,    // @R1
     0xE308, // M=D // R1 = 0x1000
+    0x2000, // @0x2000
+    0xEC10, // D=A
+    0x2,    // @R2
+    0xE308, // M=D // R2 = 0x2000
+    0x6,    // @R6
+    0xEA88, // M=0 // R6 = 0
 
-    // (PARSE)
     // read char
     0x1,    // @R1
     0xFC20, // A=M
     0xFC10, // D=M
-    0x2,    // @R2
-    0xE308, // M=D // R2=ascii from mem
-    // write char
-    // set MEM[R0] to next line, set R0 to R0+1
-    0,  // @SWITCH
-    0xEC10, // D=A
-    0x0,    // @R0
-    0xFDC8, // M=M+1
-    0xFCA0, // A=M-1
-    0xE308, // M=D
-    0,  // @WRITECHAR
-    0xEA87, // 0;JMP // goto WRITECHAR
 
-    // (SWITCH) 25 -> 834
-    // R2 should still contain last read char from mem
-    0x2,    // @R2
-    0xFC10, // D=M
+    // (SWITCH) 17
     // if D==0 goto END 
-    0,  // @END
+    0x56,   // @END
     0xE302, // D;JEQ
     // if D==0x2F (/) goto COMMENT
     0x2F,   // ascii /
     0xE4D0, // D=D-A
-    0,  // @COMMENT
-    0xE302, // D;JEQ
-    // if D==0x3B (;) goto JUMP
-    0x0B,   // ascii ; - ascii /
-    0xE4D0, // D=D-A
-    0,  // @JUMP
-    0xE302, // D;JEQ
-    // if D==0x3D (=) goto EQUALS
-    0x2,    // ascii = - ascii ;
-    0xE4D0, // D=D-A
-    0,  // @EQUALS
+    0x30,   // @COMMENT
     0xE302, // D;JEQ
     // if D==0x40 (@) goto AINSTR
-    0x3,    // ascii @ - ascii =
+    0x11,   // ascii @ - ascii /
     0xE4D0, // D=D-A
-    0,  // @AINSTR
+    0x39,   // @AINSTR
     0xE302, // D;JEQ
-    // if D=0x41 (A) goto PARSEA
-    0x1,    // ascii A - ascii @
+    // else LOOKAHEAD for start C instr
+
+    // (LOOKAHEAD) 27
+    // idea here is to find out whether we need to parse a destination or not
+    // consume A/M/D until we find something else, then switch on whether its an =
+    // NOTE we already consumed a first token! therefore we start by incr R6 to 1
+
+    0x6,    // @R6
+    0xFDD8, // DM=M+1
+    0x1,    // @R1
+    0xF0A0, // A=M+D
+    0xFC10, // D=M
+
+    // if D==A goto LOOKAHEAD 
+    0x41,   // ascii A
     0xE4D0, // D=D-A
-    0,  // @PARSEA
+    0x1B,   // @LOOKAHEAD
     0xE302, // D;JEQ
-    // if D=0x44 (D) goto PARSED
+    // if D==D goto LOOKAHEAD 
     0x3,    // ascii D - ascii A
     0xE4D0, // D=D-A
-    0,  // @PARSED
+    0x1B,   // @LOOKAHEAD
     0xE302, // D;JEQ
-    // if D=0x4D (M) goto PARSEM
+    // if D==M goto LOOKAHEAD 
     0x9,    // ascii M - ascii D
     0xE4D0, // D=D-A
-    0,  // @PARSEM
+    0x1B,   // @LOOKAHEAD
     0xE302, // D;JEQ
-    // TODO: if we reach here, we have a syntax error
+    // else if we read = goto DEST otherwise goto COMP
+    0x10,   // ascii M - ascii =
+    0xE090, // D=D+A
+    0,   // @COMP
+    0xE305, // D;JNE
+
+    // (DEST) 48
+    // read char
+    // if A/M/D set dest bits accordingly, loop
+    // if equals sign, fall through to COMP
+    // else syntax error
+    // (COMP)
+    // read char
+    // (JUMP)
 
     // (COMMENT) -> consume rest of the line
+    // TODO: syntax error if not followed by another / first
+    // TODO: this only works for line comments, not inline after instr
+    0x1,    // @R1
+    0xFDE8, // AM=M+1
+    0xFC10, // D=M
+    // if D==0x80 (ENTER) goto END 
+    0x80,   // ascii ENTER
+    0xE4D0, // D=D-A
+    0x56,   // END
+    0xE302, // D;JEQ
+    // else goto COMMENT
+    0x30,   // COMMENT
+    0xEA87, // 0;JMP
 
-    // (JUMP) -> parse last 2 jump symbols
+    // (AINSTR) -> parse rest as hex value
+    // TODO: assumes max 4 valid hex chars follow!
+    0x1,    // @R1
+    0xFDE8, // AM=M+1
+    0xFC10, // D=M
+    // if D==0x80 (ENTER) goto WRITE 
+    0x80,   // ascii ENTER
+    0xE4D0, // D=D-A
+    0x50,   // @WRITE
+    0xE302, // D;JEQ
+    // TODO: if not 0-9 or A-F, goto END
+    0x80,   // otherwise set D back to read value
+    0xE090, // D=D+A
+    0x6,    // @R6
+    // TODO: this shift does not work?
+    0xD208, // M=M<<4
 
-    // (EQUALS)
+    0x41, // ascii A
+    0xE4D0, // D=D-A
+    0x4A,   // @ALPHANUM 
+    0xE303, // D;JGE // if D-65 >= 0, we have a A-F char
+    // only for digits: add back to map 0-9A-F continuous
+    0x7, // ascii A - ascii 9 - 1
+    0xE090, // D=D+A
+    // (ALPHANUM)
+    // now [0,9] -> [-10,-1] and [A-F] -> [0,5]
+    0xA,    // 10
+    0xE090, // D=D+A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0x39,  // @AINSTR
+    0xEA87, // 0;JMP // goto AINSTR
+    // at the end here, R6 contains the A instruction
 
-    // (AINSTR) -> only at start, parse rest as hex value
-
-    // (PARSEA)
-
-    // (PARSED)
-
-    // (PARSEM)
-
-    // end of parse loop
-    // @PARSE
-    // 0;JMP // goto PARSE
-
-    // (WRITECHAR) 27 -> 836
-    0,  // @JUMPBACK
-    0xEC10, // D=A
-    0x0,    // @R0
+    // (WRITE) write instruction to mem
+    0x6, // @R6
+    0xFC10, // D=M
+    0x2,    // @R2
     0xFDC8, // M=M+1
     0xFCA0, // A=M-1
     0xE308, // M=D
-    0x2,    // @2, start of drawChar
-    0xEA87, // 0;JMP
-    // (JUMPBACK) 35 -> 844
-    0x5,    // @screen
-    0xFDC8, // M=M+1  // @screen+=1
-    // goto the address @R0 points to, decrementing stack pointer in the process
-    0x0,    // @R0
-    0xFCA8, // AM=M-1
-    0xFC20, // A=M
-    0xEA87, // 0;JMP // goto caller of WRITECHAR
 
-    // (END) 41 -> 850
-    0,  // @END
+    // (END)
+    0x56,   // @END
     0xEA87, // 0;JMP // goto END
 }
 
