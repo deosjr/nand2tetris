@@ -11,6 +11,7 @@ package main
 // any failures are syntax errors, which for now just jump to END
 // maybe this first assembler only deals with happy path
 // smarter validation can be written in assembly later :)
+// lots of duplication but we can golf it later
 
 // translate statement in mem to machine binary
 // statement starts at 0x1000 in memory
@@ -22,7 +23,7 @@ package main
 // R2: memory pointer starting at 0x2000
 // R4: used by drawChar
 // R5: shared screen pointer
-// R6: temp var
+// R6, R7: temp vars
 var assembleStatement = []uint16{
     // init vars
     0x10,   // @0x10
@@ -37,8 +38,8 @@ var assembleStatement = []uint16{
     0xEC10, // D=A
     0x2,    // @R2
     0xE308, // M=D // R2 = 0x2000
-    0x6,    // @R6
-    0xEA88, // M=0 // R6 = 0
+    0x6,    // @R7
+    0xEA88, // M=0 // R7 = 0
 
     // read char
     0x1,    // @R1
@@ -47,26 +48,33 @@ var assembleStatement = []uint16{
 
     // (SWITCH) 17
     // if D==0 goto END 
-    0xE0,   // @END
+    0x12C,  // @END
     0xE302, // D;JEQ
     // if D==0x2F (/) goto COMMENT
     0x2F,   // ascii /
     0xE4D0, // D=D-A
-    0xBA,   // @COMMENT
+    0x106,  // @COMMENT
     0xE302, // D;JEQ
     // if D==0x40 (@) goto AINSTR
     0x11,   // ascii @ - ascii /
     0xE4D0, // D=D-A
-    0xC3,   // @AINSTR
+    0x10F,  // @AINSTR
     0xE302, // D;JEQ
     // else LOOKAHEAD for start C instr
 
-    // (LOOKAHEAD) 27
+    // R6 here to build up our instruction, setting individual bits
+    0x7000, // 0111 0000 0000 0000
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xE308, // M=D // R6 = 0x7000
+    0xD088, // M=M<<1 // R6 = 0xE000
+
+    // (LOOKAHEAD) 32
     // idea here is to find out whether we need to parse a destination or not
     // consume A/M/D until we find something else, then switch on whether its an =
-    // NOTE we already consumed a first token! therefore we start by incr R6 to 1
+    // NOTE we already consumed a first token! therefore we start by incr R7 to 1
 
-    0x6,    // @R6
+    0x7,    // @R7
     0xFDD8, // DM=M+1
     0x1,    // @R1
     0xF0A0, // A=M+D
@@ -75,32 +83,26 @@ var assembleStatement = []uint16{
     // if D==A goto LOOKAHEAD 
     0x41,   // ascii A
     0xE4D0, // D=D-A
-    0x1B,   // @LOOKAHEAD
+    0x20,   // @LOOKAHEAD
     0xE302, // D;JEQ
     // if D==D goto LOOKAHEAD 
     0x3,    // ascii D - ascii A
     0xE4D0, // D=D-A
-    0x1B,   // @LOOKAHEAD
+    0x20,   // @LOOKAHEAD
     0xE302, // D;JEQ
     // if D==M goto LOOKAHEAD 
     0x9,    // ascii M - ascii D
     0xE4D0, // D=D-A
-    0x1B,   // @LOOKAHEAD
+    0x20,   // @LOOKAHEAD
     0xE302, // D;JEQ
     // else if we read = goto DEST otherwise goto COMP
     0x10,   // ascii M - ascii =
     0xE090, // D=D+A
-    0x5F,   // @COMP
+    0x60,   // @COMP
     0xE305, // D;JNE
 
     // DEST
     // if A/M/D set dest bits accordingly, loop
-    // we reuse R6 here to build up our instruction, setting individual bits
-    0x7000, // 0111 0000 0000 0000
-    0xEC10, // D=A
-    0x6,    // @R6
-    0xE308, // M=D // R6 = 0x7000
-    0xD088, // M=M<<1 // R6 = 0xE000
     0x1,    // @R1
     0xFC88, // M=M-1 // because we want to start the loop with incr
     // (DESTA) 55
@@ -154,7 +156,7 @@ var assembleStatement = []uint16{
     0x60,   // COMP
     0xE302, // D;JEQ
     // TODO: else syntax error
-    0xE0,   // END
+    0x12C,  // @END
     0xEA87, // 0;JMP
 
     // (COMP) 96
@@ -184,17 +186,17 @@ var assembleStatement = []uint16{
     0,   // @BINARY
     0xE302, // D;JEQ
 
-    // (UNARY) 119
+    // UNARY 119
     0x1,    // @R1
     0xFC20, // A=M
     0xFC10, // D=M
     0x21,   // ascii !
     0xE4D0, // D=D-A
-    0,   // @NOT
+    0xB3,   // @NOT
     0xE302, // D;JEQ
     0xC,    // ascii - - ascii !
     0xE4D0, // D=D-A
-    0,   // @NEG
+    0xD4,   // @NEG
     0xE302, // D;JEQ
     0x3,    // ascii 0 - ascii -
     0xE4D0, // D=D-A
@@ -205,7 +207,7 @@ var assembleStatement = []uint16{
     0xEC10, // D=A
     0x6,    // @R6
     0xF548, // M=M|D
-    0xB3,   // @JUMP
+    0xFF,   // @JUMP
     0xEA87, // 0;JMP ; goto JUMP
 
     // (ONE) 140
@@ -216,7 +218,7 @@ var assembleStatement = []uint16{
     0xEC10, // D=A
     0x6,    // @R6
     0xF548, // M=M|D
-    0xB3,   // @JUMP
+    0xFF,   // @JUMP
     0xEA87, // 0;JMP ; goto JUMP
 
     // (UNRYA) 149
@@ -228,7 +230,7 @@ var assembleStatement = []uint16{
     0xEC10, // D=A
     0x6,    // @R6
     0xF548, // M=M|D
-    0xB3,   // @JUMP
+    0xFF,   // @JUMP
     0xEA87, // 0;JMP ; goto JUMP
 
     // (UNRYD) 159
@@ -240,38 +242,120 @@ var assembleStatement = []uint16{
     0xEC10, // D=A
     0x6,    // @R6
     0xF548, // M=M|D
-    0xB3,   // @JUMP
+    0xFF,   // @JUMP
     0xEA87, // 0;JMP ; goto JUMP
 
     // (UNRYM) 169
     0x9,    // ascii M - ascii D
     0xE4D0, // D=D-A
-    0xE0,   // @END // TODO: syntax error
+    0x12C,  // @END // TODO: syntax error
     0xE305, // D;JNE
     0x1C00, // M comp bits
     0xEC10, // D=A
     0x6,    // @R6
     0xF548, // M=M|D
-    0xB3,   // @JUMP
+    0xFF,   // @JUMP
     0xEA87, // 0;JMP ; goto JUMP
 
     // (NOT) 179
-    // (NEG) 179
+    0x1,    // @R1
+    0xFDE8, // AM=M+1
+    0xFC10, // D=M
+    0x41,   // ascii A
+    0xE4D0, // D=D-A
+    0xC0,   // @NOTD
+    0xE305, // D;JNE
+    0x0C40, // !A comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xFF,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+    // (NOTD) 192
+    0x3,    // ascii D - ascii A
+    0xE4D0, // D=D-A
+    0xCA,   // @NOTM
+    0xE305, // D;JNE
+    0x0340, // !D comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xFF,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+    // (NOTM) 202
+    0x9,    // ascii M - ascii D
+    0xE4D0, // D=D-A
+    0x12C,  // @END // TODO: syntax error
+    0xE305, // D;JNE
+    0x1C40, // !M comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xFF,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
 
-    // (BINARY) 179
+    // (NEG) 212
+    0x1,    // @R1
+    0xFDE8, // AM=M+1
+    0xFC10, // D=M
+    0x31,   // ascii 1
+    0xE4D0, // D=D-A
+    0xE1,   // @NEGA
+    0xE305, // D;JNE
+    0x0E80, // -1 comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xFF,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+    // (NEGA) 225
+    0x10,   // ascii A - ascii 1
+    0xE4D0, // D=D-A
+    0xEB,   // @NEGD
+    0xE305, // D;JNE
+    0x0CC0, // -A comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xFF,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+    // (NEGD) 235
+    0x3,    // ascii D - ascii A
+    0xE4D0, // D=D-A
+    0xF5,   // @NEGM
+    0xE305, // D;JNE
+    0x03C0, // -D comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xFF,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+    // (NEGM) 245
+    0x9,    // ascii M - ascii D
+    0xE4D0, // D=D-A
+    0x12C,  // @END // TODO: syntax error
+    0xE305, // D;JNE
+    0x1CC0, // -M comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xFF,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
 
-    // (JUMP) 179
+    // (BINARY)
+
+    // (JUMP) 255
     // parse ENTER or ;J then two letter combo. set jump bits accordingly
     0x1,    // @R1
     0xFDE8, // AM=M+1
     0xFC10, // D=M
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0xDA,   // @WRITE
+    0x126,  // @WRITE
     0xE302, // D;JEQ
     // TODO: parse the jump instruction part
 
-    // (COMMENT) 186 -> consume rest of the line
+    // (COMMENT) 262 -> consume rest of the line
     // TODO: syntax error if not followed by another / first
     // TODO: this only works for line comments, not inline after instr
     0x1,    // @R1
@@ -280,13 +364,13 @@ var assembleStatement = []uint16{
     // if D==0x80 (ENTER) goto END 
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0xE0,   // @END
+    0x12C,  // @END
     0xE302, // D;JEQ
     // else goto COMMENT
-    0xBA,   // @COMMENT
+    0x106,  // @COMMENT
     0xEA87, // 0;JMP
 
-    // (AINSTR) 195 -> parse rest as hex value
+    // (AINSTR) 271 -> parse rest as hex value
     // TODO: assumes max 4 valid hex chars follow!
     0x1,    // @R1
     0xFDE8, // AM=M+1
@@ -294,7 +378,7 @@ var assembleStatement = []uint16{
     // if D==0x80 (ENTER) goto WRITE 
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0xDA,   // @WRITE
+    0x126,  // @WRITE
     0xE302, // D;JEQ
     // TODO: if not 0-9 or A-F, goto END
     0x80,   // otherwise set D back to read value
@@ -304,21 +388,21 @@ var assembleStatement = []uint16{
 
     0x41, // ascii A
     0xE4D0, // D=D-A
-    0xD4,   // @ALPHANUM 
+    0x120,  // @ALPHANUM 
     0xE303, // D;JGE // if D-65 >= 0, we have a A-F char
     // only for digits: add back to map 0-9A-F continuous
     0x7, // ascii A - ascii 9 - 1
     0xE090, // D=D+A
-    // (ALPHANUM) 212
+    // (ALPHANUM) 288
     // now [0,9] -> [-10,-1] and [A-F] -> [0,5]
     0xA,    // 10
     0xE090, // D=D+A
     0x6,    // @R6
     0xF548, // M=M|D
-    0xC3,   // @AINSTR
+    0x10F,  // @AINSTR
     0xEA87, // 0;JMP // goto AINSTR
 
-    // (WRITE) 218 write instruction to mem
+    // (WRITE) 294 write instruction to mem
     // R6 should contain the instruction now
     0x6, // @R6
     0xFC10, // D=M
@@ -327,8 +411,8 @@ var assembleStatement = []uint16{
     0xFCA0, // A=M-1
     0xE308, // M=D
 
-    // (END) 224
-    0xE0,   // @END
+    // (END) 300
+    0x12C,  // @END
     0xEA87, // 0;JMP // goto END
 }
 

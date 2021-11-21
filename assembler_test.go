@@ -5,45 +5,73 @@ import (
     "testing"
 )
 
-func TestAssembler(t *testing.T) {
+func TestFirstPassAssembler(t *testing.T) {
     for i, tt := range []struct{
-        input []uint16
+        input string
         want []uint16
     }{
         {
-            input: []uint16{0x0},
+            input: "",
             want: []uint16{},
         },
         {
-            // // COMMENT\n
-            input: []uint16{0x2F, 0x2F, 0x43, 0x4F, 0x4D, 0x4D, 0x45, 0x4E, 0x54, 0x80},
+            input: "//COMMENT\n",
             want: []uint16{},
         },
         {
-            // @AD41\n
-            input: []uint16{0x40, 0x41, 0x44, 0x34, 0x31, 0x80},
+            input: "@AD41\n",
             want: []uint16{0xAD41},
         },
         {
-            // D=A\n
-            input: []uint16{0x44, 0x3D, 0x41, 0x80},
+            input: "D=A\n",
             want: []uint16{0xEC10},
         },
+        {
+            input: "M=0\n",
+            want: []uint16{0xEA88},
+        },
+        {
+            input: "A=1\n",
+            want: []uint16{0xEFE0},
+        },
+        {
+            input: "AMD=A\n",
+            want: []uint16{0xEC38},
+        },
+        {
+            input: "A\n",
+            want: []uint16{0xEC00},
+        },
+        {
+            input: "-1\n",
+            want: []uint16{0xEE80},
+        },
+        {
+            input: "!M\n",
+            want: []uint16{0xFC40},
+        },
     }{
+        input := make([]uint16, len(tt.input))
+        for i, r := range tt.input {
+            if r == '\n' { r = 0x80 }
+            input[i] = uint16(r)
+        }
         cpu := NewBarrelShiftCPU()
         computer := NewComputer(cpu)
         computer.LoadProgram(NewROM32K(assembleStatement))
         computer.SendReset(true)
         computer.ClockTick()
         computer.SendReset(false)
-        for n, ascii := range tt.input {
+        for n, ascii := range input {
             computer.data_mem.ram.mem[0x1000+n] = ascii
         }
         var pprev, prev uint16
         for {
             computer.ClockTick()
+            //if i == 6 {
             //t.Errorf("%d: %04x - R6: %04x, M0x2000: %04x", prev, cpu.instr, computer.data_mem.ram.mem[0x6], computer.data_mem.ram.mem[0x2000])
             //t.Errorf("%d: %04x - R6: %04x, A: %04x, D: %04x", prev, cpu.instr, computer.data_mem.ram.mem[0x6], cpu.a.Out(), cpu.d.Out())
+            //}
             // detect end loop
             if pprev == cpu.PC() {
                 break

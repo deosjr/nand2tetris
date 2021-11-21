@@ -91,6 +91,7 @@ func runPeripherals(computer *Computer) func() {
 func main() {
     cpu := NewBarrelShiftCPU()
     computer := NewComputer(cpu)
+    fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
 
     if headless {

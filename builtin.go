@@ -1,7 +1,5 @@
 package main
 
-import "fmt"
-
 // these are the more optimised versions of the chips defined earlier
 // where we abstract a little more over the clock
 
@@ -159,7 +157,6 @@ func NewROM32K(program []uint16) *ROM32K {
     rams := [2]*BuiltinRAM16K{
             NewBuiltinRAM16K(), NewBuiltinRAM16K(),
     }
-    fmt.Println("loading ROM")
     for i, instr := range program {
         //fmt.Printf("%d: %04x\n", i, instr)
         if i < 16384 {
