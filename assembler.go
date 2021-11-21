@@ -47,17 +47,17 @@ var assembleStatement = []uint16{
 
     // (SWITCH) 17
     // if D==0 goto END 
-    0x56,   // @END
+    0xE0,   // @END
     0xE302, // D;JEQ
     // if D==0x2F (/) goto COMMENT
     0x2F,   // ascii /
     0xE4D0, // D=D-A
-    0x30,   // @COMMENT
+    0xBA,   // @COMMENT
     0xE302, // D;JEQ
     // if D==0x40 (@) goto AINSTR
     0x11,   // ascii @ - ascii /
     0xE4D0, // D=D-A
-    0x39,   // @AINSTR
+    0xC3,   // @AINSTR
     0xE302, // D;JEQ
     // else LOOKAHEAD for start C instr
 
@@ -90,19 +90,188 @@ var assembleStatement = []uint16{
     // else if we read = goto DEST otherwise goto COMP
     0x10,   // ascii M - ascii =
     0xE090, // D=D+A
-    0,   // @COMP
+    0x5F,   // @COMP
     0xE305, // D;JNE
 
-    // (DEST) 48
-    // read char
+    // DEST
     // if A/M/D set dest bits accordingly, loop
-    // if equals sign, fall through to COMP
-    // else syntax error
-    // (COMP)
-    // read char
-    // (JUMP)
+    // we reuse R6 here to build up our instruction, setting individual bits
+    0x7000, // 0111 0000 0000 0000
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xE308, // M=D // R6 = 0x7000
+    0xD088, // M=M<<1 // R6 = 0xE000
+    0x1,    // @R1
+    0xFC88, // M=M-1 // because we want to start the loop with incr
+    // (DESTA) 55
+    // We know that there is an = sign at R1+R6 but checking each character
+    // again allows for syntax errors to be detected
+    // TODO: this will allow duplicate dest, ie AAAM=D+1
+    0x1,    // @R1
+    0xFDE8, // AM=M+1
+    0xFC10, // D=M
+    0x41,   // ascii A
+    0xE4D0, // D=D-A
+    0x44,   // @DESTD
+    0xE305, // D;JNE
+    // D==A
+    0x0020, // @A as dest bit
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0x37,   // DESTA
+    0xEA87, // 0;JMP
+    // (DESTD) 68
+    0x3,    // ascii D - ascii A
+    0xE4D0, // D=D-A
+    0x4E,   // @DESTM
+    0xE305, // D;JNE
+    // D==D
+    0x0010, // @D as dest bit
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0x37,   // DESTA
+    0xEA87, // 0;JMP
+    // (DESTM) 78
+    0x9,    // ascii M - ascii D
+    0xE4D0, // D=D-A
+    0x58,   // @DESTEQ
+    0xE305, // D;JNE
+    // D==M
+    0x0008, // @M as dest bit
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0x37,   // DESTA
+    0xEA87, // 0;JMP
+    // (DESTEQ) 88
+    // if equals sign, goto COMP
+    0x10,   // ascii M - ascii =
+    0xE090, // D=D+A
+    0x1,    // @R1
+    0xFDC8, // M=M+1
+    0x60,   // COMP
+    0xE302, // D;JEQ
+    // TODO: else syntax error
+    0xE0,   // END
+    0xEA87, // 0;JMP
 
-    // (COMMENT) -> consume rest of the line
+    // (COMP) 96
+    // lookahead one character for an operator: + - & | <
+    // if operator, goto binary, otherwise parse unary comp
+    0x1,    // @R1
+    0xFDE0, // A=M+1
+    0xFC10, // D=M
+    0x26,   // ascii &
+    0xE4D0, // D=D-A
+    0,   // @BINARY
+    0xE302, // D;JEQ
+    0x5,    // ascii + - ascii &
+    0xE4D0, // D=D-A
+    0,   // @BINARY
+    0xE302, // D;JEQ
+    0x2,    // ascii - - ascii +
+    0xE4D0, // D=D-A
+    0,   // @BINARY
+    0xE302, // D;JEQ
+    0xF,    // ascii < - ascii -
+    0xE4D0, // D=D-A
+    0,   // @BINARY
+    0xE302, // D;JEQ
+    0x40,   // ascii | - ascii <
+    0xE4D0, // D=D-A
+    0,   // @BINARY
+    0xE302, // D;JEQ
+
+    // (UNARY) 119
+    0x1,    // @R1
+    0xFC20, // A=M
+    0xFC10, // D=M
+    0x21,   // ascii !
+    0xE4D0, // D=D-A
+    0,   // @NOT
+    0xE302, // D;JEQ
+    0xC,    // ascii - - ascii !
+    0xE4D0, // D=D-A
+    0,   // @NEG
+    0xE302, // D;JEQ
+    0x3,    // ascii 0 - ascii -
+    0xE4D0, // D=D-A
+    0x8C,   // @ONE
+    0xE305, // D;JNE
+    // ZERO
+    0x0A80, // 0 comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xB3,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+
+    // (ONE) 140
+    0xE390, // D=D-1 // ascii 1 - ascii 0
+    0x95,   // @UNRYA
+    0xE305, // D;JNE
+    0x0FC0, // 1 comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xB3,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+
+    // (UNRYA) 149
+    0x10,   // ascii A - ascii 1
+    0xE4D0, // D=D-A
+    0x9F,   // @UNRYD
+    0xE305, // D;JNE
+    0x0C00, // A comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xB3,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+
+    // (UNRYD) 159
+    0x3,    // ascii D - ascii A
+    0xE4D0, // D=D-A
+    0xA9,   // @UNRYM
+    0xE305, // D;JNE
+    0x0300, // D comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xB3,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+
+    // (UNRYM) 169
+    0x9,    // ascii M - ascii D
+    0xE4D0, // D=D-A
+    0xE0,   // @END // TODO: syntax error
+    0xE305, // D;JNE
+    0x1C00, // M comp bits
+    0xEC10, // D=A
+    0x6,    // @R6
+    0xF548, // M=M|D
+    0xB3,   // @JUMP
+    0xEA87, // 0;JMP ; goto JUMP
+
+    // (NOT) 179
+    // (NEG) 179
+
+    // (BINARY) 179
+
+    // (JUMP) 179
+    // parse ENTER or ;J then two letter combo. set jump bits accordingly
+    0x1,    // @R1
+    0xFDE8, // AM=M+1
+    0xFC10, // D=M
+    0x80,   // ascii ENTER
+    0xE4D0, // D=D-A
+    0xDA,   // @WRITE
+    0xE302, // D;JEQ
+    // TODO: parse the jump instruction part
+
+    // (COMMENT) 186 -> consume rest of the line
     // TODO: syntax error if not followed by another / first
     // TODO: this only works for line comments, not inline after instr
     0x1,    // @R1
@@ -111,13 +280,13 @@ var assembleStatement = []uint16{
     // if D==0x80 (ENTER) goto END 
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0x56,   // END
+    0xE0,   // @END
     0xE302, // D;JEQ
     // else goto COMMENT
-    0x30,   // COMMENT
+    0xBA,   // @COMMENT
     0xEA87, // 0;JMP
 
-    // (AINSTR) -> parse rest as hex value
+    // (AINSTR) 195 -> parse rest as hex value
     // TODO: assumes max 4 valid hex chars follow!
     0x1,    // @R1
     0xFDE8, // AM=M+1
@@ -125,33 +294,32 @@ var assembleStatement = []uint16{
     // if D==0x80 (ENTER) goto WRITE 
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0x50,   // @WRITE
+    0xDA,   // @WRITE
     0xE302, // D;JEQ
     // TODO: if not 0-9 or A-F, goto END
     0x80,   // otherwise set D back to read value
     0xE090, // D=D+A
     0x6,    // @R6
-    // TODO: this shift does not work?
     0xD208, // M=M<<4
 
     0x41, // ascii A
     0xE4D0, // D=D-A
-    0x4A,   // @ALPHANUM 
+    0xD4,   // @ALPHANUM 
     0xE303, // D;JGE // if D-65 >= 0, we have a A-F char
     // only for digits: add back to map 0-9A-F continuous
     0x7, // ascii A - ascii 9 - 1
     0xE090, // D=D+A
-    // (ALPHANUM)
+    // (ALPHANUM) 212
     // now [0,9] -> [-10,-1] and [A-F] -> [0,5]
     0xA,    // 10
     0xE090, // D=D+A
     0x6,    // @R6
     0xF548, // M=M|D
-    0x39,  // @AINSTR
+    0xC3,   // @AINSTR
     0xEA87, // 0;JMP // goto AINSTR
-    // at the end here, R6 contains the A instruction
 
-    // (WRITE) write instruction to mem
+    // (WRITE) 218 write instruction to mem
+    // R6 should contain the instruction now
     0x6, // @R6
     0xFC10, // D=M
     0x2,    // @R2
@@ -159,8 +327,8 @@ var assembleStatement = []uint16{
     0xFCA0, // A=M-1
     0xE308, // M=D
 
-    // (END)
-    0x56,   // @END
+    // (END) 224
+    0xE0,   // @END
     0xEA87, // 0;JMP // goto END
 }
 

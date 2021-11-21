@@ -24,6 +24,11 @@ func TestAssembler(t *testing.T) {
             input: []uint16{0x40, 0x41, 0x44, 0x34, 0x31, 0x80},
             want: []uint16{0xAD41},
         },
+        {
+            // D=A\n
+            input: []uint16{0x44, 0x3D, 0x41, 0x80},
+            want: []uint16{0xEC10},
+        },
     }{
         cpu := NewBarrelShiftCPU()
         computer := NewComputer(cpu)
@@ -38,6 +43,7 @@ func TestAssembler(t *testing.T) {
         for {
             computer.ClockTick()
             //t.Errorf("%d: %04x - R6: %04x, M0x2000: %04x", prev, cpu.instr, computer.data_mem.ram.mem[0x6], computer.data_mem.ram.mem[0x2000])
+            //t.Errorf("%d: %04x - R6: %04x, A: %04x, D: %04x", prev, cpu.instr, computer.data_mem.ram.mem[0x6], cpu.a.Out(), cpu.d.Out())
             // detect end loop
             if pprev == cpu.PC() {
                 break
