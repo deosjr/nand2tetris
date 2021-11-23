@@ -50,6 +50,26 @@ func TestFirstPassAssembler(t *testing.T) {
             input: "!M\n",
             want: []uint16{0xFC40},
         },
+        {
+            input: "D=D+A\n",
+            want: []uint16{0xE090},
+        },
+        {
+            input: "M=M+1\n",
+            want: []uint16{0xFDC8},
+        },
+        {
+            input: "D;JEQ\n",
+            want: []uint16{0xE302},
+        },
+        {
+            input: "0;JMP\n",
+            want: []uint16{0xEA87},
+        },
+        {
+            input: "D=D<<3\n",
+            want: []uint16{0xC990},
+        },
     }{
         input := make([]uint16, len(tt.input))
         for i, r := range tt.input {
@@ -68,7 +88,7 @@ func TestFirstPassAssembler(t *testing.T) {
         var pprev, prev uint16
         for {
             computer.ClockTick()
-            //if i == 6 {
+            //if i == 14 {
             //t.Errorf("%d: %04x - R6: %04x, M0x2000: %04x", prev, cpu.instr, computer.data_mem.ram.mem[0x6], computer.data_mem.ram.mem[0x2000])
             //t.Errorf("%d: %04x - R6: %04x, A: %04x, D: %04x", prev, cpu.instr, computer.data_mem.ram.mem[0x6], cpu.a.Out(), cpu.d.Out())
             //}
