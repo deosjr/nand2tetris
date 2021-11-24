@@ -14,7 +14,7 @@ var headless = false
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), helloworld...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), keyboardLoop...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), writeHex...)
-var program = assembleStatement
+var program = assembleFirstPass
 
 // maybe take an output func that prints to terminal?
 func run(computer *Computer) {
