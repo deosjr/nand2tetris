@@ -38,9 +38,11 @@ var assembleStatement = []uint16{
     0xEC10, // D=A
     0x2,    // @R2
     0xE308, // M=D // R2 = 0x2000
-    0x6,    // @R7
-    0xEA88, // M=0 // R7 = 0
+    0x6,    // @R6
+    0xEA88, // M=0 // R6 = 0
+    // TODO: set R7 to 0 here?
 
+    // (START) 14
     // read char
     0x1,    // @R1
     0xFC20, // A=M
@@ -48,7 +50,7 @@ var assembleStatement = []uint16{
 
     // (SWITCH) 17
     // if D==0 goto END 
-    0x208,  // @END
+    0x210,  // @END
     0xE302, // D;JEQ
     // if D==0x2F (/) goto COMMENT
     0x2F,   // ascii /
@@ -155,7 +157,7 @@ var assembleStatement = []uint16{
     0xFDC8, // M=M+1
     0x60,   // COMP
     0xE302, // D;JEQ
-    0x208,  // @END // TODO syntax error
+    0x210,  // @END // TODO syntax error
     0xEA87, // 0;JMP
 
     // (COMP) 96
@@ -239,7 +241,7 @@ var assembleStatement = []uint16{
     // (UNRYM) 161
     0x9,    // ascii M - ascii D
     0xE4D0, // D=D-A
-    0x208,  // @END // TODO: syntax error
+    0x210,  // @END // TODO: syntax error
     0xE305, // D;JNE
     0x1C00, // M comp bits
     0xEC10, // D=A
@@ -270,7 +272,7 @@ var assembleStatement = []uint16{
     // (NOTM) 188
     0x9,    // ascii M - ascii D
     0xE4D0, // D=D-A
-    0x208,  // @END // TODO: syntax error
+    0x210,  // @END // TODO: syntax error
     0xE305, // D;JNE
     0x1C40, // !M comp bits
     0xEC10, // D=A
@@ -310,7 +312,7 @@ var assembleStatement = []uint16{
     // (NEGM) 223
     0x9,    // ascii M - ascii D
     0xE4D0, // D=D-A
-    0x208,  // @END // TODO: syntax error
+    0x210,  // @END // TODO: syntax error
     0xE305, // D;JNE
     0x1CC0, // -M comp bits
     0xEC10, // D=A
@@ -333,7 +335,7 @@ var assembleStatement = []uint16{
     0xE4D0, // D=D-A
     0xF8,   // @BNRYM
     0xE302, // D;JEQ
-    0x208,  // @END // TODO: syntax error
+    0x210,  // @END // TODO: syntax error
     0xEA87, // 0;JMP
 
     // (BNRYM) 248
@@ -381,7 +383,7 @@ var assembleStatement = []uint16{
     0xE4D0, // D=D-A
     0x17D,  // @SHIFT
     0xE302, // D;JEQ
-    0x208,  // @END // TODO: syntax error
+    0x210,  // @END // TODO: syntax error
     0xEA87, // 0;JMP
 
     // (BNRYD) 288
@@ -484,7 +486,7 @@ var assembleStatement = []uint16{
     // (DSHIFT) 373
     0x4011, // ascii << = 0x3C3C, 0x4011 LESS than |M
     0xE090, // D=D+A
-    0x208,  // @END // TODO syntax error
+    0x210,  // @END // TODO syntax error
     0xE305, // D;JNE
     0x0800, // D bit for the shift operation
     0xEC10, // D=A
@@ -525,14 +527,14 @@ var assembleStatement = []uint16{
     // otherwise parse the jump instruction part
     0x45,   // ascii ENTER - ascii ;
     0xE090, // D=D+A
-    0x208,  // @END // TODO syntax error
+    0x210,  // @END // TODO syntax error
     0xE305, // D;JNE
     0x1,    // @R1
     0xFDE8, // AM=M+1
     0xFC10, // D=M
     0x4A,   // ascii J
     0xE4D0, // D=D-A
-    0x208,  // @END // TODO syntax error
+    0x210,  // @END // TODO syntax error
     0xE305, // D;JNE
     // read the next two chars as 8bit values into D then compare
     0x1,    // @R1
@@ -597,7 +599,7 @@ var assembleStatement = []uint16{
     // (JNE) 465
     0x00F5, // ascii NE = 0x4E45, 0x00F5 more than MP
     0xE4D0, // D=D-A
-    0x208,  // @END // TODO syntax error
+    0x210,  // @END // TODO syntax error
     0xE305, // D;JNE
     0x0005, // JNE jump bits
     0xEC10, // D=A
@@ -616,7 +618,7 @@ var assembleStatement = []uint16{
     0xE4D0, // D=D-A
     0x202,  // @WRITE
     0xE302, // D;JEQ
-    0x208,  // @END // TODO syntax error
+    0x210,  // @END // TODO syntax error
     0xEA87, // 0;JMP
 
     // (COMMENT) 482 -> consume rest of the line
@@ -628,7 +630,7 @@ var assembleStatement = []uint16{
     // if D==0x80 (ENTER) goto END 
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0x208,  // @END
+    0x210,  // @END
     0xE302, // D;JEQ
     // else goto COMMENT
     0x1E2,  // @COMMENT
@@ -675,8 +677,18 @@ var assembleStatement = []uint16{
     0xFCA0, // A=M-1
     0xE308, // M=D
 
-    // (END) 520
-    0x208,  // @END
+    // consume newline (assume found, otherwise shouldve been syntax error) and parse next line
+    0x6,    // @R6
+    0xEA88, // M=0 // R6 = 0
+    0x7,    // @R7
+    0xEA88, // M=0 // R7 = 0
+    0x1,    // @R1
+    0xFDC8, // M=M+1
+    0xE,    // @START
+    0xEA87, // 0;JMP
+
+    // (END) 528
+    0x210,  // @END
     0xEA87, // 0;JMP // goto END
 }
 

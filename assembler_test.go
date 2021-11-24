@@ -70,6 +70,10 @@ func TestFirstPassAssembler(t *testing.T) {
             input: "D=D<<3\n",
             want: []uint16{0xC990},
         },
+        {
+            input: "@0006\nD=M\n@0002\nM=M+1\nA=M-1\nM=D\n",
+            want: []uint16{0x6, 0xFC10, 0x2, 0xFDC8, 0xFCA0, 0xE308},
+        },
     }{
         input := make([]uint16, len(tt.input))
         for i, r := range tt.input {
@@ -88,7 +92,7 @@ func TestFirstPassAssembler(t *testing.T) {
         var pprev, prev uint16
         for {
             computer.ClockTick()
-            //if i == 14 {
+            //if i == 15 {
             //t.Errorf("%d: %04x - R6: %04x, M0x2000: %04x", prev, cpu.instr, computer.data_mem.ram.mem[0x6], computer.data_mem.ram.mem[0x2000])
             //t.Errorf("%d: %04x - R6: %04x, A: %04x, D: %04x", prev, cpu.instr, computer.data_mem.ram.mem[0x6], cpu.a.Out(), cpu.d.Out())
             //}
