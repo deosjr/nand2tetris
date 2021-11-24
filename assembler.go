@@ -34,10 +34,10 @@ var assembleFirstPass = []uint16{
     0xEC10, // D=A
     0x1,    // @R1
     0xE308, // M=D // R1 = 0x1000
-    0x2000, // @0x2000
+    0x1000, // @0x1000 // TODO not enough space! need to overwrite input
     0xEC10, // D=A
     0x2,    // @R2
-    0xE308, // M=D // R2 = 0x2000
+    0xE308, // M=D // R2 = 0x1000
     0x6,    // @R6
     0xEA88, // M=0 // R6 = 0
     0x7,    // @R7
@@ -680,6 +680,7 @@ var assembleFirstPass = []uint16{
 
     // (AINSTR) 524 -> parse rest as hex value
     // TODO: assumes max 4 valid hex chars follow!
+    // TODO: whitespace/comments after AINSTR
     0x1,    // @R1
     0xFDE8, // AM=M+1
     0xFC10, // D=M
@@ -715,6 +716,7 @@ var assembleFirstPass = []uint16{
     0x6, // @R6
     0xFC10, // D=M
     // if R6 is 0 then this was a full line comment, do not write anything
+    // TODO: not true! it could be 0x0 also!
     0x22B,  // @RESET
     0xE302, // D;JEQ
     // otherwise write to mem at R2 and advance counter

@@ -82,6 +82,10 @@ func TestFirstPassAssembler(t *testing.T) {
             input: "D=D<<3  // COMMENT\n",
             want: []uint16{0xC990},
         },
+        {
+            input: "@0000\n",
+            want: []uint16{0x0},
+        },
     }{
         input := make([]uint16, len(tt.input))
         for i, r := range tt.input {
@@ -112,14 +116,15 @@ func TestFirstPassAssembler(t *testing.T) {
             prev = cpu.PC()
         }
         output := []uint16{}
-        n := 0
+        outputpointer := 0x1000
+        endoutput := int(computer.data_mem.ram.mem[0x2])
         for {
-            v := computer.data_mem.ram.mem[0x2000+n]
-            if v == 0 {
+            if outputpointer == endoutput {
                 break
             }
+            v := computer.data_mem.ram.mem[outputpointer]
             output = append(output, v)
-            n++
+            outputpointer++
         }
         if !reflect.DeepEqual(output, tt.want) {
             t.Errorf("%d) got %d but want %d", i, output, tt.want)

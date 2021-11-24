@@ -1,7 +1,9 @@
 package main
 
 import (
+    "bufio"
     "fmt"
+    "os"
     "time"
 
     "github.com/faiface/pixel"
@@ -23,18 +25,30 @@ func run(computer *Computer) {
     computer.SendReset(false)
     fmt.Println("booting...")
 
-    // set test data in ram
+    // set test data in ram: assemble the assembler using itself!
     ram := computer.data_mem.ram
-    // M=D;JMP
+    datapointer := 0x1000
+    f, _ := os.Open("firstpass.asm")
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+    scanner.Split(bufio.ScanRunes)
+
+	for scanner.Scan() {
+        char := scanner.Text()[0]
+        fmt.Print(scanner.Text())
+        if char == ' ' {
+            continue
+        }
+        if char == '\n' {
+            char = 0x80
+        }
+        ram.mem[datapointer] = uint16(char)
+        datapointer++
+        if datapointer == 0x4000 {
+            break
+        }
+	}
     /*
-    ram.mem[0x1000] = 0x4D
-    ram.mem[0x1001] = 0x3D
-    ram.mem[0x1002] = 0x44
-    ram.mem[0x1003] = 0x3B
-    ram.mem[0x1004] = 0x4A
-    ram.mem[0x1005] = 0x4D
-    ram.mem[0x1006] = 0x50
-    */
     // HELLO WORLD!
     ram.mem[0x1000] = 0x48
     ram.mem[0x1001] = 0x45
@@ -48,8 +62,10 @@ func run(computer *Computer) {
     ram.mem[0x1009] = 0x4C
     ram.mem[0x100A] = 0x44
     ram.mem[0x100B] = 0x21
+    */
 
     //fmt.Println("pc: inst| in | ax | dx | out")
+    var pprev, prev uint16
     for {
         //cpu := computer.cpu.(*BarrelShiftCPU)
         //fmt.Printf("%02d: %04x %04x", cpu.PC(), computer.instr_mem.Out(), cpu.inM)
@@ -65,6 +81,28 @@ func run(computer *Computer) {
         //fmt.Printf(" %04x %04x %04x\n", computer.data_mem.ram.mem[0x0], computer.data_mem.ram.mem[0x10], computer.data_mem.ram.mem[0x11])
         time.Sleep(1*time.Nanosecond)
         //time.Sleep(10*time.Millisecond)
+        if pprev == computer.cpu.PC() {
+            break
+        }
+        pprev = prev
+        prev = computer.cpu.PC()
+    }
+    output := []uint16{}
+    outputpointer := 0x1000
+    endoutput := int(computer.data_mem.ram.mem[0x2])
+    for {
+        if outputpointer == endoutput {
+            break
+        }
+        v := computer.data_mem.ram.mem[outputpointer]
+        if v == 0 {
+            break
+        }
+        output = append(output, v)
+        outputpointer++
+    }
+    for i, v := range output {
+        fmt.Printf("%d: %04x\n", i, v)
     }
 }
 
