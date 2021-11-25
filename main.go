@@ -76,7 +76,7 @@ func run(computer *Computer) {
             fmt.Printf("%04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x7])
         }
         */
-        //fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
+        //fmt.Printf(" %04x %04x %04x\n", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
         //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x4], computer.data_mem.ram.mem[0x5])
         //fmt.Printf(" %04x %04x %04x\n", computer.data_mem.ram.mem[0x0], computer.data_mem.ram.mem[0x10], computer.data_mem.ram.mem[0x11])
         time.Sleep(1*time.Nanosecond)
@@ -95,9 +95,6 @@ func run(computer *Computer) {
             break
         }
         v := computer.data_mem.ram.mem[outputpointer]
-        if v == 0 {
-            break
-        }
         output = append(output, v)
         outputpointer++
     }

@@ -58,7 +58,7 @@
     @0007   // @R7
     DM=M+1
     @0001   // @R1
-    A=M+D
+    A=D+M
     D=M
     // if D==A goto LOOKAHEAD 
     @0041   // ascii A
@@ -99,7 +99,7 @@
     @0020   // @A as dest bit
     D=A
     @0006   // @R6
-    M=M|D
+    M=D|M
     @0041   // @DESTA
     0;JMP
 // (DESTD) 78
@@ -111,7 +111,7 @@
     @0010   // @D as dest bit
     D=A
     @0006   // @R6
-    M=M|D
+    M=D|M
     @0041   // @DESTA
     0;JMP
 // (DESTM) 88
@@ -123,7 +123,7 @@
     @0008   // @M as dest bit
     D=A
     @0006   // @R6
-    M=M|D
+    M=D|M
     @0041   // @DESTA
     0;JMP
 // (DESTEQ) 98
@@ -258,7 +258,7 @@
     D;JNE
     @0E80   // -1 comp bits
     D=A
-    @0191,  // @JUMP
+    @0191   // @JUMP
     0;JMP
 // (NEGA) 217
     @0010   // ascii A - ascii 1
@@ -310,7 +310,7 @@
     @1000   // 0001 0000 0000 0000
     D=A
     @0006   // @R6
-    M=M|D
+    M=D|M
 // (BNRYA) 262
     // read the next two chars as 8bit values into D then compare
     @0001   // @R1
@@ -369,7 +369,7 @@
     @0191   // @JUMP
     0;JMP
 // (ANDM) 311
-    0x000C, // ascii &M = 0x264D, 0x000C more than &A
+    @000C   // ascii &M = 0x264D, 0x000C more than &A
     D=D-A
     @013F   // @PLUS1
     D;JNE
@@ -457,7 +457,7 @@
     @0800   // D bit for the shift operation
     D=A
     @0006   // @R6
-    M=M|D
+    M=D|M
     // fall through to SHIFT
 // (SHIFT) 391
     // We can come here from either A, D or M parsed, flags have been set accordingly
@@ -479,7 +479,7 @@
     // whenever we come to jump, we have just set D=bits to add to instr
     // so the first thing we do is to add those to R6
     @0006   // @R6
-    M=M|D
+    M=D|M
     // parse ENTER or ;J then two letter combo. set jump bits accordingly
     // TODO: OR some whitespace OR goto COMMENT
     // TODO: copy from ENDLINE, should be a function using stackpointer?
@@ -586,7 +586,7 @@
     // whenever we come to endjump, we have just set D=bits to add to instr
     // so the first thing we do is to add those to R6
     @0006   // @R6
-    M=M|D
+    M=D|M
     // consume trailing whitespace/comment and goto write
 // (ENDLINE) 491
     @0001   // @R1
@@ -657,7 +657,7 @@
     @000A   // 10
     D=D+A
     @0006   // @R6
-    M=M|D
+    M=D|M
     @020C   // @AINSTR
     0;JMP   // goto AINSTR
 // (WRITE) 547 write instruction to mem
