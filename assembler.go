@@ -18,7 +18,7 @@ package main
 // output starts at 0x2000 in memory
 
 // R0: shared stack pointer
-// stack memory starting at 0x10 and growing down. R0 points to (empty) top of stack
+// stack memory starting at 0x10 and growing down. R0 points to top of stack
 // R1: memory pointer starting at 0x1000
 // R2: memory pointer starting at 0x2000
 // R4: used by drawChar
@@ -49,7 +49,7 @@ var assembleFirstPass = []uint16{
     0xFC20, // A=M
     0xFC10, // D=M
     // if D==0 goto END 
-    0x233,  // @END
+    0x245,  // @END
     0xE302, // D;JEQ
     // if D==0x20 (SPACE) goto START, allowing leading spaces (indents)
     0x20,   // ascii SPACE
@@ -64,12 +64,12 @@ var assembleFirstPass = []uint16{
     // if D==0x2F (/) goto COMMENT
     0xF,    // ascii / - ascii SPACE
     0xE4D0, // D=D-A
-    0x1FC,  // @COMMENT
+    0x1EA,  // @COMMENT
     0xE302, // D;JEQ
     // if D==0x40 (@) goto AINSTR
     0x11,   // ascii @ - ascii /
     0xE4D0, // D=D-A
-    0x20C,  // @AINSTR
+    0x1FA,  // @AINSTR
     0xE302, // D;JEQ
     // else LOOKAHEAD for start C instr
 
@@ -166,7 +166,7 @@ var assembleFirstPass = []uint16{
     0xFDC8, // M=M+1
     0x6A,   // @COMP
     0xE302, // D;JEQ
-    0x233,  // @END // TODO syntax error
+    0x245,  // @END // TODO syntax error
     0xEA87, // 0;JMP
 
     // (COMP) 106
@@ -215,8 +215,8 @@ var assembleFirstPass = []uint16{
     // ZERO
     0x0A80, // 0 comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
 
     // (ONE) 148
     0xE390, // D=D-1 // ascii 1 - ascii 0
@@ -224,8 +224,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0FC0, // 1 comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
 
     // (UNRYA) 155
     0x10,   // ascii A - ascii 1
@@ -234,8 +234,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0C00, // A comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
 
     // (UNRYD) 163
     0x3,    // ascii D - ascii A
@@ -244,18 +244,18 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0300, // D comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
 
     // (UNRYM) 171
     0x9,    // ascii M - ascii D
     0xE4D0, // D=D-A
-    0x233,  // @END // TODO: syntax error
+    0x245,  // @END // TODO: syntax error
     0xE305, // D;JNE
     0x1C00, // M comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
 
     // (NOT) 179
     0x1,    // @R1
@@ -267,8 +267,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0C40, // !A comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (NOTD) 190
     0x3,    // ascii D - ascii A
     0xE4D0, // D=D-A
@@ -276,17 +276,17 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0340, // !D comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (NOTM) 198
     0x9,    // ascii M - ascii D
     0xE4D0, // D=D-A
-    0x233,  // @END // TODO: syntax error
+    0x245,  // @END // TODO: syntax error
     0xE305, // D;JNE
     0x1C40, // !M comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
 
     // (NEG) 206
     0x1,    // @R1
@@ -298,8 +298,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0E80, // -1 comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (NEGA) 217
     0x10,   // ascii A - ascii 1
     0xE4D0, // D=D-A
@@ -307,8 +307,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0CC0, // -A comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (NEGD) 225
     0x3,    // ascii D - ascii A
     0xE4D0, // D=D-A
@@ -316,17 +316,17 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x03C0, // -D comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (NEGM) 233
     0x9,    // ascii M - ascii D
     0xE4D0, // D=D-A
-    0x233,  // @END // TODO: syntax error
+    0x245,  // @END // TODO: syntax error
     0xE305, // D;JNE
     0x1CC0, // -M comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
 
     // (BINARY) 241
     0x1,    // @R1
@@ -344,7 +344,7 @@ var assembleFirstPass = []uint16{
     0xE4D0, // D=D-A
     0x102,  // @BNRYM
     0xE302, // D;JEQ
-    0x233,  // @END // TODO: syntax error
+    0x245,  // @END // TODO: syntax error
     0xEA87, // 0;JMP
 
     // (BNRYM) 258
@@ -367,8 +367,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0DC0, // A/M +1 comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (MIN1) 276
     0x0200, // ascii -1 = 0x2D31, 0x0200 more than +1
     0xE4D0, // D=D-A
@@ -376,8 +376,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0C80, // A/M -1 comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (MIND) 284
     0x0013, // ascii -D = 0x2D44, 0x0013 more than -1
     0xE4D0, // D=D-A
@@ -385,14 +385,14 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x01C0, // A/M -D comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (ASHIFT) 292
     0x0EF8, // ascii << = 0x3C3C, 0x0EF8 more than -D
     0xE4D0, // D=D-A
     0x187,  // @SHIFT
     0xE302, // D;JEQ
-    0x233,  // @END // TODO: syntax error
+    0x245,  // @END // TODO: syntax error
     0xEA87, // 0;JMP
 
     // (BNRYD) 298
@@ -409,8 +409,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     // D&A comp bits are all 0
     0xEA90, // D=0
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (ANDM) 311
     0x000C, // ascii &M = 0x264D, 0x000C more than &A
     0xE4D0, // D=D-A
@@ -418,8 +418,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x1000, // D&M comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (PLUS1) 319
     0x04E4, // ascii +1 = 0x2B31, 0x04E4 more than &M
     0xE4D0, // D=D-A
@@ -427,8 +427,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x07C0, // D+1 comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (PLUSA) 327
     0x0010, // ascii +A = 0x2B41, 0x0010 more than +1
     0xE4D0, // D=D-A
@@ -436,8 +436,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0080, // D+A comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (PLUSM) 335
     0x000C, // ascii +M = 0x2B4D, 0x000C more than +A
     0xE4D0, // D=D-A
@@ -445,8 +445,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x1080, // D+M comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (DMIN1) 343
     0x01E4, // ascii -1 = 0x2D31, 0x01E4 more than +M
     0xE4D0, // D=D-A
@@ -454,8 +454,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0380, // D-1 comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (MINA) 351
     0x0010, // ascii -A = 0x2D41, 0x0010 more than -1
     0xE4D0, // D=D-A
@@ -463,8 +463,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x04C0, // D-A comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (MINM) 359
     0x000C, // ascii -M = 0x2D4D, 0x000C more than -A
     0xE4D0, // D=D-A
@@ -472,8 +472,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x14C0, // D-M comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (ORA) 367
     0x4EF4, // ascii |A = 0x7C41, 0x4EF4 more than -M
     0xE4D0, // D=D-A
@@ -481,8 +481,8 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x0540, // D|A comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (ORM) 375
     0x000C, // ascii |M = 0x7C4D, 0x000C more than |A
     0xE4D0, // D=D-A
@@ -490,12 +490,12 @@ var assembleFirstPass = []uint16{
     0xE305, // D;JNE
     0x1540, // D|M comp bits
     0xEC10, // D=A
-    0x191,  // @JUMP
-    0xEA87, // 0;JMP ; goto JUMP
+    0x191,  // @ENDCOMP
+    0xEA87, // 0;JMP // goto ENDCOMP
     // (DSHIFT) 383
     0x4011, // ascii << = 0x3C3C, 0x4011 LESS than |M
     0xE090, // D=D+A
-    0x233,  // @END // TODO syntax error
+    0x245,  // @END // TODO syntax error
     0xE305, // D;JNE
     0x0800, // D bit for the shift operation
     0xEC10, // D=A
@@ -518,46 +518,34 @@ var assembleFirstPass = []uint16{
     0x30,   // maps [0x31, 0x38] -> [1, 8] 
     0xE4D0, // D=D-A
     0xCB90, // D=D<<7
-    // fall through to jump
+    // fall through to endcomp
 
-    // (JUMP) 401
+    // (ENDCOMP) 401
     // whenever we come to jump, we have just set D=bits to add to instr
     // so the first thing we do is to add those to R6
     0x6,    // @R6
     0xF548, // M=M|D
-    // parse ENTER or ;J then two letter combo. set jump bits accordingly
-    // TODO: OR some whitespace OR goto COMMENT
-    // TODO: copy from ENDLINE, should be a function using stackpointer?
-    // (PREJUMP) 403
-    0x1,    // @R1
+    // check whether we stop early in ENDLINE func
+    0x19A,  // @JUMP
+    0xEC10, // D=A
+    0x0,    // @R0
     0xFDE8, // AM=M+1
-    0xFC10, // D=M
-    // if D==0x20 (SPACE) goto PREJUMP, allowing trailing spaces
-    0x20,   // ascii SPACE
-    0xE4D0, // D=D-A
-    0x193,  // @PREJUMP
-    0xE302, // D;JEQ
-    // if D==0x2F (/) goto COMMENT
-    0xF,    // ascii / - ascii SPACE
-    0xE4D0, // D=D-A
-    0x1FC,  // @COMMENT
-    0xE302, // D;JEQ
-    // if D==0x80 (ENTER) goto WRITE
-    0x51,   // ascii ENTER - ascii /
-    0xE4D0, // D=D-A
-    0x223,  // @WRITE
-    0xE302, // D;JEQ
+    0xE308, // M=D
+    0x21C,  // @ENDLINE
+    0xEA87, // 0;JMP
     // otherwise parse the jump instruction part
+    // (JUMP) 410
+    // parse ENTER or ;J then two letter combo. set jump bits accordingly
     0x45,   // ascii ENTER - ascii ;
     0xE090, // D=D+A
-    0x233,  // @END // TODO syntax error
+    0x245,  // @END // TODO syntax error
     0xE305, // D;JNE
     0x1,    // @R1
     0xFDE8, // AM=M+1
     0xFC10, // D=M
     0x4A,   // ascii J
     0xE4D0, // D=D-A
-    0x233,  // @END // TODO syntax error
+    0x245,  // @END // TODO syntax error
     0xE305, // D;JNE
     // read the next two chars as 8bit values into D then compare
     0x1,    // @R1
@@ -568,61 +556,61 @@ var assembleFirstPass = []uint16{
     0xF550, // D=D|M
     0x4551, // ascii EQ = 0x4551
     0xE4D0, // D=D-A
-    0x1BB,  // @JGE
+    0x1B3,  // @JGE
     0xE305, // D;JNE
     0x0002, // JEQ jump bits
     0xEC10, // D=A
-    0x1E9,  // @ENDJUMP
+    0x1E1,  // @ENDJUMP
     0xEA87, // 0;JMP ; goto ENDJUMP
-    // (JGE) 443
+    // (JGE) 435
     0x01F4, // ascii GE = 0x4745, 0x01F4 more than EQ
     0xE4D0, // D=D-A
-    0x1C3,  // @JGT
+    0x1BB,  // @JGT
     0xE305, // D;JNE
     0x0003, // JGE jump bits
     0xEC10, // D=A
-    0x1E9,  // @ENDJUMP
+    0x1E1,  // @ENDJUMP
     0xEA87, // 0;JMP ; goto ENDJUMP
-    // (JGT) 451
+    // (JGT) 443
     0x000F, // ascii GT = 0x4754, 0x000F more than GE
     0xE4D0, // D=D-A
-    0x1CB,  // @JLE
+    0x1C3,  // @JLE
     0xE305, // D;JNE
     0x0001, // JGT jump bits
     0xEC10, // D=A
-    0x1E9,  // @ENDJUMP
+    0x1E1,  // @ENDJUMP
     0xEA87, // 0;JMP ; goto ENDJUMP
-    // (JLE) 459
+    // (JLE) 451
     0x04F1, // ascii LE = 0x4C45, 0x04F1 more than GT
     0xE4D0, // D=D-A
-    0x1D3,  // @JLT
+    0x1CB,  // @JLT
     0xE305, // D;JNE
     0x0006, // JLE jump bits
     0xEC10, // D=A
-    0x1E9,  // @ENDJUMP
+    0x1E1,  // @ENDJUMP
     0xEA87, // 0;JMP ; goto ENDJUMP
-    // (JLT) 467
+    // (JLT) 459
     0x000F, // ascii LT = 0x4C54, 0x000F more than LE
     0xE4D0, // D=D-A
-    0x1DB,  // @JMP
+    0x1D3,  // @JMP
     0xE305, // D;JNE
     0x0004, // JLT jump bits
     0xEC10, // D=A
-    0x1E9,  // @ENDJUMP
+    0x1E1,  // @ENDJUMP
     0xEA87, // 0;JMP ; goto ENDJUMP
-    // (JMP) 475
+    // (JMP) 467
     0x00FC, // ascii MP = 0x4D50, 0x00FC more than LT
     0xE4D0, // D=D-A
-    0x1E3,  // @JNE
+    0x1DB,  // @JNE
     0xE305, // D;JNE
     0x0007, // JMP jump bits
     0xEC10, // D=A
-    0x1E9,  // @ENDJUMP
+    0x1E1,  // @ENDJUMP
     0xEA87, // 0;JMP ; goto ENDJUMP
-    // (JNE) 483
+    // (JNE) 475
     0x00F5, // ascii NE = 0x4E45, 0x00F5 more than MP
     0xE4D0, // D=D-A
-    0x233,  // @END // TODO syntax error
+    0x245,  // @END // TODO syntax error
     0xE305, // D;JNE
     0x0005, // JNE jump bits
     0xEC10, // D=A
@@ -630,102 +618,135 @@ var assembleFirstPass = []uint16{
 
     // whenever we come to endjump, we have just set D=bits to add to instr
     // so the first thing we do is to add those to R6
-    // (ENDJUMP) 489
+    // (ENDJUMP) 481
     0x6,    // @R6
     0xF548, // M=M|D
-    // consume trailing whitespace/comment and goto write
-    // (ENDLINE) 491
-    0x1,    // @R1
+    // check whether we stop in ENDLINE func
+    // if we do not, we return to syntax error
+    0x245,  // @END // TODO syntax error
+    0xEC10, // D=A
+    0x0,    // @R0
     0xFDE8, // AM=M+1
-    0xFC10, // D=M
-    // if D==0x20 (SPACE) goto ENDLINE, allowing trailing spaces
-    0x20,   // ascii SPACE
-    0xE4D0, // D=D-A
-    0x1EB,  // @ENDLINE
-    0xE302, // D;JEQ
-    // if D==0x2F (/) goto COMMENT
-    0xF,    // ascii / - ascii SPACE
-    0xE4D0, // D=D-A
-    0x1FC,  // @COMMENT
-    0xE302, // D;JEQ
-    // if D==0x80 (ENTER) goto WRITE
-    0x51,   // ascii ENTER - ascii /
-    0xE4D0, // D=D-A
-    0x223,  // @WRITE
-    0xE302, // D;JEQ
-    0x233,  // @END // TODO syntax error
+    0xE308, // M=D
+    0x21C,  // @ENDLINE
     0xEA87, // 0;JMP
 
-    // (COMMENT) 508 -> consume second slash
+    // (COMMENT) 490 -> consume second slash
     0x1,    // @R1
     0xFDE8, // AM=M+1
     0xFC10, // D=M
     // if D!=0x2F (/) goto END TODO syntax error
     0x2F,   // ascii /
     0xE4D0, // D=D-A
-    0x233,  // @END
+    0x245,  // @END
     0xE305, // D;JNE
-    // (COMMENTREC) 515 -> consume rest of the line
+    // (COMMENTREC) 497 -> consume rest of the line
     0x1,    // @R1
     0xFDE8, // AM=M+1
     0xFC10, // D=M
     // if D==0x80 (ENTER) goto WRITE 
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0x223,  // @WRITE
+    0x231,  // @WRITE
     0xE302, // D;JEQ
     // else goto COMMENTREC
-    0x203,  // @COMMENTREC
+    0x1F1,  // @COMMENTREC
     0xEA87, // 0;JMP
 
-    // (AINSTR) 524 -> parse rest as hex value
+    // (AINSTR) 506 -> parse rest as hex value
     // TODO: assumes max 4 valid hex chars follow!
-    // TODO: whitespace/comments after AINSTR
     0x1,    // @R1
     0xFDE8, // AM=M+1
     0xFC10, // D=M
     // if D==0x80 (ENTER) goto WRITE 
     0x80,   // ascii ENTER
     0xE4D0, // D=D-A
-    0x223,  // @WRITE
+    0x231,  // @WRITE
     0xE302, // D;JEQ
     // TODO: if not 0-9 or A-F, goto END
     0x80,   // otherwise set D back to read value
     0xE090, // D=D+A
     0x6,    // @R6
     0xD208, // M=M<<4
-
     0x41,   // ascii A
     0xE4D0, // D=D-A
-    0x21D,  // @ALPHANUM 
+    0x20B,  // @ALPHANUM 
     0xE303, // D;JGE // if D-65 >= 0, we have a A-F char
     // only for digits: add back to map 0-9A-F continuous
     0x7, // ascii A - ascii 9 - 1
     0xE090, // D=D+A
-    // (ALPHANUM) 541
+    // (ALPHANUM) 523
     // now [0,9] -> [-10,-1] and [A-F] -> [0,5]
     0xA,    // 10
     0xE090, // D=D+A
     0x6,    // @R6
     0xF548, // M=M|D
-    0x20C,  // @AINSTR
-    0xEA87, // 0;JMP // goto AINSTR
+    0x7,    // @R7
+    0xFDD8, // DM=M+1 // R7+=1
+    0x4,    // @4
+    0xE4D0, // D=D-A
+    0x1FA, // @AINSTR
+    0xE305, // D;JNE
+    // after parsing 4 hex chars, check whether we stop in ENDLINE func
+    // if we do not, we return to syntax error
+    0x245,  // @END // TODO syntax error
+    0xEC10, // D=A
+    0x0,    // @R0
+    0xFDE8, // AM=M+1
+    0xE308, // M=D
+    0x21C,  // @ENDLINE
+    0xEA87, // 0;JMP
 
-    // (WRITE) 547 write instruction to mem
+    // (ENDLINE) 540
+    // function called from end of comp, jump and ainstr
+    // consumes trailing spaces, comments and newline
+    // jumps back if it FAILS to find any of those
+    // otherwise cuts parsing the line short and never returns
+    0x0,    // @R0
+    0xFC88, // M=M-1  // whatever happens, decrement stack pointer
+    // (ENDLINELOOP) 542
+    0x1,    // @R1
+    0xFDE8, // AM=M+1
+    0xFC10, // D=M
+    // if D==0x20 (SPACE) goto ENDLINELOOP, allowing trailing spaces
+    0x20,   // ascii SPACE
+    0xE4D0, // D=D-A
+    0x21E,  // @ENDLINELOOP
+    0xE302, // D;JEQ
+    // if D==0x2F (/) goto COMMENT
+    0xF,    // ascii / - ascii SPACE
+    0xE4D0, // D=D-A
+    0x1EA,  // @COMMENT
+    0xE302, // D;JEQ
+    // if D==0x80 (ENTER) goto WRITE
+    0x51,   // ascii ENTER - ascii /
+    0xE4D0, // D=D-A
+    0x231,  // @WRITE
+    0xE302, // D;JEQ
+    // goto the address @R0 pointed to
+    0x0,    // @R0
+    0xFDE0, // A=M+1 // already decremented stack pointer
+    0xFC20, // A=M
+    0xEA87, // 0;JMP // return to caller
+
+    // (WRITE) 561 write instruction to mem
     // R6 should contain the instruction now
     0x6, // @R6
     0xFC10, // D=M
-    // if R6 is 0 then this was a full line comment, do not write anything
-    // TODO: not true! it could be 0x0 also!
-    0x22B,  // @RESET
+    0x7, // @R7
+    0xF090, // D=D+M
+    // if R6 is 0 and R7 is 0 then this was a full line comment, do not write anything
+    0x23D,  // @RESET
     0xE302, // D;JEQ
     // otherwise write to mem at R2 and advance counter
+    0x6, // @R6
+    0xFC10, // D=M
     0x2,    // @R2
     0xFDC8, // M=M+1
     0xFCA0, // A=M-1
     0xE308, // M=D
 
-    // (RESET) 555 consume newline (assume found, otherwise shouldve been syntax error) and parse next line
+    // (RESET) 573 consume newline (assume found, otherwise shouldve been syntax error) and parse next line
     0x6,    // @R6
     0xEA88, // M=0 // R6 = 0
     0x7,    // @R7
@@ -735,8 +756,8 @@ var assembleFirstPass = []uint16{
     0x10,   // @START
     0xEA87, // 0;JMP
 
-    // (END) 563
-    0x233,  // @END
+    // (END) 581
+    0x245,  // @END
     0xEA87, // 0;JMP // goto END
 }
 
