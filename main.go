@@ -35,7 +35,6 @@ func run(computer *Computer) {
 
 	for scanner.Scan() {
         char := scanner.Text()[0]
-        fmt.Print(scanner.Text())
         if char == ' ' {
             continue
         }
@@ -98,8 +97,8 @@ func run(computer *Computer) {
         output = append(output, v)
         outputpointer++
     }
-    for i, v := range output {
-        fmt.Printf("%d: %04x\n", i, v)
+    for _, v := range output {
+        fmt.Printf("%04x\n", v)
     }
 }
 

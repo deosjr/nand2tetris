@@ -8,10 +8,10 @@
     D=A
     @0001 // @R1
     M=D   // R1 = 0x1000
-    @2000
+    @1000 // TODO not enough space! need to overwrite input
     D=A
     @0002 // @R2
-    M=D   // R2 = 0x2000
+    M=D   // R2 = 0x1000
     @0006 // @R6
     M=0   // R6 = 0
     @0007 // @R7
@@ -22,7 +22,7 @@
     A=M
     D=M
     // if D==0 goto END 
-    @0233   // @END
+    @0245   // @END
     D;JEQ
     // if D==0x20 (SPACE) goto START, allowing leading spaces (indents)
     @0020   // ascii SPACE
@@ -37,12 +37,12 @@
     // if D==0x2F (/) goto COMMENT
     @000F   // ascii / - ascii SPACE
     D=D-A
-    @01FC   // @COMMENT
+    @01EA   // @COMMENT
     D;JEQ
     // if D==0x40 (@) goto AINSTR
     @0011   // ascii @ - ascii /
     D=D-A
-    @020C   // @AINSTR
+    @01FA   // @AINSTR
     D;JEQ
     // else LOOKAHEAD for start C instr
     // R6 here to build up our instruction, setting individual bits
@@ -134,7 +134,7 @@
     M=M+1
     @006A   // @COMP
     D;JEQ
-    @0233   // @END // TODO syntax error
+    @0245   // @END // TODO syntax error
     0;JMP
 // (COMP) 106
     // lookahead one character for an operator: + - & | <
@@ -181,7 +181,7 @@
 // ZERO
     @0A80   // 0 comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (ONE) 148
     D=D-1   // ascii 1 - ascii 0
@@ -189,7 +189,7 @@
     D;JNE
     @0FC0   // 1 comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (UNRYA) 155
     @0010   // ascii A - ascii 1
@@ -198,7 +198,7 @@
     D;JNE
     @0C00   // A comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (UNRYD) 163
     @0003   // ascii D - ascii A
@@ -207,16 +207,16 @@
     D;JNE
     @0300   // D comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (UNRYM) 171
     @0009   // ascii M - ascii D
     D=D-A
-    @0233   // @END // TODO: syntax error
+    @0245   // @END // TODO: syntax error
     D;JNE
     @1C00   // M comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (NOT) 179
     @0001   // @R1
@@ -228,7 +228,7 @@
     D;JNE
     @0C40   // !A comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (NOTD) 190
     @0003   // ascii D - ascii A
@@ -237,16 +237,16 @@
     D;JNE
     @0340   // !D comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (NOTM) 198
     @0009   // ascii M - ascii D
     D=D-A
-    @0233   // @END // TODO: syntax error
+    @0245   // @END // TODO: syntax error
     D;JNE
     @1C40   // !M comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (NEG) 206
     @0001   // @R1
@@ -258,7 +258,7 @@
     D;JNE
     @0E80   // -1 comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (NEGA) 217
     @0010   // ascii A - ascii 1
@@ -267,7 +267,7 @@
     D;JNE
     @0CC0   // -A comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (NEGD) 225
     @0003   // ascii D - ascii A
@@ -276,16 +276,16 @@
     D;JNE
     @03C0   // -D comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (NEGM) 233
     @0009   // ascii M - ascii D
     D=D-A
-    @0233   // @END // TODO: syntax error
+    @0245   // @END // TODO: syntax error
     D;JNE
     @1CC0   // -M comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (BINARY) 241
     @0001   // @R1
@@ -303,7 +303,7 @@
     D=D-A
     @0102   // @BNRYM
     D;JEQ
-    @0233   // @END // TODO: syntax error
+    @0245   // @END // TODO: syntax error
     0;JMP
 // (BNRYM) 258
     // set the M flag, then fall through to A case
@@ -325,7 +325,7 @@
     D;JNE
     @0DC0   // A/M +1 comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (MIN1) 276
     @0200   // ascii -1 = 0x2D31, 0x0200 more than +1
@@ -334,7 +334,7 @@
     D;JNE
     @0C80   // A/M -1 comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (MIND) 284
     @0013   // ascii -D = 0x2D44, 0x0013 more than -1
@@ -343,14 +343,14 @@
     D;JNE
     @01C0   // A/M -D comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (ASHIFT) 292
     @0EF8   // ascii << = 0x3C3C, 0x0EF8 more than -D
     D=D-A
     @0187   // @SHIFT
     D;JEQ
-    @0233   // @END // TODO: syntax error
+    @0245   // @END // TODO: syntax error
     0;JMP
 // (BNRYD) 298
     // read the next two chars as 8bit values into D then compare
@@ -366,7 +366,7 @@
     D;JNE
     // D&A comp bits are all 0
     D=0
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (ANDM) 311
     @000C   // ascii &M = 0x264D, 0x000C more than &A
@@ -375,7 +375,7 @@
     D;JNE
     @1000   // D&M comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (PLUS1) 319
     @04E4   // ascii +1 = 0x2B31, 0x04E4 more than &M
@@ -384,7 +384,7 @@
     D;JNE
     @07C0   // D+1 comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (PLUSA) 327
     @0010   // ascii +A = 0x2B41, 0x0010 more than +1
@@ -393,7 +393,7 @@
     D;JNE
     @0080   // D+A comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (PLUSM) 335
     @000C   // ascii +M = 0x2B4D, 0x000C more than +A
@@ -402,7 +402,7 @@
     D;JNE
     @1080   // D+M comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (DMIN1) 343
     @01E4   // ascii -1 = 0x2D31, 0x01E4 more than +M
@@ -411,7 +411,7 @@
     D;JNE
     @0380   // D-1 comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (MINA) 351
     @0010   // ascii -A = 0x2D41, 0x0010 more than -1
@@ -420,7 +420,7 @@
     D;JNE
     @04C0   // D-A comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (MINM) 359
     @000C   // ascii -M = 0x2D4D, 0x000C more than -A
@@ -429,7 +429,7 @@
     D;JNE
     @14C0   // D-M comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (ORA) 367
     @4EF4   // ascii |A = 0x7C41, 0x4EF4 more than -M
@@ -438,7 +438,7 @@
     D;JNE
     @0540   // D|A comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (ORM) 375
     @000C   // ascii |M = 0x7C4D, 0x000C more than |A
@@ -447,12 +447,12 @@
     D;JNE
     @1540   // D|M comp bits
     D=A
-    @0191   // @JUMP
+    @0191   // @ENDCOMP
     0;JMP
 // (DSHIFT) 383
     @4011   // ascii << = 0x3C3C, 0x4011 LESS than |M
     D=D+A
-    @0233   // @END // TODO syntax error
+    @0245   // @END // TODO syntax error
     D;JNE
     @0800   // D bit for the shift operation
     D=A
@@ -474,45 +474,33 @@
     @0030   // maps [0x31, 0x38] -> [1, 8] 
     D=D-A
     D=D<<7
-    // fall through to jump
-// (JUMP) 401
+    // fall through to endcomp
+// (ENDCOMP) 401
     // whenever we come to jump, we have just set D=bits to add to instr
     // so the first thing we do is to add those to R6
     @0006   // @R6
     M=D|M
-    // parse ENTER or ;J then two letter combo. set jump bits accordingly
-    // TODO: OR some whitespace OR goto COMMENT
-    // TODO: copy from ENDLINE, should be a function using stackpointer?
-    // (PREJUMP) 403
-    @0001   // @R1
+    // check whether we stop early in ENDLINE func
+    @019A   // @JUMP
+    D=A
+    @0000   // @R0
     AM=M+1
-    D=M
-    // if D==0x20 (SPACE) goto PREJUMP, allowing trailing spaces
-    @0020   // ascii SPACE
-    D=D-A
-    @0193   // @PREJUMP
-    D;JEQ
-    // if D==0x2F (/) goto COMMENT
-    @000F   // ascii / - ascii SPACE
-    D=D-A
-    @01FC   // @COMMENT
-    D;JEQ
-    // if D==0x80 (ENTER) goto WRITE
-    @0051   // ascii ENTER - ascii /
-    D=D-A
-    @0223   // @WRITE
-    D;JEQ
+    M=D
+    @021C   // @ENDLINE
+    0;JMP
     // otherwise parse the jump instruction part
+// (JUMP) 410
+    // parse ENTER or ;J then two letter combo. set jump bits accordingly
     @0045   // ascii ENTER - ascii ;
     D=D+A
-    @0233   // @END // TODO syntax error
+    @0245   // @END // TODO syntax error
     D;JNE
     @0001   // @R1
     AM=M+1
     D=M
     @004A   // ascii J
     D=D-A
-    @0233   // @END // TODO syntax error
+    @0245   // @END // TODO syntax error
     D;JNE
     // read the next two chars as 8bit values into D then compare
     @0001   // @R1
@@ -523,114 +511,101 @@
     D=D|M
     @4551   // ascii EQ = 0x4551
     D=D-A
-    @01BB   // @JGE
+    @01B3   // @JGE
     D;JNE
     @0002   // JEQ jump bits
     D=A
-    @01E9   // @ENDJUMP
+    @01E1   // @ENDJUMP
     0;JMP
-// (JGE) 443
+// (JGE) 435
     @01F4   // ascii GE = 0x4745, 0x01F4 more than EQ
     D=D-A
-    @01C3   // @JGT
+    @01BB   // @JGT
     D;JNE
     @0003   // JGE jump bits
     D=A
-    @01E9   // @ENDJUMP
+    @01E1   // @ENDJUMP
     0;JMP
-// (JGT) 451
+// (JGT) 443
     @000F   // ascii GT = 0x4754, 0x000F more than GE
     D=D-A
-    @01CB   // @JLE
+    @01C3   // @JLE
     D;JNE
     @0001   // JGT jump bits
     D=A
-    @01E9   // @ENDJUMP
+    @01E1   // @ENDJUMP
     0;JMP
-// (JLE) 459
+// (JLE) 451
     @04F1   // ascii LE = 0x4C45, 0x04F1 more than GT
     D=D-A
-    @01D3   // @JLT
+    @01CB   // @JLT
     D;JNE
     @0006   // JLE jump bits
     D=A
-    @01E9   // @ENDJUMP
+    @01E1   // @ENDJUMP
     0;JMP
-// (JLT) 467
+// (JLT) 459
     @000F   // ascii LT = 0x4C54, 0x000F more than LE
     D=D-A
-    @01DB   // @JMP
+    @01D3   // @JMP
     D;JNE
     @0004   // JLT jump bits
     D=A
-    @01E9   // @ENDJUMP
+    @01E1   // @ENDJUMP
     0;JMP
-// (JMP) 475
+// (JMP) 467
     @00FC   // ascii MP = 0x4D50, 0x00FC more than LT
     D=D-A
-    @01E3   // @JNE
+    @01DB   // @JNE
     D;JNE
     @0007   // JMP jump bits
     D=A
-    @01E9   // @ENDJUMP
+    @01E1   // @ENDJUMP
     0;JMP
-// (JNE) 483
+// (JNE) 475
     @00F5   // ascii NE = 0x4E45, 0x00F5 more than MP
     D=D-A
-    @0233   // @END // TODO syntax error
+    @0245   // @END // TODO syntax error
     D;JNE
     @0005   // JNE jump bits
     D=A
     // fall through to ENDJUMP
-// (ENDJUMP) 489
+// (ENDJUMP) 481
     // whenever we come to endjump, we have just set D=bits to add to instr
     // so the first thing we do is to add those to R6
     @0006   // @R6
     M=D|M
-    // consume trailing whitespace/comment and goto write
-// (ENDLINE) 491
-    @0001   // @R1
+    // check whether we stop in ENDLINE func
+    // if we do not, we return to syntax error
+    @0245   // @END
+    D=A
+    @0000   // @R0
     AM=M+1
-    D=M
-    // if D==0x20 (SPACE) goto ENDLINE, allowing trailing spaces
-    @0020   // ascii SPACE
-    D=D-A
-    @01EB   // @ENDLINE
-    D;JEQ
-    // if D==0x2F (/) goto COMMENT
-    @000F   // ascii / - ascii SPACE
-    D=D-A
-    @01FC   // @COMMENT
-    D;JEQ
-    // if D==0x80 (ENTER) goto WRITE
-    @0051   // ascii ENTER - ascii /
-    D=D-A
-    @0223   // @WRITE
-    D;JEQ
-    @0233   // @END // TODO syntax error
+    M=D
+    @021C   // @ENDLINE
     0;JMP
-// (COMMENT) 508 -> consume second slash
+// (COMMENT) 490 -> consume second slash
     @0001   // @R1
     AM=M+1
     D=M
     // if D!=0x2F (/) goto END TODO syntax error
     @002F   // ascii /
     D=D-A
-    @0233   // @END
+    @0245   // @END
     D;JNE
-// (COMMENTREC) 515 -> consume rest of the line
+// (COMMENTREC) 497 -> consume rest of the line
     @0001   // @R1
     AM=M+1
     D=M
     // if D==0x80 (ENTER) goto WRITE 
     @0080   // ascii ENTER
     D=D-A
-    @0223   // @WRITE
+    @0231   // @WRITE
     D;JEQ
     // else goto COMMENTREC
-    @0203   // @COMMENTREC
+    @01F1   // @COMMENTREC
     0;JMP
-// (AINSTR) 524 -> parse rest as hex value
+// (AINSTR) 506 -> parse rest as hex value
     // TODO: assumes max 4 valid hex chars follow!
     @0001   // @R1
     AM=M+1
@@ -638,7 +613,7 @@
     // if D==0x80 (ENTER) goto WRITE 
     @0080   // ascii ENTER
     D=D-A
-    @0223   // @WRITE
+    @0231   // @WRITE
     D;JEQ
     // TODO: if not 0-9 or A-F, goto END
     @0080   // otherwise set D back to read value
@@ -647,32 +622,80 @@
     M=M<<4
     @0041   // ascii A
     D=D-A
-    @021D   // @ALPHANUM 
+    @020B   // @ALPHANUM 
     D;JGE   // if D-65 >= 0, we have a A-F char
     // only for digits: add back to map 0-9A-F continuous
     @0007   // ascii A - ascii 9 - 1
     D=D+A
-// (ALPHANUM) 541
+// (ALPHANUM) 523
     // now [0,9] -> [-10,-1] and [A-F] -> [0,5]
     @000A   // 10
     D=D+A
     @0006   // @R6
     M=D|M
-    @020C   // @AINSTR
-    0;JMP   // goto AINSTR
-// (WRITE) 547 write instruction to mem
+    @0007   // @R7
+    DM=M+1  // R7+=1
+    @0004   // @R4
+    D=D-A
+    @01FA   // @AINSTR
+    D;JNE
+    // after parsing 4 hex chars, check whether we stop in ENDLINE func
+    // if we do not, we return to syntax error
+    @0245   // @END
+    D=A
+    @0000   // @R0
+    AM=M+1
+    M=D
+    @021C   // @ENDLINE
+    0;JMP
+// (ENDLINE) 540
+    // function called from end of comp, jump and ainstr
+    // consumes trailing spaces, comments and newline
+    // jumps back if it FAILS to find any of those
+    // otherwise cuts parsing the line short and never returns
+    @0000   // @R0
+    M=M-1   // whatever happens, decrement stack pointer
+// (ENDLINELOOP) 542
+    @0001   // @R1
+    AM=M+1
+    D=M
+    // if D==0x20 (SPACE) goto ENDLINELOOP, allowing trailing spaces
+    @0020   // ascii SPACE
+    D=D-A
+    @021E   // @ENDLINELOOP
+    D;JEQ
+    // if D==0x2F (/) goto COMMENT
+    @000F   // ascii / - ascii SPACE
+    D=D-A
+    @01EA   // @COMMENT
+    D;JEQ
+    // if D==0x80 (ENTER) goto WRITE
+    @0051   // ascii ENTER - ascii /
+    D=D-A
+    @0231   // @WRITE
+    D;JEQ
+    // goto the address @R0 pointed to
+    @0000   // @R0
+    A=M+1   // already decremented stack pointer
+    A=M
+    0;JMP   // return to caller
+// (WRITE) 561 write instruction to mem
     // R6 should contain the instruction now
     @0006   // @R6
     D=M
-    // if R6 is 0 then this was a full line comment, do not write anything
-    @022B   // @RESET
+    @0007   // @R7
+    D=D+M
+    // if R6 is 0 and R7 is 0 then this was a full line comment, do not write anything
+    @023D   // @RESET
     D;JEQ
     // otherwise write to mem at R2 and advance counter
+    @0006   // @R6
+    D=M
     @0002   // @R2
     M=M+1
     A=M-1
     M=D
-// (RESET) 555 consume newline (assume found, otherwise shouldve been syntax error) and parse next line
+// (RESET) 573 consume newline (assume found, otherwise shouldve been syntax error) and parse next line
     @0006   // @R6
     M=0     // R6 = 0
     @0007   // @R7
@@ -681,6 +704,6 @@
     M=M+1
     @0010   // @START
     0;JMP
-// (END) 563
-    @0233   // @END
+// (END) 581
+    @0245   // @END
     0;JMP   // goto END
