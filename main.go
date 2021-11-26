@@ -16,7 +16,8 @@ var headless = false
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), helloworld...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), keyboardLoop...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), writeHex...)
-var program = assembleFirstPass
+//var program = assembleFirstPass
+var program = twopass
 
 // maybe take an output func that prints to terminal?
 func run(computer *Computer) {
@@ -28,7 +29,7 @@ func run(computer *Computer) {
     // set test data in ram: assemble the assembler using itself!
     ram := computer.data_mem.ram
     datapointer := 0x1000
-    f, _ := os.Open("firstpass.asm")
+    f, _ := os.Open("asm/twopass.asm")
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
     scanner.Split(bufio.ScanRunes)
@@ -87,8 +88,8 @@ func run(computer *Computer) {
         prev = computer.cpu.PC()
     }
     output := []uint16{}
-    outputpointer := 0x1000
-    endoutput := int(computer.data_mem.ram.mem[0x2])
+    outputpointer := 0x20
+    endoutput := int(computer.data_mem.ram.mem[0x8])
     for {
         if outputpointer == endoutput {
             break
