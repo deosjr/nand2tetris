@@ -17,7 +17,8 @@ var headless = false
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), keyboardLoop...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), writeHex...)
 //var program = assembleFirstPass
-var program = twopass
+var program = assembleTwoPass
+//var program = countLines
 
 // maybe take an output func that prints to terminal?
 func run(computer *Computer) {
@@ -34,17 +35,31 @@ func run(computer *Computer) {
 	scanner := bufio.NewScanner(f)
     scanner.Split(bufio.ScanRunes)
 
+    // TODO: we have to enter the program without comments
+    // or it will not fit! solve using read from disk + linker/loader?
+    var comment bool
 	for scanner.Scan() {
         char := scanner.Text()[0]
         if char == ' ' {
             continue
         }
+        if char == '/' {
+            comment = true
+        }
         if char == '\n' {
             char = 0x80
+        }
+        if comment && char != 0x80 {
+            continue
+        }
+        comment = false
+        if char == 0x80 && (ram.mem[datapointer-1] == 0x80 || datapointer == 0x1000){
+            continue
         }
         ram.mem[datapointer] = uint16(char)
         datapointer++
         if datapointer == 0x4000 {
+            fmt.Println("program doesnt fit in memory!")
             break
         }
 	}
@@ -88,8 +103,8 @@ func run(computer *Computer) {
         prev = computer.cpu.PC()
     }
     output := []uint16{}
-    outputpointer := 0x20
-    endoutput := int(computer.data_mem.ram.mem[0x8])
+    outputpointer := 0x1000
+    endoutput := int(computer.data_mem.ram.mem[0x2])
     for {
         if outputpointer == endoutput {
             break
