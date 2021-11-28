@@ -427,13 +427,13 @@
     D=D|M
     @2B31   // ascii +1 = 0x2B31
     D=D-A
-    @MIN1@
+    @MINONE@
     D;JNE
     @0DC0   // A/M +1 comp bits
     D=A
     @ENDCOMP@
     0;JMP
-(MIN1)
+(MINONE)
     @0200   // ascii -1 = 0x2D31, 0x0200 more than +1
     D=D-A
     @MIND@
@@ -477,13 +477,13 @@
 (ANDM)
     @000C   // ascii &M = 0x264D, 0x000C more than &A
     D=D-A
-    @PLUS1@
+    @PLUSONE@
     D;JNE
     @1000   // D&M comp bits
     D=A
     @ENDCOMP@
     0;JMP
-(PLUS1)
+(PLUSONE)
     @04E4   // ascii +1 = 0x2B31, 0x04E4 more than &M
     D=D-A
     @PLUSA@
@@ -504,13 +504,13 @@
 (PLUSM)
     @000C   // ascii +M = 0x2B4D, 0x000C more than +A
     D=D-A
-    @DMIN1@
+    @DMINONE@
     D;JNE
     @1080   // D+M comp bits
     D=A
     @ENDCOMP@
     0;JMP
-(DMIN1)
+(DMINONE)
     @01E4   // ascii -1 = 0x2D31, 0x01E4 more than +M
     D=D-A
     @MINA@
@@ -630,6 +630,7 @@
     D;JNE
     @0003   // JGE jump bits
     D=A
+    @ENDJUMP@
     0;JMP
 (JGT)
     @000F   // ascii GT = 0x4754, 0x000F more than GE
@@ -804,7 +805,6 @@
     @NOMATCH@
     D;JNE
 // MATCH
-    //TODO: somehow R8 is -1 for uneven labels?!!
     // if equal, advance both R7 and R8
     @0007   // @R7
     M=M+1
@@ -830,6 +830,11 @@
     A=M
     D=M
     @0006   // @R6
+    M=D
+    @END@
+    D=A
+    @0000   // @R0
+    AM=M+1
     M=D
     @ENDLINE@
     0;JMP

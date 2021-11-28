@@ -30,8 +30,9 @@ func run(computer *Computer) {
     // set test data in ram: assemble the assembler using itself!
     ram := computer.data_mem.ram
     datapointer := 0x1000
-    //f, _ := os.Open("asm/twopass.asm")
-    f, _ := os.Open("test")
+    //f, _ := os.Open("asm/twopass_hardcoded.asm")
+    f, _ := os.Open("asm/twopass.asm")
+    //f, _ := os.Open("test")
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
     scanner.Split(bufio.ScanRunes)
@@ -114,6 +115,8 @@ func run(computer *Computer) {
     output := []uint16{}
     outputpointer := 0x1000
     endoutput := int(computer.data_mem.ram.mem[0x2])
+    //outputpointer := 0x20
+    //endoutput := int(computer.data_mem.ram.mem[0x8])
     for {
         if outputpointer == endoutput {
             break
