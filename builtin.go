@@ -227,6 +227,8 @@ func (m *Memory) SendLoad(load bool) {
         m.ram.SendLoad(load)
         return
     }
+    // NOTE first two bits have been masked to 0 here already
+    // ALSO NOTE bit0 is ignored so 2**15+1 is mapped to MEM[1]
     if address >= 8192 { // 2**13 
         if address > 0x6000 {
             panic("access memory beyond 0x6000")

@@ -10,7 +10,7 @@ import (
     "github.com/faiface/pixel/pixelgl"
 )
 
-var headless = false
+var headless = true
 
 // first instr jumps to main program, drawchar comes first though (easier)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), helloworld...)
@@ -30,7 +30,8 @@ func run(computer *Computer) {
     // set test data in ram: assemble the assembler using itself!
     ram := computer.data_mem.ram
     datapointer := 0x1000
-    f, _ := os.Open("asm/twopass.asm")
+    //f, _ := os.Open("asm/twopass.asm")
+    f, _ := os.Open("test")
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
     scanner.Split(bufio.ScanRunes)
@@ -91,8 +92,16 @@ func run(computer *Computer) {
             fmt.Printf("%04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x7])
         }
         */
-        //fmt.Printf(" %04x %04x %04x\n", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
-        //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x4], computer.data_mem.ram.mem[0x5])
+        /*
+        fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
+        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x7], computer.data_mem.ram.mem[0x8])
+        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x1], computer.data_mem.ram.mem[0x2])
+        fmt.Printf(" LABEL: %04x %04x", computer.data_mem.ram.mem[0x20], computer.data_mem.ram.mem[0x21])
+        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x22], computer.data_mem.ram.mem[0x23])
+        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x24], computer.data_mem.ram.mem[0x25])
+        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x26], computer.data_mem.ram.mem[0x27])
+        fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x28], computer.data_mem.ram.mem[0x29])
+        */
         //fmt.Printf(" %04x %04x %04x\n", computer.data_mem.ram.mem[0x0], computer.data_mem.ram.mem[0x10], computer.data_mem.ram.mem[0x11])
         time.Sleep(1*time.Nanosecond)
         //time.Sleep(10*time.Millisecond)
