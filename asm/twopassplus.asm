@@ -5,31 +5,34 @@
 // - the << bitshift operator is added to the language
 // supported arguments are 1 through 8 inclusive
 // - the pc jump (read from memory) instruction is NOT supported (yet?)
-// - TODO: labels currently end in @
+// - TODO: labels currently end in @ as do predefined symbols except R0-R9
 // - TODO: AINSTR decimal constants
     // init vars
     @0010
     D=A
-    @0000 // @R0
-    M=D   // R0 = 0x10
+    @0000   // @R0
+    M=D     // R0 = 0x10
     @1000
     D=A
-    @0001 // @R1
-    M=D   // R1 = 0x1000
-    @0006 // @R6
-    M=0   // R6 = 0
-    @0007 // @R7
-    M=0   // R7 = 0
+    @0001   // @R1
+    M=D     // R1 = 0x1000
+    @0006   // @R6
+    M=0     // R6 = 0
+    @0007   // @R7
+    M=0     // R7 = 0
     // R8 (label->line mappings) start at 0x30
     // but we predefine a few (such as SP and ARG) at the start
+// PREDEFINE SP, LCL, ARG, THIS, THAT, SCREEN, KBD
+    // TODO: all of the above except SP
+    // R0-R15 are handled separately in AINSTR TODO R10-R15
     @5350   // SP in ascii
     D=A
-    @0030   // 0x30 = SP, 0x31 = 0
-    M=D
+    @0030
+    M=D     // 0x30 = SP, 0x31 = 0x0
     @0032
     D=A
-    @0008 // @R8
-    M=D   // R8 = 0x30 + offset of predefined symbols
+    @0008   // @R8
+    M=D     // R8 = 0x30 + offset of predefined symbols
 (FIRSTPASS)
     @0001   // @R1
     A=M
@@ -741,6 +744,8 @@
     @0008   // @R8
     M=D     // R8 = 0x30
 (ALABEL)
+    // labels should have at least length two; abuse to parse R0-R15
+    // first has to be an uppercase letter, if its an R then second can be a digit
     // TODO: bug, need to end @LABEL with a noncaps char?!
     @0001   // @R1
     AM=M+1
@@ -753,6 +758,18 @@
     D=D-A
     @ENDALABEL@
     D;JGT
+    // if R7=0x20 we have parsed the first letter; if it is an R
+    // then we can first try to parse R0-R15
+    @0007   // @R7
+    D=M<<8
+    @0001   // @R1
+    A=M
+    D=D|M   // D=R7R1
+    @2052   // 0x20 followed by ascii R
+    D=D-A
+    @RDIGIT@
+    D;JEQ
+(BACKFROMRDIGIT)
     @0001   // @R1
     A=M
     D=M<<8
@@ -779,6 +796,36 @@
     M=D|M
     @ALABEL@
     0;JMP
+(RDIGIT)
+    // we have confirmed the first letter of label is an R
+    // try parsing a digit next, otherwise return to ALABEL loop
+    @0001   // @R1
+    A=M+1
+    D=M
+    @0030   // ascii 0
+    D=D-A
+    @BACKFROMRDIGIT@
+    D;JLT
+    @0009   // ascii 9 - ascii 0
+    D=D-A
+    @BACKFROMRDIGIT@
+    D;JGT
+    // we have found a digit!
+    // TODO: only parses R0-R9 atm, R10-R15 unsupported
+    @0001   // @R1
+    AM=M+1
+    D=M
+    @0030   // ascii 0
+    D=D-A
+    @0006   // @R6
+    M=D
+    @END@
+    D=A
+    @0000   // @R0
+    AM=M+1
+    M=D
+    @ENDLINE@
+    0;JMP
 (UNENDALABEL)
     // if label is of uneven length we need to add 1 more to R7 first
     @0007   // @R1
@@ -796,7 +843,7 @@
     @0007   // @R7
     M=D     // R7 = 0x20
 (FINDALABEL)
-    // if the value at R7 is 0x7FFF, we found our label!
+    // if the value at R7 is 0x7FFF, we found our label unless we found a prefix
     @0007   // @R7
     A=M
     D=M
@@ -835,6 +882,14 @@
     @NOMATCH@
     0;JMP
 (FOUNDALABEL)
+    // if R8 starts with 0 were good otherwise we found a prefix
+    @0008   // @R8
+    A=M
+    D=M
+    @7000   // 0111 0000 0000 0000
+    D=D&A
+    @NOMATCH@
+    D;JNE
     @0008   // @R8
     A=M
     D=M
