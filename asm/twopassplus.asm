@@ -5,7 +5,6 @@
 // - the << bitshift operator is added to the language
 // supported arguments are 1 through 8 inclusive
 // - the pc jump (read from memory) instruction is NOT supported (yet?)
-// - TODO: labels currently end in @ as do predefined symbols except R0-R9
 // - TODO: AINSTR decimal constants
     // init vars
     @0010
@@ -943,6 +942,8 @@
     D=M
     @0006   // @R6
     M=D
+    @0001   // @R1
+    M=M-1
     @END@
     D=A
     @0000   // @R0
