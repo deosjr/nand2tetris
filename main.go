@@ -17,7 +17,8 @@ var headless = true
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), keyboardLoop...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), writeHex...)
 //var program = assembleFirstPass
-var program = assembleTwoPass
+//var program = assembleTwoPass
+var program = assembleTwoPassPlus
 //var program = countLines
 
 // maybe take an output func that prints to terminal?
@@ -30,7 +31,6 @@ func run(computer *Computer) {
     // set test data in ram: assemble the assembler using itself!
     ram := computer.data_mem.ram
     datapointer := 0x1000
-    //f, _ := os.Open("asm/twopass_hardcoded.asm")
     f, _ := os.Open("asm/twopass.asm")
     //f, _ := os.Open("test")
 	defer f.Close()
@@ -93,10 +93,11 @@ func run(computer *Computer) {
             fmt.Printf("%04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x7])
         }
         */
+        //fmt.Printf(" %04x %04x %04x\n", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
+        //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x1], computer.data_mem.ram.mem[0x2])
+        //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x7], computer.data_mem.ram.mem[0x8])
+        //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x30], computer.data_mem.ram.mem[0x31])
         /*
-        fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
-        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x7], computer.data_mem.ram.mem[0x8])
-        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x1], computer.data_mem.ram.mem[0x2])
         fmt.Printf(" LABEL: %04x %04x", computer.data_mem.ram.mem[0x20], computer.data_mem.ram.mem[0x21])
         fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x22], computer.data_mem.ram.mem[0x23])
         fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x24], computer.data_mem.ram.mem[0x25])

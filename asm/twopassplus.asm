@@ -1,9 +1,12 @@
-// TWO-PASS ASSEMBLER
-// first pass creates a symbol table
-// second pass does a lookup when parsing symbols
-// Layout of table: start at R7=0x20, store 2 ascii values in 1 word
-// leaving last 8bits empty if uneven length label. Next stored value
-// after that is the line number to substitute, then next label etc.
+// FULL HACK ASSEMBLER ACCORDING TO SPEC
+// with the following exceptions/additions:
+// - LABELS are always in uppercase
+// - variables are always in lowercase
+// - the << bitshift operator is added to the language
+// supported arguments are 1 through 8 inclusive
+// - the pc jump (read from memory) instruction is NOT supported (yet?)
+// - TODO: labels currently end in @
+// - TODO: AINSTR decimal constants
     // init vars
     @0010
     D=A
@@ -17,10 +20,16 @@
     M=0   // R6 = 0
     @0007 // @R7
     M=0   // R7 = 0
-    @0030
+    // R8 (label->line mappings) start at 0x30
+    // but we predefine a few (such as SP and ARG) at the start
+    @5350   // SP in ascii
+    D=A
+    @0030   // 0x30 = SP, 0x31 = 0
+    M=D
+    @0032
     D=A
     @0008 // @R8
-    M=D   // R8 = 0x30
+    M=D   // R8 = 0x30 + offset of predefined symbols
 (FIRSTPASS)
     @0001   // @R1
     A=M
