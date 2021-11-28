@@ -82,22 +82,18 @@ func (b *BuiltinCPU) PC() uint16 {
 func (b *BuiltinCPU) ClockTick() {
     outM, isZero, isNeg := b.evalALU()
     b.outM = outM
-    isPos := Not(isNeg)
+    isPos := And(Not(isNeg), Not(isZero))
     outA := b.a.Out()
     isC, _, dest, jump := b.decode()
 
-    // true if out<0 check matches j1 jump flag
-    j1 := Not(Xor(jump[0], isNeg))
-    // true if out=0 check matches j2 jump flag
-    j2 := Not(Xor(jump[1], isZero))
-    // true if out>0 check matches j3 jump flag
-    j3 := Not(Xor(jump[2], isPos))
-    // j1 and j3 need to match OR j2 matches and j2 = true
-    // meaning: either we should be zero and are zero, or match pos/neg correctly
-    // NOTE: fails in the JNE case, so hardcode it and find a nice solution later
-    // one of the three above needs to match
+    jgt := And(And(Not(jump[0]), And(Not(jump[1]), jump[2])), isPos)
+    jeq := And(And(Not(jump[0]), And(jump[1], Not(jump[2]))), isZero)
+    jge := And(And(Not(jump[0]), And(jump[1], jump[2])), Or(isZero, isPos))
+    jlt := And(And(jump[0], And(Not(jump[1]), Not(jump[2]))), isNeg)
     jne := And(And(jump[0], And(Not(jump[1]), jump[2])), Not(isZero))
-    shouldJump := bool(And(isC, Or(Or(And(j1, j3), And(j2, jump[1])), jne)))
+    jle := And(And(jump[0], And(jump[1], Not(jump[2]))), Or(isZero, isNeg))
+    jmp := And(jump[0], And(jump[1], jump[2]))
+    shouldJump := bool(And(isC, Or(jgt, Or(jeq, Or(jge, Or(jlt, Or(jne, Or(jle, jmp))))))))
 
     b.pc.SendIn(outA)
     // we either jump or incr pc, never both
@@ -198,25 +194,21 @@ func (b *PCRegisterCPU) PC() uint16 {
 func (b *PCRegisterCPU) ClockTick() {
     outM, isZero, isNeg := b.evalALU()
     b.outM = outM
-    isPos := Not(isNeg)
+    isPos := And(Not(isNeg), Not(isZero))
     outA := b.a.Out()
     isC, pcrl, _, dest, jump := b.decode()
     pc := b.PC()
     pcrout := b.pcr.Out()
     pcrlout := bit(b.pcrl.Out())
 
-    // true if out<0 check matches j1 jump flag
-    j1 := Not(Xor(jump[0], isNeg))
-    // true if out=0 check matches j2 jump flag
-    j2 := Not(Xor(jump[1], isZero))
-    // true if out>0 check matches j3 jump flag
-    j3 := Not(Xor(jump[2], isPos))
-    // j1 and j3 need to match OR j2 matches and j2 = true
-    // meaning: either we should be zero and are zero, or match pos/neg correctly
-    // NOTE: fails in the JNE case, so hardcode it and find a nice solution later
-    // one of the three above needs to match
+    jgt := And(And(Not(jump[0]), And(Not(jump[1]), jump[2])), isPos)
+    jeq := And(And(Not(jump[0]), And(jump[1], Not(jump[2]))), isZero)
+    jge := And(And(Not(jump[0]), And(jump[1], jump[2])), Or(isZero, isPos))
+    jlt := And(And(jump[0], And(Not(jump[1]), Not(jump[2]))), isNeg)
     jne := And(And(jump[0], And(Not(jump[1]), jump[2])), Not(isZero))
-    shouldJump := bool(Or(pcrlout, And(isC, Or(Or(And(j1, j3), And(j2, jump[1])), jne))))
+    jle := And(And(jump[0], And(jump[1], Not(jump[2]))), Or(isZero, isNeg))
+    jmp := And(jump[0], And(jump[1], jump[2]))
+    shouldJump := bool(Or(pcrlout, And(isC, Or(jgt, Or(jeq, Or(jge, Or(jlt, Or(jne, Or(jle, jmp)))))))))
 
     pcrPlus1 := Add16(toBit16(pcrout), toBit16(1))
     b.pc.SendIn(fromBit16(Mux16(toBit16(outA), pcrPlus1, pcrlout)))
@@ -333,25 +325,21 @@ func (b *BarrelShiftCPU) PC() uint16 {
 func (b *BarrelShiftCPU) ClockTick() {
     outM, isZero, isNeg := b.evalALU()
     b.outM = outM
-    isPos := Not(isNeg)
+    isPos := And(Not(isNeg), Not(isZero))
     outA := b.a.Out()
     isC, pcrl, _, _, dest, jump := b.decode()
     pc := b.PC()
     pcrout := b.pcr.Out()
     pcrlout := bit(b.pcrl.Out())
 
-    // true if out<0 check matches j1 jump flag
-    j1 := Not(Xor(jump[0], isNeg))
-    // true if out=0 check matches j2 jump flag
-    j2 := Not(Xor(jump[1], isZero))
-    // true if out>0 check matches j3 jump flag
-    j3 := Not(Xor(jump[2], isPos))
-    // j1 and j3 need to match OR j2 matches and j2 = true
-    // meaning: either we should be zero and are zero, or match pos/neg correctly
-    // NOTE: fails in the JNE case, so hardcode it and find a nice solution later
-    // one of the three above needs to match
+    jgt := And(And(Not(jump[0]), And(Not(jump[1]), jump[2])), isPos)
+    jeq := And(And(Not(jump[0]), And(jump[1], Not(jump[2]))), isZero)
+    jge := And(And(Not(jump[0]), And(jump[1], jump[2])), Or(isZero, isPos))
+    jlt := And(And(jump[0], And(Not(jump[1]), Not(jump[2]))), isNeg)
     jne := And(And(jump[0], And(Not(jump[1]), jump[2])), Not(isZero))
-    shouldJump := bool(Or(pcrlout, And(isC, Or(Or(And(j1, j3), And(j2, jump[1])), jne))))
+    jle := And(And(jump[0], And(jump[1], Not(jump[2]))), Or(isZero, isNeg))
+    jmp := And(jump[0], And(jump[1], jump[2]))
+    shouldJump := bool(Or(pcrlout, And(isC, Or(jgt, Or(jeq, Or(jge, Or(jlt, Or(jne, Or(jle, jmp)))))))))
 
     pcrPlus1 := Add16(toBit16(pcrout), toBit16(1))
     b.pc.SendIn(fromBit16(Mux16(toBit16(outA), pcrPlus1, pcrlout)))
