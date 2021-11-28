@@ -6,19 +6,19 @@
 // supported arguments are 1 through 8 inclusive
 // - the pc jump (read from memory) instruction is NOT supported (yet?)
 // - TODO: labels currently end in @ as do predefined symbols except R0-R9
-// - TODO: AINSTR decimal constants
+// - TODO: AINSTR decimal constants, variables
     // init vars
     @0010
     D=A
-    @0000   // @R0
+    @SP@
     M=D     // R0 = 0x10
     @1000
     D=A
-    @0001   // @R1
+    @R1
     M=D     // R1 = 0x1000
-    @0006   // @R6
+    @R6
     M=0     // R6 = 0
-    @0007   // @R7
+    @R7
     M=0     // R7 = 0
     // R8 (label->line mappings) start at 0x30
     // but we predefine a few (such as SP and ARG) at the start
@@ -79,10 +79,10 @@
     M=D     // 0x3B-0x3C = THAT, 0x3D = 0x4
     @003E
     D=A
-    @0008   // @R8
+    @R8
     M=D     // R8 = 0x30 + offset of predefined symbols
 (FIRSTPASS)
-    @0001   // @R1
+    @R1
     A=M
     D=M
     @SECONDPASS@
@@ -96,49 +96,49 @@
     D=D-A
     @SKIPLINE@
     D;JEQ
-    @0006   // @R6
+    @R6
     M=M+1   // R6 holds the current linenumber skipping comments/labels
 (SKIPLINE)
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @0080   // ascii ENTER
     D=D-A
     @SKIPLINE@
     D;JNE
-    @0001   // @R1
+    @R1
     M=M+1
     @FIRSTPASS@
     0;JMP
 (LABEL)
     // here R7 is used to count length of label
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @0029   // ascii )
     D=D-A
     @ENDLABEL@
     D;JEQ
-    @0007   // @R7
+    @R7
     DM=M+1
     @0001   // @1
     D=D&A   // mask, D=0 if R7 is even and 1 if R7 is uneven
     @EVEN@
     D;JEQ
 // ODD
-    @0001   // @R1
+    @R1
     A=M
     D=M<<8
-    @0008   // @R8
+    @R8
     A=M
     M=D
     @LABEL@
     0;JMP
 (EVEN)
-    @0001   // @R1
+    @R1
     A=M
     D=M
-    @0008   // @R8
+    @R8
     M=M+1
     A=M-1
     M=D|M
@@ -146,22 +146,22 @@
     0;JMP
 (ENDLABEL)
     // last found label should be substituted with current value of R6 in next pass
-    @0007   // @R7
+    @R7
     D=M
     @0001   // @1
     D=D&A   // same mask (un)even check
     @LINENUMBER@
     D;JEQ
-    @0008   // @R8
+    @R8
     M=M+1
 (LINENUMBER)
-    @0006   // @R6
+    @R6
     D=M
-    @0008   // @R8
+    @R8
     M=M+1
     A=M-1
     M=D
-    @0007   // @R7
+    @R7
     M=0   
     @SKIPLINE@
     0;JMP
@@ -169,17 +169,17 @@
     // init vars
     @1000
     D=A
-    @0001 // @R1
-    M=D   // R1 = 0x1000
-    @1000 // TODO not enough space! need to overwrite input
+    @R1
+    M=D     // R1 = 0x1000
+    @1000   // TODO not enough space! need to overwrite input
     D=A
-    @0002 // @R2
-    M=D   // R2 = 0x1000
-    @0006 // @R6
-    M=0   // R6 = 0
+    @R2
+    M=D     // R2 = 0x1000
+    @R6
+    M=0     // R6 = 0
 (START)
     // read char
-    @0001 // @R1
+    @R1
     A=M
     D=M
     // if D==0 goto END 
@@ -190,7 +190,7 @@
     D=D-A
     @STARTLINE@
     D;JNE
-    @0001   // @R1
+    @R1
     M=M+1
     @START@
     0;JMP
@@ -214,16 +214,16 @@
     // R6 here to build up our instruction, setting individual bits
     @7000   // 0111 0000 0000 0000
     D=A
-    @0006   // @R6
+    @R6
     M=D     // R6 = 0x7000
     M=M<<1  // R6 = 0xE000
 (LOOKAHEAD)
     // idea here is to find out whether we need to parse a destination or not
     // consume A/M/D until we find something else, then switch on whether its an =
     // NOTE we already consumed a first token! therefore we start by incr R7 to 1
-    @0007   // @R7
+    @R7
     DM=M+1
-    @0001   // @R1
+    @R1
     A=D+M
     D=M
     // if D==A goto LOOKAHEAD 
@@ -248,13 +248,13 @@
     D;JNE
 // DEST
     // if A/M/D set dest bits accordingly, loop
-    @0001   // @R1
+    @R1
     M=M-1   // because we want to start the loop with incr
 (DESTA)
     // We know that there is an = sign at R1+R7 but checking each character
     // again allows for syntax errors to be detected
     // TODO: this will allow duplicate dest, ie AAAM=D+1
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @0041   // ascii A
@@ -264,7 +264,7 @@
     // D==A
     @0020   // @A as dest bit
     D=A
-    @0006   // @R6
+    @R6
     M=D|M
     @DESTA@
     0;JMP
@@ -276,7 +276,7 @@
     // D==D
     @0010   // @D as dest bit
     D=A
-    @0006   // @R6
+    @R6
     M=D|M
     @DESTA@
     0;JMP
@@ -288,7 +288,7 @@
     // D==M
     @0008   // @M as dest bit
     D=A
-    @0006   // @R6
+    @R6
     M=D|M
     @DESTA@
     0;JMP
@@ -296,7 +296,7 @@
     // if equals sign, goto COMP
     @0010   // ascii M - ascii =
     D=D+A
-    @0001   // @R1
+    @R1
     M=M+1
     @COMP@
     D;JEQ
@@ -305,7 +305,7 @@
 (COMP)
     // lookahead one character for an operator: + - & | <
     // if operator, goto binary, otherwise parse unary comp
-    @0001   // @R1
+    @R1
     A=M+1
     D=M
     @0026   // ascii &
@@ -329,7 +329,7 @@
     @BINARY@
     D;JEQ
 // UNARY
-    @0001   // @R1
+    @R1
     A=M
     D=M
     @0021   // ascii !
@@ -385,7 +385,7 @@
     @ENDCOMP@
     0;JMP
 (NOT)
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @0041   // ascii A
@@ -415,7 +415,7 @@
     @ENDCOMP@
     0;JMP
 (NEG)
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @0031   // ascii 1
@@ -454,7 +454,7 @@
     @ENDCOMP@
     0;JMP
 (BINARY)
-    @0001   // @R1
+    @R1
     A=M
     D=M
     @0041   // ascii A
@@ -475,14 +475,14 @@
     // set the M flag, then fall through to A case
     @1000   // 0001 0000 0000 0000
     D=A
-    @0006   // @R6
+    @R6
     M=D|M
 (BNRYA)
     // read the next two chars as 8bit values into D then compare
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M<<8
-    @0001   // @R1
+    @R1
     AM=M+1
     D=D|M
     @2B31   // ascii +1 = 0x2B31
@@ -520,10 +520,10 @@
     0;JMP
 (BNRYD)
     // read the next two chars as 8bit values into D then compare
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M<<8
-    @0001   // @R1
+    @R1
     AM=M+1
     D=D|M
     @2641   // ascii &A = 0x2641
@@ -622,7 +622,7 @@
     D;JNE
     @0800   // D bit for the shift operation
     D=A
-    @0006   // @R6
+    @R6
     M=D|M
     // fall through to SHIFT
 (SHIFT)
@@ -631,10 +631,10 @@
     // so instead we simply subtract 0x2000 (since we know that bit is set to 1 earlier)
     @2000   // 0010 0000 0000 0000
     D=A
-    @0006   // @R6
+    @R6
     M=M-D
     // TODO: for now maybe just assume valid 1-8 char follows? 0x31 - 0x38
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @0030   // maps [0x31, 0x38] -> [1, 8] 
@@ -644,12 +644,12 @@
 (ENDCOMP)
     // whenever we come to jump, we have just set D=bits to add to instr
     // so the first thing we do is to add those to R6
-    @0006   // @R6
+    @R6
     M=D|M
     // check whether we stop early in ENDLINE func
     @JUMP@
     D=A
-    @0000   // @R0
+    @SP@
     AM=M+1
     M=D
     @ENDLINE@
@@ -661,7 +661,7 @@
     D=D+A
     @END@   // TODO syntax error
     D;JNE
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @004A   // ascii J
@@ -669,10 +669,10 @@
     @END@   // TODO syntax error
     D;JNE
     // read the next two chars as 8bit values into D then compare
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M<<8
-    @0001   // @R1
+    @R1
     AM=M+1
     D=D|M
     @4551   // ascii EQ = 0x4551
@@ -739,20 +739,20 @@
 (ENDJUMP)
     // whenever we come to endjump, we have just set D=bits to add to instr
     // so the first thing we do is to add those to R6
-    @0006   // @R6
+    @R6
     M=D|M
     // check whether we stop in ENDLINE func
     // if we do not, we return to syntax error
     @END@
     D=A
-    @0000   // @R0
+    @SP@
     AM=M+1
     M=D
     @ENDLINE@
     0;JMP
 (COMMENT)
     // consume second slash
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     // if D!=0x2F (/) goto END TODO syntax error
@@ -762,7 +762,7 @@
     D;JNE
 (COMMENTREC)
     // consume rest of the line
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     // if D==0x80 (ENTER) goto WRITE 
@@ -776,7 +776,7 @@
 (AINSTR)
     // parse rest as hex value OR label
     // TODO: decimal numbers as default, hexvalues starting with x, or labels in allcaps
-    @0001   // @R1
+    @R1
     A=M+1
     D=M     // lookahead for either digit (hex) or letter (label) as first value
     @0041   // ascii A
@@ -785,17 +785,17 @@
     D;JLT
     @0020   // 0x20
     D=A
-    @0007   // @R7
+    @R7
     M=D     // R7 = 0x20
     @0030   // 0x30
     D=A
-    @0008   // @R8
+    @R8
     M=D     // R8 = 0x30
 (ALABEL)
     // labels should have at least length two; abuse to parse R0-R15
     // first has to be an uppercase letter, if its an R then second can be a digit
     // TODO: bug, need to end @LABEL with a noncaps char?!
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @0041   // ascii A
@@ -808,9 +808,9 @@
     D;JGT
     // if R7=0x20 we have parsed the first letter; if it is an R
     // then we can first try to parse R0-R15
-    @0007   // @R7
+    @R7
     D=M<<8
-    @0001   // @R1
+    @R1
     A=M
     D=D|M   // D=R7R1
     @2052   // 0x20 followed by ascii R
@@ -818,13 +818,13 @@
     @RDIGIT@
     D;JEQ
 (BACKFROMRDIGIT)
-    @0001   // @R1
+    @R1
     A=M
     D=M<<8
-    @0007   // @R7
+    @R7
     A=M
     M=D
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @0041   // ascii A
@@ -835,10 +835,10 @@
     D=D-A
     @UNENDALABEL@
     D;JGT
-    @0001   // @R1
+    @R1
     A=M
     D=M
-    @0007   // @R7
+    @R7
     M=M+1
     A=M-1
     M=D|M
@@ -847,7 +847,7 @@
 (RDIGIT)
     // we have confirmed the first letter of label is an R
     // try parsing a digit next, otherwise return to ALABEL loop
-    @0001   // @R1
+    @R1
     A=M+1
     D=M
     @0030   // ascii 0
@@ -860,39 +860,39 @@
     D;JGT
     // we have found a digit!
     // TODO: only parses R0-R9 atm, R10-R15 unsupported
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     @0030   // ascii 0
     D=D-A
-    @0006   // @R6
+    @R6
     M=D
     @END@
     D=A
-    @0000   // @R0
+    @SP@
     AM=M+1
     M=D
     @ENDLINE@
     0;JMP
 (UNENDALABEL)
     // if label is of uneven length we need to add 1 more to R7 first
-    @0007   // @R7
+    @R7
     M=M+1
 (ENDALABEL)
     // label has been stored between 0x20 and 0x30. Now lookup the line number after 0x30
     @7FFF   // marker for end of read label, largest value we can store in A
     D=A
-    @0007   // @R7
+    @R7
     A=M
     M=D
 (REPEATFIND)
     @0020   // 0x20
     D=A
-    @0007   // @R7
+    @R7
     M=D     // R7 = 0x20
 (FINDALABEL)
     // if the value at R7 is 0x7FFF, we found our label unless we found a prefix
-    @0007   // @R7
+    @R7
     A=M
     D=M
     @7FFF   // 0x7FFF
@@ -900,26 +900,26 @@
     @FOUNDALABEL@
     D;JEQ
     // otherwise, compare R7 with R8
-    @0007   // @R7
+    @R7
     A=M
     D=M
-    @0008   // @R8
+    @R8
     A=M
     D=D-M
     @NOMATCH@
     D;JNE
 // MATCH
     // if equal, advance both R7 and R8
-    @0007   // @R7
+    @R7
     M=M+1
-    @0008   // @R8
+    @R8
     M=M+1
     @FINDALABEL@
     0;JMP
 (NOMATCH)
     // otherwise, set R7 back to 0x20 and advance R8 past next value starting with 0
     // NOTE: this means label line values can only go up to 0x0FFF !
-    @0008   // @R8
+    @R8
     M=M+1
     A=M-1
     D=M
@@ -931,28 +931,28 @@
     0;JMP
 (FOUNDALABEL)
     // if R8 starts with 0 were good otherwise we found a prefix
-    @0008   // @R8
+    @R8
     A=M
     D=M
     @7000   // 0111 0000 0000 0000
     D=D&A
     @NOMATCH@
     D;JNE
-    @0008   // @R8
+    @R8
     A=M
     D=M
-    @0006   // @R6
+    @R6
     M=D
     @END@
     D=A
-    @0000   // @R0
+    @SP@
     AM=M+1
     M=D
     @ENDLINE@
     0;JMP
 (AHEX)
     // TODO: assumes max 4 valid hex chars follow!
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     // if D==0x80 (ENTER) goto WRITE 
@@ -963,7 +963,7 @@
     // TODO: if not 0-9 or A-F, goto END
     @0080   // otherwise set D back to read value
     D=D+A
-    @0006   // @R6
+    @R6
     M=M<<4
     @0041   // ascii A
     D=D-A
@@ -976,9 +976,9 @@
     // now [0,9] -> [-10,-1] and [A-F] -> [0,5]
     @000A   // 10
     D=D+A
-    @0006   // @R6
+    @R6
     M=D|M
-    @0007   // @R7
+    @R7
     DM=M+1  // R7+=1
     @0004   // @4
     D=D-A
@@ -988,7 +988,7 @@
     // if we do not, we return to syntax error
     @END@
     D=A
-    @0000   // @R0
+    @SP@
     AM=M+1
     M=D
     @ENDLINE@
@@ -998,10 +998,10 @@
     // consumes trailing spaces, comments and newline
     // jumps back if it FAILS to find any of those
     // otherwise cuts parsing the line short and never returns
-    @0000   // @R0
+    @SP@
     M=M-1   // whatever happens, decrement stack pointer
 (ENDLINELOOP)
-    @0001   // @R1
+    @R1
     AM=M+1
     D=M
     // if D==0x20 (SPACE) goto ENDLINELOOP, allowing trailing spaces
@@ -1020,34 +1020,34 @@
     @WRITE@
     D;JEQ
     // goto the address @R0 pointed to
-    @0000   // @R0
+    @SP@
     A=M+1   // already decremented stack pointer
     A=M
     0;JMP   // return to caller
 (WRITE)
     // write instruction to mem
     // R6 should contain the instruction now
-    @0006   // @R6
+    @R6
     D=M
-    @0007   // @R7
+    @R7
     D=D+M
     // if R6 is 0 and R7 is 0 then this was a full line comment, do not write anything
     @RESET@
     D;JEQ
     // otherwise write to mem at R2 and advance counter
-    @0006   // @R6
+    @R6
     D=M
-    @0002   // @R2
+    @R2
     M=M+1
     A=M-1
     M=D
 (RESET)
     // consume newline (assume found, otherwise shouldve been syntax error) and parse next line
-    @0006   // @R6
+    @R6
     M=0     // R6 = 0
-    @0007   // @R7
+    @R7
     M=0     // R7 = 0
-    @0001   // @R1
+    @R1
     M=M+1
     @START@
     0;JMP
