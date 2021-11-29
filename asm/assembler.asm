@@ -5,7 +5,7 @@
 // - the << bitshift operator is added to the language
 // supported arguments are 1 through 8 inclusive
 // - the pc jump (read from memory) instruction is NOT supported (yet?)
-// - TODO: AINSTR decimal constants, variables
+// - TODO: AINSTR decimal constants
     // init vars
     @0010
     D=A
@@ -176,6 +176,14 @@
     M=D     // R2 = 0x1000
     @R6
     M=0     // R6 = 0
+    @0010
+    D=A
+    @R9
+    M=D     // R9 = 0x10
+    @R8
+    D=M
+    @R3
+    M=D     // R3 is the end of label list pointing at empty value
 (START)
     // read char
     @R1
@@ -773,11 +781,11 @@
     @COMMENTREC
     0;JMP
 (AINSTR)
-    // parse rest as hex value OR label
+    // parse rest as hex value,label OR variable
     // TODO: decimal numbers as default, hexvalues starting with 0x, labels in allcaps, or variables in lowercase
     @R1
     A=M+1
-    D=M     // lookahead for either digit (hex) or letter (label) as first value
+    D=M     // lookahead for digit (hex) uppercase (label) or lowercase (var) letter as first value
     @0041   // ascii A
     D=D-A
     @AHEX
@@ -790,10 +798,16 @@
     D=A
     @R8
     M=D     // R8 = 0x30
+    @R1
+    A=M+1
+    D=M
+    @0061   // ascii a
+    D=D-A
+    @VAR
+    D;JGE
 (ALABEL)
     // labels should have at least length two; abuse to parse R0-R15
     // first has to be an uppercase letter, if its an R then second can be a digit
-    // TODO: bug, need to end @LABEL with a noncaps char?!
     @R1
     AM=M+1
     D=M
@@ -873,6 +887,44 @@
     M=D
     @ENDLINE
     0;JMP
+(VAR)
+    @R1
+    AM=M+1
+    D=M
+    @0061   // ascii a
+    D=D-A
+    @ENDALABEL
+    D;JLT
+    @0019   // ascii z - ascii a
+    D=D-A
+    @ENDALABEL
+    D;JGT
+    @R1
+    A=M
+    D=M<<8
+    @R7
+    A=M
+    M=D
+    @R1
+    AM=M+1
+    D=M
+    @0061   // ascii a
+    D=D-A
+    @UNENDALABEL
+    D;JLT
+    @0019   // ascii z - ascii a
+    D=D-A
+    @UNENDALABEL
+    D;JGT
+    @R1
+    A=M
+    D=M
+    @R7
+    M=M+1
+    A=M-1
+    M=D|M
+    @VAR
+    0;JMP
 (UNENDALABEL)
     // if label is of uneven length we need to add 1 more to R7 first
     @R7
@@ -916,6 +968,67 @@
     @FINDALABEL
     0;JMP
 (NOMATCH)
+    // if R8 is too big, we give up on a match. This is a syntax error for labels
+    // and results in adding a new var name for variables
+    @R8
+    D=M
+    @R3     // pointer to end of label/var list
+    D=D-M
+    @NOMATCHREC
+    D;JLT
+    @0020   // 0x20
+    D=M<<8
+    @00FF   // 0000 0000 1111 1111
+    D=D&A   // D is first letter of label/var
+    @005A   // ascii Z
+    D=D-A
+    @END    // TODO syntax error
+    D;JLE
+    @0020   // 0x20
+    D=A
+    @R7
+    M=D
+(WRITEVAR)
+    @R7
+    A=M
+    D=M
+    @7FFF
+    D=D-A
+    @DONEVAR
+    D;JEQ
+    @R7
+    M=M+1
+    A=M-1
+    D=M
+    @R8
+    M=M+1
+    A=M-1
+    M=D
+    @R3
+    M=M+1
+    @WRITEVAR
+    0;JMP
+(DONEVAR)
+    @R3
+    M=M+1
+    @R9
+    M=M+1
+    D=M-1
+    @R8
+    A=M
+    M=D
+    @R6
+    M=D
+    @R1
+    M=M-1
+    @END
+    D=A
+    @SP
+    AM=M+1
+    M=D
+    @ENDLINE
+    0;JMP
+(NOMATCHREC)
     // otherwise, set R7 back to 0x20 and advance R8 past next value starting with 0
     // NOTE: this means label line values can only go up to 0x0FFF !
     @R8

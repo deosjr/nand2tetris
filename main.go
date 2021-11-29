@@ -12,13 +12,38 @@ import (
 
 var headless = true
 
+// assembled with asm/assembler.asm from fig 6.2 in book (prog.asm)
+// should add 1+...+100 and store in @sum (so 0x11), which should be 5050 or 0x13ba
+var program = []uint16{
+    0x0010,
+    0xefc8,
+    0x0011,
+    0xea88,
+    0x0010,
+    0xfc10,
+    0x0064,
+    0xe4d0,
+    0x0012,
+    0xe301,
+    0x0010,
+    0xfc10,
+    0x0011,
+    0xf088,
+    0x0010,
+    0xfdc8,
+    0x0004,
+    0xea87,
+    0x0012,
+    0xea87,
+}
+
 // first instr jumps to main program, drawchar comes first though (easier)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), helloworld...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), keyboardLoop...)
 //var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), writeHex...)
 //var program = assembleFirstPass
 //var program = assembleTwoPass
-var program = assembleTwoPassPlus
+//var program = assembleTwoPassPlus
 //var program = countLines
 
 // maybe take an output func that prints to terminal?
@@ -31,8 +56,8 @@ func run(computer *Computer) {
     // set test data in ram: assemble the assembler using itself!
     ram := computer.data_mem.ram
     datapointer := 0x1000
-    f, _ := os.Open("asm/twopass.asm")
-    //f, _ := os.Open("test")
+    //f, _ := os.Open("asm/assembler.asm")
+    f, _ := os.Open("test2")
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
     scanner.Split(bufio.ScanRunes)
@@ -93,9 +118,9 @@ func run(computer *Computer) {
             fmt.Printf("%04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x7])
         }
         */
-        //fmt.Printf(" %04x %04x %04x\n", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
+        //fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
         //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x1], computer.data_mem.ram.mem[0x2])
-        //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x7], computer.data_mem.ram.mem[0x8])
+        //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x7], computer.data_mem.ram.mem[0x8])
         //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x30], computer.data_mem.ram.mem[0x31])
         /*
         fmt.Printf(" LABEL: %04x %04x", computer.data_mem.ram.mem[0x20], computer.data_mem.ram.mem[0x21])
@@ -114,10 +139,12 @@ func run(computer *Computer) {
         prev = computer.cpu.PC()
     }
     output := []uint16{}
-    outputpointer := 0x1000
-    endoutput := int(computer.data_mem.ram.mem[0x2])
+    //outputpointer := 0x1000
+    //endoutput := int(computer.data_mem.ram.mem[0x2])
     //outputpointer := 0x20
     //endoutput := int(computer.data_mem.ram.mem[0x8])
+    outputpointer := 0x11
+    endoutput := 0x12
     for {
         if outputpointer == endoutput {
             break
