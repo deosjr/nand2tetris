@@ -1,8 +1,10 @@
 package main
 
 import (
+    "bufio"
+    "fmt"
     "image/color"
-    //"sync"
+    "os"
 
     "github.com/faiface/pixel"
     "github.com/faiface/pixel/pixelgl"
@@ -22,6 +24,26 @@ type Keyboard interface {
     Out() uint16
     ClockTick()
     RunKeyboard(win *pixelgl.Window)
+}
+
+// writes values from an input file to a specific register
+// Load clears the register and signals to read the next character
+// -> so writing to this register sets it to 0 instead
+type TapeReader interface {
+    Out() uint16
+    SendLoad(bool)
+    ClockTick()
+    LoadInputTape(string) error
+}
+
+// reads values to write to an output file or stdout
+// sets the register to 0 when it is _done_ writing a character
+type TapeWriter interface {
+    Out() uint16
+    SendIn(uint16)
+    SendLoad(bool)
+    ClockTick()
+    LoadOutputTape(string) error
 }
 
 type Screen256x512 struct {
@@ -202,4 +224,96 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
     default:
         k.reg.SendIn(0)
     }
+}
+
+type tapeReader struct {
+    reg *BuiltinRegister
+    scanner *bufio.Scanner
+}
+
+func NewTapeReader() *tapeReader {
+    reg := NewBuiltinRegister()
+    reg.SendLoad(true)
+    return &tapeReader{
+        reg: reg,
+    }
+}
+
+func (tr *tapeReader) Out() uint16 {
+    return tr.reg.Out()
+}
+
+func (tr *tapeReader) SendLoad(load bool) {
+    tr.reg.SendIn(0)
+}
+
+func (tr *tapeReader) ClockTick() {
+    if tr.scanner == nil || tr.reg.Out() != 0 {
+        tr.reg.ClockTick()
+        return
+    }
+    // Here's where we abstract heavily over how this would work exactly
+    if tr.reg.Out() == 0 {
+        if !tr.scanner.Scan() {
+            tr.reg.SendIn(0x1C) // ascii File Separator control character
+            tr.reg.ClockTick()
+            return
+        }
+        char := tr.scanner.Text()[0]
+        if char == '\n' {
+            char = 0x80 // newlines are ENTER ascii values
+        }
+        tr.reg.SendIn(uint16(char))
+    }
+    tr.reg.ClockTick()
+}
+
+func (tr *tapeReader) LoadInputTape(filename string) error {
+    f, err := os.Open(filename)
+    // TODO where to defer close?
+    if err != nil {
+        return err
+    }
+    tr.scanner = bufio.NewScanner(f)
+    tr.scanner.Split(bufio.ScanRunes)
+    return nil
+}
+
+type tapeWriter struct {
+    reg *BuiltinRegister
+}
+
+func NewTapeWriter() *tapeWriter {
+    reg := NewBuiltinRegister()
+    return &tapeWriter{
+        reg: reg,
+    }
+}
+
+func (tr *tapeWriter) Out() uint16 {
+    return tr.reg.Out()
+}
+
+func (tr *tapeWriter) SendIn(in uint16) {
+    tr.reg.SendIn(in)
+}
+
+func (tr *tapeWriter) SendLoad(load bool) {
+    tr.reg.SendLoad(load)
+}
+
+func (tr *tapeWriter) ClockTick() {
+    // TODO write to file?
+    out := tr.reg.Out()
+    if out != 0 && tr.reg.in != 0 {
+        fmt.Printf("%04x\n", out)
+        // this is of course cheating
+        tr.reg.out = 0
+    }
+    tr.reg.ClockTick()
+}
+
+func (tr *tapeWriter) LoadOutputTape(filename string) error {
+    // TODO
+    return nil
 }

@@ -206,6 +206,8 @@ type Memory struct {
     ram *BuiltinRAM16K
     screen Screen
     keyboard Keyboard
+    reader TapeReader
+    writer TapeWriter
 }
 
 func NewMemory() *Memory {
@@ -213,14 +215,19 @@ func NewMemory() *Memory {
         ram: NewBuiltinRAM16K(),
         screen: NewScreen256x512(),
         keyboard: NewSimpleKeyboard(),
+        reader: NewTapeReader(),
+        writer: NewTapeWriter(),
     }
 }
 
 func (m *Memory) SendIn(in uint16) {
     m.ram.SendIn(in)
     m.screen.SendIn(in)
+    m.writer.SendIn(in)
 }
 
+// TODO: is there a bug here where load remains high on screen
+// when ram.SendLoad is called?
 func (m *Memory) SendLoad(load bool) {
     bit1, address := splitaddr(m.address)
     if bit1 == 0 {
@@ -229,13 +236,22 @@ func (m *Memory) SendLoad(load bool) {
     }
     // NOTE first two bits have been masked to 0 here already
     // ALSO NOTE bit0 is ignored so 2**15+1 is mapped to MEM[1]
-    if address >= 8192 { // 2**13 
-        if address > 0x6000 {
-            panic("access memory beyond 0x6000")
-        }
-        return //load to keyboard is ignored
+    if address < 8192 { // 2**13 or 0x2000
+        m.screen.SendLoad(load)
+        return
     }
-    m.screen.SendLoad(load)
+    switch address {
+    case 8192:
+        return // load to keyboard is ignored
+    case 8193:
+        m.reader.SendLoad(load)
+    case 8194:
+        m.writer.SendLoad(load)
+    default:
+        if load {
+            panic("access memory beyond 0x6002")
+        }
+    }
 }
 
 func (m *Memory) SendAddress(address uint16) {
@@ -250,13 +266,20 @@ func (m *Memory) Out() uint16 {
     if bit1 == 0 {
         return m.ram.Out()
     }
-    if address >= 8192 { // 2**13 
-        if address > 0x6000 {
-            panic("access memory beyond 0x6000")
-        }
-        return m.keyboard.Out()
+    if address < 8192 { // 2**13 or 0x2000
+        return m.screen.Out()
     }
-    return m.screen.Out()
+    switch address {
+    case 8192:
+        return m.keyboard.Out()
+    case 8193:
+        return m.reader.Out()
+    case 8194:
+        return m.writer.Out()
+    default:
+        return 0 // access beyond 0x6002 should never find anything
+        // an actual read here should explode but we always read even when setting A=0x6003+
+    }
 }
 
 func (m *Memory) ClockTick() {
@@ -264,6 +287,8 @@ func (m *Memory) ClockTick() {
     // TODO: should screen/keyboard even be clocked?
     m.screen.ClockTick()
     m.keyboard.ClockTick()
+    m.reader.ClockTick()
+    m.writer.ClockTick()
 }
 
 type Computer struct {

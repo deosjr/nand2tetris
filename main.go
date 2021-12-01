@@ -12,52 +12,115 @@ import (
 
 var headless = true
 
-// assembled with asm/assembler.asm from fig 6.2 in book (prog.asm)
-// should add 1+...+100 and store in @sum (so 0x11), which should be 5050 or 0x13ba
+//var program = assembleTwoPassPlus
 var program = []uint16{
-    0x0010,
-    0xefc8,
-    0x0011,
-    0xea88,
-    0x0010,
-    0xfc10,
-    0x0064,
-    0xe4d0,
-    0x0012,
-    0xe301,
-    0x0010,
-    0xfc10,
-    0x0011,
-    0xf088,
-    0x0010,
-    0xfdc8,
-    0x0004,
-    0xea87,
-    0x0012,
-    0xea87,
+0x0010,
+0xea88,
+0x6001,
+0xfc18,
+0x0080,
+0xe4d0,
+0x001f,
+0xe302,
+0x0050,
+0xe090,
+0x0023,
+0xe304,
+0x0009,
+0xe4d0,
+0x0023,
+0xe301,
+0x0009,
+0xe090,
+0x0011,
+0xe308,
+0x0010,
+0xfc10,
+0xd188,
+0xf088,
+0xf088,
+0x0011,
+0xfc10,
+0x0010,
+0xf088,
+0x0002,
+0xea87,
+0x0010,
+0xfc10,
+0x6002,
+0xe308,
+0x0023,
+0xea87,
 }
 
-// first instr jumps to main program, drawchar comes first though (easier)
-//var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), helloworld...)
-//var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), keyboardLoop...)
-//var program = append(append([]uint16{0x329, 0xEA87}, drawChar...), writeHex...)
-//var program = assembleFirstPass
-//var program = assembleTwoPass
-//var program = assembleTwoPassPlus
-//var program = countLines
-
-// maybe take an output func that prints to terminal?
 func run(computer *Computer) {
     computer.SendReset(true)
     computer.ClockTick()
     computer.SendReset(false)
     fmt.Println("booting...")
 
+    //fmt.Println("pc: inst| in | ax | dx | out")
+    var pprev, prev uint16
+    for {
+        //cpu := computer.cpu.(*BarrelShiftCPU)
+        //fmt.Printf("%02d: %04x %04x", cpu.PC(), computer.instr_mem.Out(), cpu.inM)
+        computer.ClockTick()
+        /*
+        if cpu.PC() >= 0 && cpu.PC() < 40 {
+            fmt.Printf("%02d: %04x %04x %04x ", cpu.PC(), computer.instr_mem.Out(), cpu.a.Out(), cpu.d.Out())
+            fmt.Printf("%04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x7])
+        }
+        */
+        //fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
+        //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x1], computer.data_mem.ram.mem[0x2])
+        //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x7], computer.data_mem.ram.mem[0x8])
+        //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x30], computer.data_mem.ram.mem[0x31])
+        //fmt.Printf(" %04x %04x\n", computer.data_mem.reader.Out(), computer.data_mem.writer.Out())
+        //fmt.Printf(" %04x %04x\n", computer.data_mem.reader.Out(), computer.data_mem.ram.mem[0x10])
+        /*
+        fmt.Printf(" LABEL: %04x %04x", computer.data_mem.ram.mem[0x20], computer.data_mem.ram.mem[0x21])
+        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x22], computer.data_mem.ram.mem[0x23])
+        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x24], computer.data_mem.ram.mem[0x25])
+        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x26], computer.data_mem.ram.mem[0x27])
+        fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x28], computer.data_mem.ram.mem[0x29])
+        */
+        //fmt.Printf(" %04x %04x %04x\n", computer.data_mem.ram.mem[0x0], computer.data_mem.ram.mem[0x10], computer.data_mem.ram.mem[0x11])
+        time.Sleep(1*time.Nanosecond)
+        //time.Sleep(10*time.Millisecond)
+        // NOTE: this halts running the computer after finding a tight loop
+        if pprev == computer.cpu.PC() {
+            break
+        }
+        pprev = prev
+        prev = computer.cpu.PC()
+    }
+}
+
+func runPeripherals(computer *Computer) func() {
+    return func() {
+        cfg := pixelgl.WindowConfig{
+		    Title:  "nand2tetris",
+		    Bounds: pixel.R(0, 0, 256, 512),
+		    VSync:  true,
+	    }
+	    win, err := pixelgl.NewWindow(cfg)
+	    if err != nil {
+		    panic(err)
+	    }
+
+	    for !win.Closed() {
+            computer.data_mem.keyboard.RunKeyboard(win)
+            computer.data_mem.screen.RunScreen(win)
+		    win.Update()
+	    }
+    }
+}
+
+func setInput(computer *Computer, filename string) {
     // set test data in ram: assemble the assembler using itself!
     ram := computer.data_mem.ram
     datapointer := 0x1000
-    //f, _ := os.Open("asm/assembler.asm")
-    f, _ := os.Open("test2")
+    f, _ := os.Open(filename)
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
     scanner.Split(bufio.ScanRunes)
@@ -90,92 +153,19 @@ func run(computer *Computer) {
             break
         }
 	}
-    /*
-    // HELLO WORLD!
-    ram.mem[0x1000] = 0x48
-    ram.mem[0x1001] = 0x45
-    ram.mem[0x1002] = 0x4C
-    ram.mem[0x1003] = 0x4C
-    ram.mem[0x1004] = 0x4F
-    ram.mem[0x1005] = 0x20
-    ram.mem[0x1006] = 0x57
-    ram.mem[0x1007] = 0x4F
-    ram.mem[0x1008] = 0x52
-    ram.mem[0x1009] = 0x4C
-    ram.mem[0x100A] = 0x44
-    ram.mem[0x100B] = 0x21
-    */
+}
 
-    //fmt.Println("pc: inst| in | ax | dx | out")
-    var pprev, prev uint16
-    for {
-        //cpu := computer.cpu.(*BarrelShiftCPU)
-        //fmt.Printf("%02d: %04x %04x", cpu.PC(), computer.instr_mem.Out(), cpu.inM)
-        computer.ClockTick()
-        /*
-        if cpu.PC() >= 0 && cpu.PC() < 40 {
-            fmt.Printf("%02d: %04x %04x %04x ", cpu.PC(), computer.instr_mem.Out(), cpu.a.Out(), cpu.d.Out())
-            fmt.Printf("%04x %04x\n", computer.data_mem.ram.mem[0x2], computer.data_mem.ram.mem[0x7])
-        }
-        */
-        //fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
-        //fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x1], computer.data_mem.ram.mem[0x2])
-        //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x7], computer.data_mem.ram.mem[0x8])
-        //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x30], computer.data_mem.ram.mem[0x31])
-        /*
-        fmt.Printf(" LABEL: %04x %04x", computer.data_mem.ram.mem[0x20], computer.data_mem.ram.mem[0x21])
-        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x22], computer.data_mem.ram.mem[0x23])
-        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x24], computer.data_mem.ram.mem[0x25])
-        fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x26], computer.data_mem.ram.mem[0x27])
-        fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x28], computer.data_mem.ram.mem[0x29])
-        */
-        //fmt.Printf(" %04x %04x %04x\n", computer.data_mem.ram.mem[0x0], computer.data_mem.ram.mem[0x10], computer.data_mem.ram.mem[0x11])
-        time.Sleep(1*time.Nanosecond)
-        //time.Sleep(10*time.Millisecond)
-        if pprev == computer.cpu.PC() {
-            break
-        }
-        pprev = prev
-        prev = computer.cpu.PC()
-    }
+func captureOutput(computer *Computer, start, end uint16) []uint16 {
     output := []uint16{}
-    //outputpointer := 0x1000
-    //endoutput := int(computer.data_mem.ram.mem[0x2])
-    //outputpointer := 0x20
-    //endoutput := int(computer.data_mem.ram.mem[0x8])
-    outputpointer := 0x11
-    endoutput := 0x12
+    outputpointer := start
     for {
-        if outputpointer == endoutput {
-            break
-        }
+        if outputpointer == end {
+            break }
         v := computer.data_mem.ram.mem[outputpointer]
         output = append(output, v)
         outputpointer++
     }
-    for _, v := range output {
-        fmt.Printf("%04x\n", v)
-    }
-}
-
-func runPeripherals(computer *Computer) func() {
-    return func() {
-        cfg := pixelgl.WindowConfig{
-		    Title:  "nand2tetris",
-		    Bounds: pixel.R(0, 0, 256, 512),
-		    VSync:  true,
-	    }
-	    win, err := pixelgl.NewWindow(cfg)
-	    if err != nil {
-		    panic(err)
-	    }
-
-	    for !win.Closed() {
-            computer.data_mem.keyboard.RunKeyboard(win)
-            computer.data_mem.screen.RunScreen(win)
-		    win.Update()
-	    }
-    }
+    return output
 }
 
 func main() {
@@ -183,6 +173,10 @@ func main() {
     computer := NewComputer(cpu)
     fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
+    //setInput(computer, "asm/decimal.asm")
+    if err := computer.data_mem.reader.LoadInputTape("test"); err != nil {
+        panic(err)
+    }
 
     if headless {
         run(computer)
@@ -190,4 +184,11 @@ func main() {
         go run(computer)
         pixelgl.Run(runPeripherals(computer))
     }
+
+    /*
+    output := captureOutput(computer, 0x1000, computer.data_mem.ram.mem[0x2])
+    for _, v := range output {
+        fmt.Printf("%04x\n", v)
+    }
+    */
 }
