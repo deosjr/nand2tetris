@@ -244,7 +244,9 @@ func (tr *tapeReader) Out() uint16 {
 }
 
 func (tr *tapeReader) SendLoad(load bool) {
-    tr.reg.SendIn(0)
+    if load {
+        tr.reg.SendIn(0)
+    }
 }
 
 func (tr *tapeReader) ClockTick() {
