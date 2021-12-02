@@ -1,3 +1,4 @@
+// Advent of Code 2021 - Day 1 part 1
     @0020
     D=A
     @SP
@@ -37,9 +38,8 @@
     @prev
     M=D
     @6001
-    // TODO does this peek even work?
     D=M // read without clearing register so we keep this value; peek
-    @001C
+    @001C // EOF
     D=D-A
     @WRITEONE
     D;JEQ
