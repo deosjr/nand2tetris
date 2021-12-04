@@ -34,6 +34,7 @@ type TapeReader interface {
     SendLoad(bool)
     ClockTick()
     LoadInputTape(string) error
+    LoadInputTapes([]string)
 }
 
 // reads values to write to an output file or stdout
@@ -229,6 +230,7 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
 type tapeReader struct {
     reg *BuiltinRegister
     scanner *bufio.Scanner
+    eof bool
 }
 
 func NewTapeReader() *tapeReader {
@@ -259,6 +261,7 @@ func (tr *tapeReader) ClockTick() {
         if !tr.scanner.Scan() {
             tr.reg.SendIn(0x1C) // ascii File Separator control character
             tr.reg.ClockTick()
+            tr.eof = true
             return
         }
         char := tr.scanner.Text()[0]
@@ -281,8 +284,26 @@ func (tr *tapeReader) LoadInputTape(filename string) error {
     return nil
 }
 
+func (tr *tapeReader) LoadInputTapes(filenames []string) {
+    go func() {
+        for _, filename := range filenames {
+            f, err := os.Open(filename)
+            if err != nil {
+                fmt.Println(err)
+            }
+            tr.eof = false
+            tr.scanner = bufio.NewScanner(f)
+            tr.scanner.Split(bufio.ScanRunes)
+            for !tr.eof {
+                // await the reading of EOF marker in tr.ClockTick
+            }
+        }
+    }()
+}
+
 type tapeWriter struct {
     reg *BuiltinRegister
+    out int
 }
 
 func NewTapeWriter() *tapeWriter {
@@ -302,17 +323,20 @@ func (tr *tapeWriter) SendIn(in uint16) {
 
 func (tr *tapeWriter) SendLoad(load bool) {
     tr.reg.SendLoad(load)
+    if load {
+        tr.out = -1
+    }
 }
 
 func (tr *tapeWriter) ClockTick() {
+    tr.reg.ClockTick()
     // TODO write to file?
     out := tr.reg.Out()
-    if out != 0 && tr.reg.in != 0 {
+    if int(out) != tr.out {
         fmt.Printf("%04x\n", out)
-        // this is of course cheating
-        tr.reg.out = 0
+        // this is of course cheating, should be represented by separate write bit
+        tr.out = int(out)
     }
-    tr.reg.ClockTick()
 }
 
 func (tr *tapeWriter) LoadOutputTape(filename string) error {

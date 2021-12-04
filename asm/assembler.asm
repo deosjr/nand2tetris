@@ -11,10 +11,6 @@
     D=A
     @SP
     M=D     // R0 = 0x10
-    @1000
-    D=A
-    @R1
-    M=D     // R1 = 0x1000
     @R6
     M=0     // R6 = 0
     @R7
@@ -81,13 +77,17 @@
     @R8
     M=D     // R8 = 0x30 + offset of predefined symbols
 (FIRSTPASS)
-    @R1
-    A=M
-    D=M
+    @6001
+    DM=M
+    @001C   // EOF marker
+    D=D-A
     @SECONDPASS
     D;JEQ
-    // if D=0x28 '(' goto LABEL else consume until new line
-    @0028   // ascii (
+    @0004   // ascii SPACE - ascii EOF
+    D=D-A
+    @FIRSTPASS
+    D;JEQ
+    @0008   // ascii ( - ascii SPACE
     D=D-A
     @LABEL
     D;JEQ
@@ -98,21 +98,17 @@
     @R6
     M=M+1   // R6 holds the current linenumber skipping comments/labels
 (SKIPLINE)
-    @R1
-    AM=M+1
-    D=M
+    @6001
+    DM=M
     @0080   // ascii ENTER
     D=D-A
     @SKIPLINE
     D;JNE
-    @R1
-    M=M+1
     @FIRSTPASS
     0;JMP
 (LABEL)
     // here R7 is used to count length of label
-    @R1
-    AM=M+1
+    @6001
     D=M
     @0029   // ascii )
     D=D-A
@@ -125,18 +121,16 @@
     @EVEN
     D;JEQ
 // ODD
-    @R1
-    A=M
-    D=M<<8
+    @6001
+    DM=M<<8
     @R8
     A=M
     M=D
     @LABEL
     0;JMP
 (EVEN)
-    @R1
-    A=M
-    D=M
+    @6001
+    DM=M
     @R8
     M=M+1
     A=M-1
@@ -166,14 +160,6 @@
     0;JMP
 (SECONDPASS)
     // init vars
-    @1000
-    D=A
-    @R1
-    M=D     // R1 = 0x1000
-    @1000   // TODO not enough space! need to overwrite input
-    D=A
-    @R2
-    M=D     // R2 = 0x1000
     @R6
     M=0     // R6 = 0
     @0010
@@ -185,6 +171,27 @@
     @R3
     M=D     // R3 is the end of label list pointing at empty value
 (START)
+    @1000
+    D=A
+    @R1
+    M=D     // R1 = 0x1000
+    // read line from tape into memory starting at R1 0x1000
+(READLINE)
+    @6001
+    DM=M
+    @R1
+    M=M+1
+    A=M-1
+    M=D
+    @0080   // ascii ENTER
+    D=D-A
+    @READLINE
+    D;JNE
+    @1000
+    D=A
+    @R1
+    M=D     // R1 = 0x1000
+(OLDSTART)
     // read char
     @R1
     A=M
@@ -199,7 +206,7 @@
     D;JNE
     @R1
     M=M+1
-    @START
+    @OLDSTART
     0;JMP
 (STARTLINE)
     // if D==0x28 '(' goto COMMENTREC
@@ -1148,22 +1155,36 @@
     // if R6 is 0 and R7 is 0 then this was a full line comment, do not write anything
     @RESET
     D;JEQ
-    // otherwise write to mem at R2 and advance counter
+    // otherwise write to output tape register
     @R6
     D=M
-    @R2
-    M=M+1
-    A=M-1
+    @6002 // output register
     M=D
 (RESET)
+    @6001
+    D=M
+    @001C
+    D=D-A
+    @END
+    D;JEQ
     // consume newline (assume found, otherwise shouldve been syntax error) and parse next line
     @R6
     M=0     // R6 = 0
     @R7
     M=0     // R7 = 0
+(CLEARLINE)
+    // clear read line back to 0x0 in order to read new line
     @R1
-    M=M+1
+    A=M
+    M=0
+    D=A
+    @1000
+    D=D-A
     @START
+    D;JEQ
+    @R1
+    M=M-1
+    @CLEARLINE
     0;JMP
 (END)
     @END

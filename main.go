@@ -12,45 +12,25 @@ import (
 
 var headless = true
 
-//var program = assembleTwoPassPlus
-var program = []uint16{
-0x0010,
-0xea88,
-0x6001,
-0xfc18,
-0x0080,
-0xe4d0,
-0x001f,
-0xe302,
-0x0050,
-0xe090,
-0x0023,
-0xe304,
-0x0009,
-0xe4d0,
-0x0023,
-0xe301,
-0x0009,
-0xe090,
-0x0011,
-0xe308,
-0x0010,
-0xfc10,
-0xd188,
-0xf088,
-0xf088,
-0x0011,
-0xfc10,
-0x0010,
-0xf088,
-0x0002,
-0xea87,
-0x0010,
-0xfc10,
-0x6002,
-0xe308,
-0x0023,
-0xea87,
+var program = tapeAssembler
+
+func main() {
+    cpu := NewBarrelShiftCPU()
+    computer := NewComputer(cpu)
+    fmt.Println("loading ROM")
+    computer.LoadProgram(NewROM32K(program))
+    computer.data_mem.reader.LoadInputTapes([]string{
+        // we feed the input in twice since we run two passes over it
+        "asm/assembler.asm",
+        "asm/assembler.asm",
+    })
+
+    if headless {
+        run(computer)
+    } else {
+        go run(computer)
+        pixelgl.Run(runPeripherals(computer))
+    }
 }
 
 func run(computer *Computer) {
@@ -76,7 +56,7 @@ func run(computer *Computer) {
         //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x7], computer.data_mem.ram.mem[0x8])
         //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x30], computer.data_mem.ram.mem[0x31])
         //fmt.Printf(" %04x %04x\n", computer.data_mem.reader.Out(), computer.data_mem.writer.Out())
-        //fmt.Printf(" %04x %04x\n", computer.data_mem.reader.Out(), computer.data_mem.ram.mem[0x10])
+        //fmt.Printf(" %04x %04x\n", computer.data_mem.ram.mem[0x10], computer.data_mem.ram.mem[0x12])
         /*
         fmt.Printf(" LABEL: %04x %04x", computer.data_mem.ram.mem[0x20], computer.data_mem.ram.mem[0x21])
         fmt.Printf(" %04x %04x", computer.data_mem.ram.mem[0x22], computer.data_mem.ram.mem[0x23])
@@ -116,6 +96,7 @@ func runPeripherals(computer *Computer) func() {
     }
 }
 
+// NOTE: outdated since use of tapereader
 func setInput(computer *Computer, filename string) {
     // set test data in ram: assemble the assembler using itself!
     ram := computer.data_mem.ram
@@ -155,6 +136,7 @@ func setInput(computer *Computer, filename string) {
 	}
 }
 
+// NOTE: outdated since use of tapewriter
 func captureOutput(computer *Computer, start, end uint16) []uint16 {
     output := []uint16{}
     outputpointer := start
@@ -168,27 +150,3 @@ func captureOutput(computer *Computer, start, end uint16) []uint16 {
     return output
 }
 
-func main() {
-    cpu := NewBarrelShiftCPU()
-    computer := NewComputer(cpu)
-    fmt.Println("loading ROM")
-    computer.LoadProgram(NewROM32K(program))
-    //setInput(computer, "asm/decimal.asm")
-    if err := computer.data_mem.reader.LoadInputTape("test"); err != nil {
-        panic(err)
-    }
-
-    if headless {
-        run(computer)
-    } else {
-        go run(computer)
-        pixelgl.Run(runPeripherals(computer))
-    }
-
-    /*
-    output := captureOutput(computer, 0x1000, computer.data_mem.ram.mem[0x2])
-    for _, v := range output {
-        fmt.Printf("%04x\n", v)
-    }
-    */
-}
