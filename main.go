@@ -13,6 +13,7 @@ import (
 var headless = true
 
 func main() {
+    //program, err := Assemble("asm/decimal.asm")
     program, err := Assemble("asm/assembler.asm")
     if err != nil {
         fmt.Println(err)
@@ -26,6 +27,7 @@ func main() {
         // we feed the input in twice since we run two passes over it
         "asm/vm_mult.asm",
         "asm/vm_mult.asm",
+        //"test",
     })
 
     if headless {

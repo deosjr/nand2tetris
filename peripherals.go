@@ -4,6 +4,7 @@ import (
     "bufio"
     "fmt"
     "image/color"
+    "io"
     "os"
 
     "github.com/faiface/pixel"
@@ -34,7 +35,7 @@ type TapeReader interface {
     SendLoad(bool)
     ClockTick()
     LoadInputTape(string) error
-    LoadInputTapes([]string)
+    LoadInputTapes([]string) error
 }
 
 // reads values to write to an output file or stdout
@@ -230,7 +231,7 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
 type tapeReader struct {
     reg *BuiltinRegister
     scanner *bufio.Scanner
-    eof bool
+    eof chan bool
 }
 
 func NewTapeReader() *tapeReader {
@@ -238,6 +239,7 @@ func NewTapeReader() *tapeReader {
     reg.SendLoad(true)
     return &tapeReader{
         reg: reg,
+        eof: make(chan bool),
     }
 }
 
@@ -261,7 +263,7 @@ func (tr *tapeReader) ClockTick() {
         if !tr.scanner.Scan() {
             tr.reg.SendIn(0x1C) // ascii File Separator control character
             tr.reg.ClockTick()
-            tr.eof = true
+            tr.eof <- true
             return
         }
         char := tr.scanner.Text()[0]
@@ -274,29 +276,29 @@ func (tr *tapeReader) ClockTick() {
 }
 
 func (tr *tapeReader) LoadInputTape(filename string) error {
-    f, err := os.Open(filename)
-    // TODO where to defer close?
-    if err != nil {
-        return err
+    return tr.LoadInputTapes([]string{filename})
+}
+
+// TODO: closing. using ReadCloser disallows strings.NewReader
+func (tr *tapeReader) LoadInputTapes(filenames []string) error {
+    readers := []io.Reader{}
+    for _, filename := range filenames {
+        f, err := os.Open(filename)
+        if err != nil {
+            return err
+        }
+        readers = append(readers, f)
     }
-    tr.scanner = bufio.NewScanner(f)
-    tr.scanner.Split(bufio.ScanRunes)
+    tr.LoadInputReaders(readers)
     return nil
 }
 
-func (tr *tapeReader) LoadInputTapes(filenames []string) {
+func (tr *tapeReader) LoadInputReaders(readers []io.Reader) {
     go func() {
-        for _, filename := range filenames {
-            f, err := os.Open(filename)
-            if err != nil {
-                fmt.Println(err)
-            }
-            tr.eof = false
-            tr.scanner = bufio.NewScanner(f)
+        for _, r := range readers {
+            tr.scanner = bufio.NewScanner(r)
             tr.scanner.Split(bufio.ScanRunes)
-            for !tr.eof {
-                // await the reading of EOF marker in tr.ClockTick
-            }
+            <-tr.eof
         }
     }()
 }
