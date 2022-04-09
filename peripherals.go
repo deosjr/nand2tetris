@@ -36,6 +36,7 @@ type TapeReader interface {
     ClockTick()
     LoadInputTape(string) error
     LoadInputTapes([]string) error
+    LoadInputReaders([]io.Reader)
 }
 
 // reads values to write to an output file or stdout
@@ -45,7 +46,9 @@ type TapeWriter interface {
     SendIn(uint16)
     SendLoad(bool)
     ClockTick()
+    // NOTE: truncates!
     LoadOutputTape(string) error
+    LoadOutputWriter(io.Writer)
 }
 
 type Screen256x512 struct {
@@ -280,6 +283,7 @@ func (tr *tapeReader) LoadInputTape(filename string) error {
 }
 
 // TODO: closing. using ReadCloser disallows strings.NewReader
+// NOTE: currently opens all files at once
 func (tr *tapeReader) LoadInputTapes(filenames []string) error {
     readers := []io.Reader{}
     for _, filename := range filenames {
@@ -306,12 +310,14 @@ func (tr *tapeReader) LoadInputReaders(readers []io.Reader) {
 type tapeWriter struct {
     reg *BuiltinRegister
     out int
+    w io.Writer
 }
 
 func NewTapeWriter() *tapeWriter {
     reg := NewBuiltinRegister()
     return &tapeWriter{
         reg: reg,
+        w:   os.Stdout,
     }
 }
 
@@ -335,13 +341,21 @@ func (tr *tapeWriter) ClockTick() {
     // TODO write to file?
     out := tr.reg.Out()
     if int(out) != tr.out {
-        fmt.Printf("%04x\n", out)
+        fmt.Fprintf(tr.w, "%04x\n", out)
         // this is of course cheating, should be represented by separate write bit
         tr.out = int(out)
     }
 }
 
 func (tr *tapeWriter) LoadOutputTape(filename string) error {
-    // TODO
+    f, err := os.Create(filename)
+    if err != nil {
+        return err
+    }
+    tr.LoadOutputWriter(f)
     return nil
+}
+
+func (tr *tapeWriter) LoadOutputWriter(w io.Writer) {
+    tr.w = w
 }

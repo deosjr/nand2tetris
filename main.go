@@ -29,6 +29,7 @@ func main() {
         "asm/vm_mult.asm",
         //"test",
     })
+    computer.data_mem.writer.LoadOutputTape("out")
 
     if headless {
         run(computer)
