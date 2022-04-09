@@ -13,8 +13,8 @@ import (
 var headless = true
 
 func main() {
-    //program, err := Assemble("asm/decimal.asm")
-    program, err := Assemble("asm/assembler.asm")
+    program, err := Assemble("asm/decimal.asm")
+    //program, err := Assemble("asm/assembler.asm")
     if err != nil {
         fmt.Println(err)
         return
@@ -25,11 +25,11 @@ func main() {
     computer.LoadProgram(NewROM32K(program))
     computer.data_mem.reader.LoadInputTapes([]string{
         // we feed the input in twice since we run two passes over it
-        "asm/vm_mult.asm",
-        "asm/vm_mult.asm",
-        //"test",
+        //"asm/vm_mult.asm",
+        //"asm/vm_mult.asm",
+        "test",
     })
-    computer.data_mem.writer.LoadOutputTape("out")
+    //computer.data_mem.writer.LoadOutputTape("out")
 
     if headless {
         run(computer)
@@ -61,6 +61,7 @@ func run(computer *Computer) {
         }
         */
         //fmt.Println()
+        // NOTE: without this sleep, output printing can lag behind program ending!
         time.Sleep(1*time.Nanosecond)
         //time.Sleep(10*time.Millisecond)
         // NOTE: this halts running the computer after finding a tight loop

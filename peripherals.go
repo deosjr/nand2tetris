@@ -338,7 +338,6 @@ func (tr *tapeWriter) SendLoad(load bool) {
 
 func (tr *tapeWriter) ClockTick() {
     tr.reg.ClockTick()
-    // TODO write to file?
     out := tr.reg.Out()
     if int(out) != tr.out {
         fmt.Fprintf(tr.w, "%04x\n", out)
