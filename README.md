@@ -1,1 +1,1 @@
-nand2tetris in golang, without cheating
+nand2tetris in golang

@@ -1,21 +1,21 @@
     @decimal
     M=0
 (READ)
-    @6001
+    @0x6001
     DM=M // assign to M in order to clear the read register, reading next char
-    @0080 // ENTER (comes before EOF)
+    @0x0080 // ENTER (comes before EOF)
     D=D-A
     @WRITE
     D;JEQ
-    @0050 // ascii ENTER - ascii 0
+    @0x0050 // ascii ENTER - ascii 0
     D=D+A
     @END  // syntax error
     D;JLT
-    @0009
+    @9
     D=D-A
     @END  // syntax error
     D;JGT
-    @0009
+    @9
     D=D+A
     @temp
     M=D
@@ -33,7 +33,7 @@
 (WRITE)
     @decimal
     D=M
-    @6002
+    @0x6002
     M=D
 (END)
     @END
