@@ -3,7 +3,9 @@ package main
 import (
     "bufio"
     "fmt"
+    "io"
     "os"
+    "strings"
     "time"
 
     "github.com/faiface/pixel"
@@ -11,6 +13,7 @@ import (
 )
 
 var headless = true
+var debug = false
 
 func main() {
     program, err := Assemble("asm/decimal.asm")
@@ -23,15 +26,20 @@ func main() {
     computer := NewComputer(cpu)
     fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
+    /*
     computer.data_mem.reader.LoadInputTapes([]string{
         // we feed the input in twice since we run two passes over it
         //"asm/vm_mult.asm",
         //"asm/vm_mult.asm",
-        "test",
     })
+    */
+    computer.data_mem.reader.LoadInputReaders([]io.Reader{strings.NewReader("128\n")})
     //computer.data_mem.writer.LoadOutputTape("out")
 
-    debugger := standardDebugger{}
+    var debugger Debugger
+    if debug {
+        debugger = standardDebugger{}
+    }
 
     if headless {
         run(computer, debugger)
@@ -79,12 +87,18 @@ func run(computer *Computer, debugger Debugger) {
     computer.SendReset(false)
     fmt.Println("booting...")
 
-    debugger.BeforeLoop()
+    if debugger != nil {
+        debugger.BeforeLoop()
+    }
     var pprev, prev uint16
     for {
-        debugger.BeforeTick(computer)
+        if debugger != nil {
+            debugger.BeforeTick(computer)
+        }
         computer.ClockTick()
-        debugger.AfterTick(computer)
+        if debugger != nil {
+            debugger.AfterTick(computer)
+        }
         // NOTE: without this sleep, output printing can lag behind program ending!
         time.Sleep(1*time.Nanosecond)
         //time.Sleep(10*time.Millisecond)
