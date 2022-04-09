@@ -31,36 +31,60 @@ func main() {
     })
     //computer.data_mem.writer.LoadOutputTape("out")
 
+    debugger := standardDebugger{}
+
     if headless {
-        run(computer)
+        run(computer, debugger)
     } else {
-        go run(computer)
+        go run(computer, debugger)
         pixelgl.Run(runPeripherals(computer))
     }
 }
 
-func run(computer *Computer) {
+type Debugger interface {
+    BeforeLoop()
+    BeforeTick(*Computer)
+    AfterTick(*Computer)
+}
+
+type standardDebugger struct {}
+
+func (standardDebugger) BeforeLoop() {
+    fmt.Println("pc: inst| in | ax | dx | out")
+}
+
+func (standardDebugger) BeforeTick(c *Computer) {
+    cpu := c.cpu.(*BarrelShiftCPU)
+    fmt.Printf("%03d: %04x", cpu.PC(), c.instr_mem.Out())
+}
+
+func (standardDebugger) AfterTick(c *Computer) {
+    /*
+    cpu := c.cpu.(*BarrelShiftCPU)
+    fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
+    fmt.Printf(" SP:%04x LCL:%04x ARG:%04x", c.data_mem.ram.mem[0x0], c.data_mem.ram.mem[0x1], c.data_mem.ram.mem[0x2])
+    fmt.Printf(" %04x %04x %04x\n", c.data_mem.ram.mem[0xD], c.data_mem.ram.mem[0xE], c.data_mem.ram.mem[0xF])
+    fmt.Print(" STACK:")
+    for i:=0x100; i<0x118;i++ {
+        fmt.Printf(" %04x", c.data_mem.ram.mem[i])
+    }
+    */
+    // TODO: wait for keyboard press to make step-through debugger
+    fmt.Println()
+}
+
+func run(computer *Computer, debugger Debugger) {
     computer.SendReset(true)
     computer.ClockTick()
     computer.SendReset(false)
     fmt.Println("booting...")
 
-    //fmt.Println("pc: inst| in | ax | dx | out")
+    debugger.BeforeLoop()
     var pprev, prev uint16
     for {
-        //cpu := computer.cpu.(*BarrelShiftCPU)
-        //fmt.Printf("%03d: %04x", cpu.PC(), computer.instr_mem.Out())
+        debugger.BeforeTick(computer)
         computer.ClockTick()
-        /*
-        fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
-        fmt.Printf(" SP:%04x LCL:%04x ARG:%04x", computer.data_mem.ram.mem[0x0], computer.data_mem.ram.mem[0x1], computer.data_mem.ram.mem[0x2])
-        fmt.Printf(" %04x %04x %04x\n", computer.data_mem.ram.mem[0xD], computer.data_mem.ram.mem[0xE], computer.data_mem.ram.mem[0xF])
-        fmt.Print(" STACK:")
-        for i:=0x100; i<0x118;i++ {
-            fmt.Printf(" %04x", computer.data_mem.ram.mem[i])
-        }
-        */
-        //fmt.Println()
+        debugger.AfterTick(computer)
         // NOTE: without this sleep, output printing can lag behind program ending!
         time.Sleep(1*time.Nanosecond)
         //time.Sleep(10*time.Millisecond)
