@@ -14,15 +14,15 @@
     // call main 0
     @MAIN
     D=A
-    @0x000D // R13 i.e. FUNC
+    @R13    // FUNC
     M=D
     @0x0000 // since main has 0 args
     D=A
-    @0x000E // R14 i.e. NUMARGS
+    @R14    // NUMARGS
     M=D
     @SYSEND
     D=A
-    @0x000F // R15 i.e. RET
+    @R15    // RET
     M=D
     @SYSCALL
     0;JMP
@@ -33,8 +33,6 @@
 (MAIN)
     // NOTE numlcl is not always numargs!
     // function declaration: push numlcl times 0 (so none here)
-    @0x6002
-    M=0
     // push args to mult: x=2 and y=3
     @2
     D=A
@@ -51,15 +49,15 @@
     // call mult 2
     @MULT
     D=A
-    @0x000D // R13 i.e. FUNC
+    @R13    // FUNC
     M=D
     @2      // since mult has 2 args
     D=A
-    @0x000E // R14 i.e. NUMARGS
+    @R14    // NUMARGS
     M=D
     @RETFROMMULT
     D=A
-    @0x000F // R15 i.e. RET
+    @R15    // RET
     M=D
     @SYSCALL
     0;JMP
@@ -69,7 +67,7 @@
     @SP
     AM=M-1
     D=M
-    @6002
+    @0x6002
     M=D
     // before returning, the called function must push a value onto the stack (0 for void?)
     @SP
@@ -84,17 +82,15 @@
     // function declaration: push numlcl times 0
     @2
     D=A
-    @0x000E // R14 i.e. NUMLCL
+    @R14    // NUMLCL
     M=D
     @MULTLCL
     D=A
-    @0x000F // R15 i.e. RET
+    @R15    // RET
     M=D
     @SYSPUSHLCL
     0;JMP
 (MULTLCL)
-    @0x6002
-    M=1
     //push constant 0
     @SP
     M=M+1
@@ -205,7 +201,7 @@
     AM=M-1
     D=M
     A=A-1
-    M=D-M
+    M=M-D
     //pop local 1 // j=j-1
     @SP
     AM=M-1
@@ -231,7 +227,7 @@
     0;JMP
 (SYSCALL)
     // push return-address
-    @0x000F // R15 i.e. RET
+    @R15       // RET
     D=M
     @SP
     M=M+1
@@ -268,7 +264,7 @@
     // ARG=SP-n-5  // reposition ARG (n=number of args)
     @SP
     D=M
-    @0x000E // R14 i.e. NUMARGS
+    @R14    // NUMARGS
     D=D-M
     @5
     D=D-A
@@ -280,21 +276,21 @@
     @LCL
     M=D
     // goto f      // transfer control
-    @0x000D // R13 i.e. FUNC
+    @R13    // FUNC
     A=M
     0;JMP
 (SYSPUSHLCL)
     // func def here i.e. push 0 numlcl times
-    @0x000E // R14 i.e. NUMLCL
+    @R14    // NUMLCL
     D=M
-    @0x000F // R15 i.e. RET
+    @R15    // RET
     A=M
     D;JEQ
     @SP
     M=M+1
     A=M-1
     M=0
-    @0x000E // R14 i.e. NUMLCL
+    @R14    // NUMLCL
     M=M-1
     @SYSPUSHLCL
     0;JMP
@@ -302,13 +298,13 @@
     // FRAME = LCL
     @LCL
     D=M
-    @0x000E // R14 i.e. FRAME
+    @R14    // FRAME
     DM=D
     // RET = *(FRAME-5)
     @5
     A=D-A
     D=M
-    @0x000F // R15 i.e. RET
+    @R15    // RET
     M=D
     // *ARG = pop()
     @SP
@@ -323,30 +319,30 @@
     @SP
     M=D
     // THAT = *(FRAME-1)
-    @0x000E
+    @R14
     AM=M-1
     D=M
     @THAT
     M=D
     // THIS = *(FRAME-2)
-    @0x000E
+    @R14
     AM=M-1
     D=M
     @THIS
     M=D
     // ARG = *(FRAME-3)
-    @0x000E
+    @R14
     AM=M-1
     D=M
     @ARG
     M=D
     // LCL = *(FRAME-4)
-    @0x000E
+    @R14
     AM=M-1
     D=M
     @LCL
     M=D
     // goto RET
-    @0x000F
+    @R15
     A=M
     0;JMP
