@@ -1,0 +1,22 @@
+// Figure 12.6a : naive memory allocation scheme
+function init 0
+    push constant 2048
+    pop static free     // free = 2048, or base of heap
+    push constant 0
+    return
+
+// func alloc(size)
+function alloc 1
+    push static free
+    pop local 0         // pointer = free
+    push local 0
+    push argument 0
+    add
+    pop static free     // free = free + size
+    push local 0
+    return              // return pointer
+
+// func dealloc(object)
+function dealloc 0
+    push constant 0
+    return              // void, ie do nothing

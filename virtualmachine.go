@@ -18,11 +18,13 @@ type vmTranslator struct {
 func Translate(filenames []string) (string, error) {
     t := &vmTranslator{}
     out := preamble(filenames)
+    // translating sys.vm first allows us to drop into sys.init at start
     o, err := t.translate("vm/sys.vm")
     if err != nil {
         return "", err
     }
     out += o
+    filenames = append(filenames, "vm/memory.vm")
     for _, f := range filenames {
         o, err := t.translate(f)
         if err != nil {
@@ -233,7 +235,7 @@ func (t *vmTranslator) translatePush(split []string) error {
     }
     segment := split[0]
     n, err := strconv.Atoi(split[1])
-    if err != nil {
+    if err != nil && segment != "static" {
         return err
     }
     switch segment {
@@ -254,6 +256,12 @@ func (t *vmTranslator) translatePush(split []string) error {
         t.b.WriteString(strings.Join([]string{
             "\t@"+varname,
             "A=M"+optional,
+            "D=M\n",
+        }, "\n\t"))
+    case "static":
+        varname := strings.ToLower(t.fn) + split[1]
+        t.b.WriteString(strings.Join([]string{
+            "\t@"+varname,
             "D=M\n",
         }, "\n\t"))
     default:
@@ -277,7 +285,7 @@ func (t *vmTranslator) translatePop(split []string) error {
     }
     segment := split[0]
     n, err := strconv.Atoi(split[1])
-    if err != nil {
+    if err != nil && segment != "static" {
         return err
     }
     t.b.WriteString(strings.Join([]string{
@@ -297,6 +305,12 @@ func (t *vmTranslator) translatePop(split []string) error {
         t.b.WriteString(strings.Join([]string{
             "\t@"+varname,
             "A=M"+optional,
+            "M=D\n",
+        }, "\n\t"))
+    case "static":
+        varname := strings.ToLower(t.fn) + split[1]
+        t.b.WriteString(strings.Join([]string{
+            "\t@"+varname,
             "M=D\n",
         }, "\n\t"))
     default:
