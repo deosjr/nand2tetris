@@ -1,0 +1,37 @@
+// main function to be found by sys.init
+function main 0
+    // write 2*3
+    push constant 2
+    push constant 3
+    call mult.mult 2
+    write
+    // write 4!
+    push constant 4
+    call fact.fact 1
+    write
+    push constant 0 // void return
+    return
+
+// figure 7.9
+function mult 2     // 2 local variables
+    push constant 0
+    pop local 0     // sum=0
+    push argument 1
+    pop local 1     // j=y
+label loop
+    push constant 0
+    push local 1
+    eq
+    if-goto end     // if j=0 goto end
+    push local 0
+    push argument 0
+    add
+    pop local 0     // sum=sum+x
+    push local 1
+    push constant 1
+    sub
+    pop local 1     // j=j-1
+    goto loop
+label end
+    push local 0
+    return          // return sum

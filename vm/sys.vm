@@ -1,0 +1,9 @@
+// Three more functions are considered part of sys
+// but their implementation is given directly in 
+// the translator, in assembly code
+// These are call, pushlcl and return
+
+function init 0
+    call main 0
+label end
+    goto end

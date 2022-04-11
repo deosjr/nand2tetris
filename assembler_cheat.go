@@ -16,6 +16,7 @@ import (
     "unicode"
 )
 
+// take a .asm file and return machine language code
 func Assemble(filename string) ([]uint16, error) {
     data, err := os.ReadFile(filename)
     if err != nil {
@@ -29,6 +30,16 @@ func Assemble(filename string) ([]uint16, error) {
     }
     contents = strings.ReplaceAll(contents, "\n", "")
     return assemble(fset, contents, parsed)
+}
+
+func assembleFromString(s string) ([]uint16, error) {
+    fset := token.NewFileSet()
+    parsed, err := parse(fset, "string_input", s)
+    if err != nil {
+        return nil, err
+    }
+    s = strings.ReplaceAll(s, "\n", "")
+    return assemble(fset, s, parsed)
 }
 
 func parse(fset *token.FileSet, filename, contents string) (*ast.File, error) {
@@ -320,7 +331,13 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
             switch x := s.X.(type) {
             case *ast.ParenExpr:
                 // label
-                label := x.X.(*ast.BasicLit).Value
+                bl := x.X.(*ast.BasicLit)
+                label := bl.Value
+                if _, ok := labels[label]; ok {
+                    // syntax error
+                    posFrom := fset.Position(bl.ValuePos)
+                    return nil, fmt.Errorf("%s: label redeclaration: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(label))])
+                }
                 labels[label] = uint16(len(statements))
             case *ast.BasicLit:
                 // AINSTR

@@ -3,9 +3,9 @@ package main
 import (
     "bufio"
     "fmt"
-    "io"
+    //"io"
     "os"
-    "strings"
+    //"strings"
     "time"
 
     "github.com/faiface/pixel"
@@ -16,8 +16,13 @@ var headless = true
 var debug = false
 
 func main() {
-    program, err := Assemble("asm/decimal.asm")
-    //program, err := Assemble("asm/assembler.asm")
+    assembler, err := Translate([]string{"vm/mult.vm", "vm/fact.vm"})
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    program, err := assembleFromString(assembler)
+    //program, err := Assemble("asm/decimal.asm")
     if err != nil {
         fmt.Println(err)
         return
@@ -33,7 +38,7 @@ func main() {
         //"asm/vm_mult.asm",
     })
     */
-    computer.data_mem.reader.LoadInputReaders([]io.Reader{strings.NewReader("128\n")})
+    //computer.data_mem.reader.LoadInputReaders([]io.Reader{strings.NewReader("128\n")})
     //computer.data_mem.writer.LoadOutputTape("out")
 
     var debugger Debugger

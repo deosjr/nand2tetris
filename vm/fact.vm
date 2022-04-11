@@ -1,0 +1,24 @@
+// figure 8.7
+function fact 2     // 2 local variables
+// Returns the factorial of a given argument
+    push constant 1
+    pop local 0     // result=1
+    push constant 1
+    pop local 1     // j=1
+label loop
+    push constant 1
+    push local 1
+    add
+    pop local 1     // j=j+1
+    push local 1
+    push argument 0
+    gt
+    if-goto end     // if j>n goto end
+    push local 0
+    push local 1
+    call mult.mult 2 // 2 arguments were pushed
+    pop local 0     // result=mult(result, j)
+    goto loop
+label end
+    push local 0
+    return
