@@ -19,12 +19,45 @@ func Translate(filenames []string) (string, error) {
     t := &vmTranslator{}
     out := preamble(filenames)
     // translating sys.vm first allows us to drop into sys.init at start
-    o, err := t.translate("vm/sys.vm")
+    o, err := t.translateFiles("vm/sys.vm", "vm/memory.vm")
     if err != nil {
         return "", err
     }
     out += o
-    filenames = append(filenames, "vm/memory.vm")
+    o, err = t.translateFiles(filenames...)
+    if err != nil {
+        return "", err
+    }
+    out += o
+    out += builtins
+    return out, nil
+}
+
+func vm2asm(filenames, vmStrings []string) (string, error) {
+    if len(filenames) != len(vmStrings) {
+        return "", fmt.Errorf("filenames and vmStrings doesnt match")
+    }
+    t := &vmTranslator{}
+    out := preamble(filenames)
+    o, err := t.translateFiles("vm/sys.vm", "vm/memory.vm")
+    if err != nil {
+        return "", err
+    }
+    out += o
+    for i, f := range filenames {
+        vm := vmStrings[i]
+        asm, err := t.translateString(f, vm)
+        if err != nil {
+            return "", err
+        }
+        out += asm
+    }
+    out += builtins
+    return out, nil
+}
+
+func (t *vmTranslator) translateFiles(filenames ...string) (string, error) {
+    out := ""
     for _, f := range filenames {
         o, err := t.translate(f)
         if err != nil {
@@ -32,7 +65,6 @@ func Translate(filenames []string) (string, error) {
         }
         out += o
     }
-    out += builtins
     return out, nil
 }
 
@@ -42,6 +74,10 @@ func (t *vmTranslator) translate(filename string) (string, error) {
         return "", err
     }
     contents := string(data)
+    return t.translateString(filename, contents)
+}
+
+func (t *vmTranslator) translateString(filename, contents string) (string, error) {
     t.b = &strings.Builder{}
 	scanner := bufio.NewScanner(strings.NewReader(contents))
     fnsplit := strings.Split(strings.Split(filename, ".")[0], "/")
@@ -158,10 +194,7 @@ func (t *vmTranslator) translateFunction(split []string) error {
     if len(split) > 2 && !strings.HasPrefix(split[2], "//") {
         return fmt.Errorf("syntax error: function %v", split)
     }
-    label = strings.ToUpper(label)
-    if label != "MAIN" {
-        label = t.fn + label
-    }
+    label = t.fn + strings.ToUpper(label)
     t.b.WriteString(fmt.Sprintf("(%s)\n", label))
     if numlcl == 0 {
         return nil

@@ -3,9 +3,7 @@ package main
 import (
     "bufio"
     "fmt"
-    //"io"
     "os"
-    //"strings"
     "time"
 
     "github.com/faiface/pixel"
@@ -16,13 +14,7 @@ var headless = true
 var debug = false
 
 func main() {
-    assembler, err := Translate([]string{"vm/mult.vm", "vm/fact.vm"})
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
-    program, err := assembleFromString(assembler)
-    //program, err := Assemble("asm/decimal.asm")
+    program, err := Compile("jack/main.jack", "jack/mult.jack", "jack/fact.jack")
     if err != nil {
         fmt.Println(err)
         return
@@ -31,19 +23,10 @@ func main() {
     computer := NewComputer(cpu)
     fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
-    /*
-    computer.data_mem.reader.LoadInputTapes([]string{
-        // we feed the input in twice since we run two passes over it
-        //"asm/vm_mult.asm",
-        //"asm/vm_mult.asm",
-    })
-    */
-    //computer.data_mem.reader.LoadInputReaders([]io.Reader{strings.NewReader("128\n")})
-    //computer.data_mem.writer.LoadOutputTape("out")
 
     var debugger Debugger
     if debug {
-        debugger = standardDebugger{}
+        debugger = &standardDebugger{}
     }
 
     if headless {
@@ -60,20 +43,34 @@ type Debugger interface {
     AfterTick(*Computer)
 }
 
-type standardDebugger struct {}
-
-func (standardDebugger) BeforeLoop() {
-    fmt.Println("pc: inst| in | ax | dx | out")
+type standardDebugger struct {
+    i int
 }
 
-func (standardDebugger) BeforeTick(c *Computer) {
-    cpu := c.cpu.(*BarrelShiftCPU)
-    fmt.Printf("%03d: %04x", cpu.PC(), c.instr_mem.Out())
+func (*standardDebugger) BeforeLoop() {
+    //fmt.Println("pc: inst| in | ax | dx | out")
 }
 
-func (standardDebugger) AfterTick(c *Computer) {
+func (sd *standardDebugger) BeforeTick(c *Computer) {
+    //cpu := c.cpu.(*BarrelShiftCPU)
+    //fmt.Printf("%03d: %04x", cpu.PC(), c.instr_mem.Out())
+    sd.i++
+}
+
+func (sd *standardDebugger) AfterTick(c *Computer) {
+    // after 75 instruction steps, 'free' var is initialized
+    if sd.i > 75 {
+        mem := c.data_mem.ram.mem
+        // we know the very first var to be assigned is memory.free
+        //fmt.Printf("\tSP: %04x\tFREE: %04x\tHEAPBASE: %04x", mem[0], mem[0x10], mem[2048])
+        if mem[0] < 256 || mem[0] >= 2048 {
+            panic(fmt.Sprintf("out of stack: %d", mem[0]))
+        }
+        if mem[0x10] < 2048 || mem[0x10] >= 16384 {
+            panic(fmt.Sprintf("out of heap: %d", mem[0x10]))
+        }
+    }
     /*
-    cpu := c.cpu.(*BarrelShiftCPU)
     fmt.Printf(" %04x %04x %04x", cpu.a.Out(), cpu.d.Out(), cpu.OutM())
     fmt.Printf(" SP:%04x LCL:%04x ARG:%04x", c.data_mem.ram.mem[0x0], c.data_mem.ram.mem[0x1], c.data_mem.ram.mem[0x2])
     fmt.Printf(" %04x %04x %04x\n", c.data_mem.ram.mem[0xD], c.data_mem.ram.mem[0xE], c.data_mem.ram.mem[0xF])
@@ -83,7 +80,7 @@ func (standardDebugger) AfterTick(c *Computer) {
     }
     */
     // TODO: wait for keyboard press to make step-through debugger
-    fmt.Println()
+    //fmt.Println()
 }
 
 func run(computer *Computer, debugger Debugger) {

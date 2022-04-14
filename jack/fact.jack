@@ -1,0 +1,7 @@
+func fact(n int) int {
+    result := 1
+    for j:=1; j<=n; j++ {
+        result = result * j
+    }
+    return result
+}

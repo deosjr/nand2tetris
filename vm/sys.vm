@@ -5,6 +5,6 @@
 
 function init 0
     call memory.init 0
-    call main 0
+    call main.main 0
 label end
     goto end

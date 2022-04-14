@@ -1,0 +1,14 @@
+// main function to be found by sys.init
+function main 0
+    // write 2*3
+    push constant 2
+    push constant 3
+    call mult.mult 2
+    write
+    // write 4!
+    push constant 4
+    call fact.fact 1
+    write
+    push constant 0 // void return
+    return
+

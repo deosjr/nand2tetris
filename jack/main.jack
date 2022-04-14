@@ -1,0 +1,7 @@
+// main function of Jack, with a Golang flavor
+func main() {
+    write(42)
+    write(2*3)
+    write(fact.fact(4))
+    return
+}
