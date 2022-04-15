@@ -336,7 +336,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                 if _, ok := labels[label]; ok {
                     // syntax error
                     posFrom := fset.Position(bl.ValuePos)
-                    return nil, fmt.Errorf("%s: label redeclaration: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(label))])
+                    return nil, fmt.Errorf("%s: label redeclaration: %s", posFrom.String(), contents[bl.ValuePos-1:bl.ValuePos+token.Pos(len(label))])
                 }
                 labels[label] = uint16(len(statements))
             case *ast.BasicLit:

@@ -14,9 +14,8 @@ type jackCompiler struct {
     b *strings.Builder
     args map[string]int
     locals map[string]int
+    staticVars map[string]string
 }
-
-var reserved = []string{"func", "write", "true", "false", "null"}
 
 // take a set of .jack files and return machine language code 
 func Compile(filenames ...string) ([]uint16, error) {
@@ -55,19 +54,28 @@ func jack2vm(filename, in string) (string, error) {
 }
 
 func (c *jackCompiler) translate(f *ast.File) error {
+    c.staticVars = map[string]string{}
+    var funcs []*ast.FuncDecl
     for _, decl := range f.Decls {
-        if err := c.translateFuncDecl(decl); err != nil {
+        switch t := decl.(type) {
+        case *ast.FuncDecl:
+            funcs = append(funcs, t)
+        case *ast.GenDecl:
+            vs := t.Specs[0].(*ast.ValueSpec)
+            c.staticVars[vs.Names[0].Name] = vs.Type.(*ast.Ident).Name
+        default:
+            return fmt.Errorf("unexpected %T", t)
+        }
+    }
+    for _, fd := range funcs {
+        if err := c.translateFuncDecl(fd); err != nil {
             return err
         }
     }
     return nil
 }
 
-func (c *jackCompiler) translateFuncDecl(decl ast.Decl) error {
-    funcdecl, ok := decl.(*ast.FuncDecl)
-    if !ok {
-        return fmt.Errorf("expected function declaration but got %T", decl)
-    }
+func (c *jackCompiler) translateFuncDecl(funcdecl *ast.FuncDecl) error {
     c.args = map[string]int{}
     for _, field := range funcdecl.Type.Params.List {
         c.args[field.Names[0].Name] = len(c.args)
@@ -80,6 +88,9 @@ func (c *jackCompiler) translateFuncDecl(decl ast.Decl) error {
         case *ast.Ident:
             name := t.String()
             if _, ok := c.args[name]; ok {
+                break
+            }
+            if _, ok := c.staticVars[name]; ok {
                 break
             }
             if _, ok := c.locals[name]; !ok {
@@ -140,11 +151,12 @@ func (c *jackCompiler) translateCall(stmt *ast.CallExpr) error {
         }
     }
     if t, ok := stmt.Fun.(*ast.SelectorExpr); ok {
-        stmt.Fun = ast.NewIdent(t.Sel.Name + "." + t.X.(*ast.Ident).Name)
+        stmt.Fun = ast.NewIdent(t.X.(*ast.Ident).Name + "." + t.Sel.Name)
     }
     ident := stmt.Fun.(*ast.Ident)
     switch ident.Name {
-    case "write":
+    case "print":
+        // TODO: write only writes one 16-bit word
         c.b.WriteString("\twrite\n")
     case "+":
         c.b.WriteString("\tadd\n")
@@ -217,6 +229,10 @@ func (c *jackCompiler) pop(expr ast.Expr) error {
 
 func (c *jackCompiler) writeIdent(ident *ast.Ident) error {
     name := ident.Name
+    if _, ok := c.staticVars[name]; ok {
+        c.b.WriteString(fmt.Sprintf("static %s\n", name))
+        return nil
+    }
     if i, ok := c.args[name]; ok {
         c.b.WriteString(fmt.Sprintf("argument %d\n", i))
         return nil
@@ -241,7 +257,7 @@ func toFun(t token.Token) *ast.Ident {
 
 func (c *jackCompiler) genLabel() string {
     s := ""
-    for _, c := range fmt.Sprintf("%06x", c.generatedLabels) {
+    for _, c := range fmt.Sprintf("%06d", c.generatedLabels) {
         s += string(c + 49)
     }
     c.generatedLabels++

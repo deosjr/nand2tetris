@@ -1,7 +1,12 @@
+var test int
+
 // main function of Jack, with a Golang flavor
 func main() {
-    write(42)
-    write(2*3)
-    write(fact.fact(4))
+    print(42)
+    print(2*3)
+    print(fact.fact(4))
+    test = 32
+    print(test)
+    print(memory.alloc(5))
     return
 }

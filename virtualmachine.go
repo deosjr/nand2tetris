@@ -39,7 +39,7 @@ func vm2asm(filenames, vmStrings []string) (string, error) {
     }
     t := &vmTranslator{}
     out := preamble(filenames)
-    o, err := t.translateFiles("vm/sys.vm", "vm/memory.vm")
+    o, err := t.translateFiles("vm/sys.vm")
     if err != nil {
         return "", err
     }
@@ -462,7 +462,7 @@ func (t *vmTranslator) translateWrite(split []string) error {
 
 func (t *vmTranslator) genLabel() string {
     s := ""
-    for _, c := range fmt.Sprintf("%06x", t.generatedLabels) {
+    for _, c := range fmt.Sprintf("%06d", t.generatedLabels) {
         s += string(c + 17)
     }
     t.generatedLabels++
