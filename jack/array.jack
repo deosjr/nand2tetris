@@ -1,0 +1,9 @@
+func new(size int) array {
+    return memory.alloc(size)
+}
+
+/*
+func (a array) dispose() {
+    return memory.dealloc(a)
+}
+*/

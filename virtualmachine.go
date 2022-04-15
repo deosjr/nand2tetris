@@ -275,10 +275,17 @@ func (t *vmTranslator) translatePush(split []string) error {
     case "constant":
         // TODO: can shave 2 instrs for n=0, 1 or -1
         t.b.WriteString(fmt.Sprintf("\t@%d\n\tD=A\n", n))
-    case "local", "argument":
-        varname := "LCL"
-        if segment == "argument" {
+    case "local", "argument", "this", "that":
+        var varname string
+        switch segment {
+        case "local":
+            varname = "LCL"
+        case "argument":
             varname = "ARG"
+        case "this":
+            varname = "THIS"
+        case "that":
+            varname = "THAT"
         }
         optional := ""
         if n == 1 {
@@ -293,6 +300,17 @@ func (t *vmTranslator) translatePush(split []string) error {
         }, "\n\t"))
     case "static":
         varname := strings.ToLower(t.fn) + split[1]
+        t.b.WriteString(strings.Join([]string{
+            "\t@"+varname,
+            "D=M\n",
+        }, "\n\t"))
+    case "pointer":
+        varname := "THIS"
+        if n == 1 {
+            varname = "THAT"
+        } else if n != 0 {
+            return fmt.Errorf("syntax error: push %v", split)
+        }
         t.b.WriteString(strings.Join([]string{
             "\t@"+varname,
             "D=M\n",
@@ -327,8 +345,18 @@ func (t *vmTranslator) translatePop(split []string) error {
         "D=M\n",
     }, "\n\t"))
     switch segment {
-    case "local":
-        varname := "LCL"
+    case "local", "argument", "this", "that":
+        var varname string
+        switch segment {
+        case "local":
+            varname = "LCL"
+        case "argument":
+            varname = "ARG"
+        case "this":
+            varname = "THIS"
+        case "that":
+            varname = "THAT"
+        }
         optional := ""
         if n == 1 {
             optional = "+1"
@@ -342,6 +370,17 @@ func (t *vmTranslator) translatePop(split []string) error {
         }, "\n\t"))
     case "static":
         varname := strings.ToLower(t.fn) + split[1]
+        t.b.WriteString(strings.Join([]string{
+            "\t@"+varname,
+            "M=D\n",
+        }, "\n\t"))
+    case "pointer":
+        varname := "THIS"
+        if n == 1 {
+            varname = "THAT"
+        } else if n != 0 {
+            return fmt.Errorf("syntax error: pop %v", split)
+        }
         t.b.WriteString(strings.Join([]string{
             "\t@"+varname,
             "M=D\n",

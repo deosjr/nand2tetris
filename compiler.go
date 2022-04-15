@@ -138,6 +138,13 @@ func (c *jackCompiler) translateAssign(stmt *ast.AssignStmt) error {
     if len(stmt.Lhs) > 1 || len(stmt.Rhs) > 1 {
         return fmt.Errorf("unsupported multiple assign")
     }
+    if t, ok := stmt.Lhs[0].(*ast.IndexExpr); ok {
+        call := &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{t.X, t.Index}}
+        if err := c.translateCall(call); err != nil {
+            return err
+        }
+        c.b.WriteString("\tpop pointer 1\n")
+    }
     if err := c.push(stmt.Rhs[0]); err != nil {
         return err
     }
@@ -196,13 +203,10 @@ func (c *jackCompiler) push(expr ast.Expr) error {
             // todo convert to int representation of char
         }
         c.b.WriteString(fmt.Sprintf("\tpush constant %s\n", value))
+        return nil
     case *ast.Ident:
-        ident, ok := expr.(*ast.Ident)
-        if !ok {
-            return fmt.Errorf("push: unexpected %T", expr)
-        }
         c.b.WriteString("\tpush ")
-        return c.writeIdent(ident)
+        return c.writeIdent(t)
     case *ast.CallExpr:
         return c.translateCall(t)
     case *ast.UnaryExpr:
@@ -211,20 +215,29 @@ func (c *jackCompiler) push(expr ast.Expr) error {
     case *ast.BinaryExpr:
         call := &ast.CallExpr{Fun:toFun(t.Op), Args:[]ast.Expr{t.X, t.Y}}
         return c.translateCall(call)
-    default:
-        return fmt.Errorf("push: unexpected %T", t)
+    case *ast.IndexExpr:
+        call := &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{t.X, t.Index}}
+        if err := c.translateCall(call); err != nil {
+            return err
+        }
+        c.b.WriteString("\tpop pointer 1\n")
+        c.b.WriteString("\tpush that 0\n")
+        return nil
     }
-    return nil
+    return fmt.Errorf("push: unexpected %T", expr)
 }
 
 // cannot recursively evaluate
 func (c *jackCompiler) pop(expr ast.Expr) error {
-    c.b.WriteString("\tpop ")
-    ident, ok := expr.(*ast.Ident)
-    if !ok {
-        return fmt.Errorf("pop: unexpected %T", expr)
+    switch t := expr.(type) {
+    case *ast.Ident:
+        c.b.WriteString("\tpop ")
+        return c.writeIdent(t)
+    case *ast.IndexExpr:
+        c.b.WriteString("\tpop that 0\n")
+        return nil
     }
-    return c.writeIdent(ident)
+    return fmt.Errorf("pop: unexpected %T", expr)
 }
 
 func (c *jackCompiler) writeIdent(ident *ast.Ident) error {
@@ -241,7 +254,7 @@ func (c *jackCompiler) writeIdent(ident *ast.Ident) error {
         c.b.WriteString(fmt.Sprintf("local %d\n", i))
         return nil
     }
-    return fmt.Errorf("pop: not found %s", name)
+    return fmt.Errorf("ident: not found %s", name)
 }
 
 func toFun(t token.Token) *ast.Ident {

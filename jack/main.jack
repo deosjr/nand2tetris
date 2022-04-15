@@ -7,6 +7,8 @@ func main() {
     print(fact.fact(4))
     test = 32
     print(test)
-    print(memory.alloc(5))
+    arr = array.new(10)
+    arr[3] = 14
+    print(arr[3])
     return
 }
