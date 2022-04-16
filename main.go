@@ -14,7 +14,7 @@ var headless = true
 var debug = false
 
 func main() {
-    program, err := Compile("jack/main.jack", "jack/mult.jack", "jack/fact.jack", "jack/memory.jack", "jack/array.jack")
+    program, err := Compile("jack/main.jack", "jack/mult.jack", "jack/fact.jack", "jack/memory.jack", "jack/array.jack", "jack/string.jack")
     if err != nil {
         fmt.Println(err)
         return

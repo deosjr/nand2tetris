@@ -290,7 +290,7 @@ func (t *vmTranslator) translatePush(split []string) error {
         optional := ""
         if n == 1 {
             optional = "+1"
-        } else if n != 0 {
+        } else if n != 0 && segment != "argument" {
             return fmt.Errorf("syntax error: push %v", split)
         }
         t.b.WriteString(strings.Join([]string{
@@ -360,7 +360,7 @@ func (t *vmTranslator) translatePop(split []string) error {
         optional := ""
         if n == 1 {
             optional = "+1"
-        } else if n != 0 {
+        } else if n != 0 && segment != "argument" {
             return fmt.Errorf("syntax error: pop %v", split)
         }
         t.b.WriteString(strings.Join([]string{

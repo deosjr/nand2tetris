@@ -10,5 +10,8 @@ func main() {
     arr = array.new(10)
     arr[3] = 14
     print(arr[3])
+    //str = string.new(10)
+    //str.appendChar(97)
+    //print(str.charAt(0))
     return
 }

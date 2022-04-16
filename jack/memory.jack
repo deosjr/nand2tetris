@@ -7,7 +7,7 @@ func init() {
 
 // note: return type is ignored, can write whatever we want here
 func alloc(size int) pointer {
-    pointer = free
+    pointer := free
     free = free + size
     return pointer
 }

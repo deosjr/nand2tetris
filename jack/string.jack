@@ -1,0 +1,44 @@
+// TODO once this works: use << trick to
+// make strings use half the space
+type string struct {
+    length int
+    arr  array
+}
+
+func new(maxlen int) string {
+    s := string{}
+    s.length = 0
+    s.arr = array.new(maxlen)
+    return s
+}
+
+func (s string) dispose() {
+    return
+}
+
+func (s string) length() int {
+    return s.length
+}
+
+func (s string) charAt(j int) char {
+    a := s.arr
+    return a[j]
+}
+
+func (s string) setCharAt(j int, c char) {
+    a := s.arr
+    a[j] = c
+    return
+}
+
+func (s string) appendChar(c char) string {
+    a := s.arr
+    a[s.length] = c
+    s.length = s.length + 1
+    return s
+}
+
+func (s string) eraseLastChar() {
+    s.length = s.length - 1
+    return
+}

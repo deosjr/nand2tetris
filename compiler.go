@@ -11,26 +11,59 @@ import (
 
 type jackCompiler struct {
     generatedLabels int
+    files map[string]file
+
+    // reused every file
     b *strings.Builder
+    staticVars map[string]string
+    // reused every func
     args map[string]int
     locals map[string]int
+}
+
+type file struct {
+    class *class
+    funcs map[string]*ast.FuncDecl
     staticVars map[string]string
+}
+
+type class struct {
+    fields map[string]int
 }
 
 // take a set of .jack files and return machine language code 
 func Compile(filenames ...string) ([]uint16, error) {
-    var vmStrings []string
+    fset := token.NewFileSet()
+    var parsed []*ast.File
     for _, filename := range filenames {
         data, err := os.ReadFile(filename)
         if err != nil {
             return nil, err
         }
-        vm, err := jack2vm(filename, string(data))
+        f, err := parser.ParseFile(fset, filename, "package main\n"+string(data), 0)
+        if err != nil {
+            return nil, err
+        }
+        split := strings.Split(filename, "/")
+        filename = strings.Split(split[len(split)-1], ".")[0]
+        f.Name = ast.NewIdent(filename)
+        parsed = append(parsed, f)
+    }
+    var vmStrings []string
+    c := &jackCompiler{files: map[string]file{}}
+    for _, f := range parsed {
+        if err := c.analyse(f); err != nil {
+            return nil, err
+        }
+    }
+    for _, f := range parsed {
+        vm, err := c.translate(f)
         if err != nil {
             return nil, err
         }
         vmStrings = append(vmStrings, vm)
     }
+    fmt.Println(vmStrings)
     asm, err := vm2asm(filenames, vmStrings)
     if err != nil {
         return nil, err
@@ -38,52 +71,67 @@ func Compile(filenames ...string) ([]uint16, error) {
     return assembleFromString(asm)
 }
 
-func jack2vm(filename, in string) (string, error) {
-    fset := token.NewFileSet()
-    f, err := parser.ParseFile(fset, filename, "package main\n"+in, 0)
-    if err != nil {
-        return "", err
+// first pass so we know about types declared in other files
+func (c *jackCompiler) analyse(f *ast.File) error {
+    file := file{
+        funcs: map[string]*ast.FuncDecl{},
+        staticVars: map[string]string{},
     }
-    c := &jackCompiler{
-        b: &strings.Builder{},
-    }
-    if err := c.translate(f); err != nil {
-        return "", err
-    }
-    return c.b.String(), nil
-}
-
-func (c *jackCompiler) translate(f *ast.File) error {
-    c.staticVars = map[string]string{}
-    var funcs []*ast.FuncDecl
     for _, decl := range f.Decls {
         switch t := decl.(type) {
         case *ast.FuncDecl:
-            funcs = append(funcs, t)
+            file.funcs[t.Name.Name] = t
         case *ast.GenDecl:
-            vs := t.Specs[0].(*ast.ValueSpec)
-            c.staticVars[vs.Names[0].Name] = vs.Type.(*ast.Ident).Name
+            switch spec := t.Specs[0].(type) {
+            case *ast.ValueSpec:
+                file.staticVars[spec.Names[0].Name] = spec.Type.(*ast.Ident).Name
+            case *ast.TypeSpec:
+                if file.class != nil {
+                    return fmt.Errorf("multiple type declarations in file")
+                }
+                file.class = typespec2class(spec)
+            }
         default:
             return fmt.Errorf("unexpected %T", t)
         }
     }
-    for _, fd := range funcs {
+    c.files[f.Name.Name] = file
+    return nil
+}
+
+func typespec2class(t *ast.TypeSpec) *class {
+    c := &class{fields: map[string]int{}}
+    for i, field := range t.Type.(*ast.StructType).Fields.List {
+        c.fields[field.Names[0].Name] = i
+    }
+    return c
+}
+
+func (c *jackCompiler) translate(f *ast.File) (string, error) {
+    c.b = &strings.Builder{}
+    c.staticVars = c.files[f.Name.Name].staticVars
+    for _, fd := range c.files[f.Name.Name].funcs {
         if err := c.translateFuncDecl(fd); err != nil {
-            return err
+            return "", err
         }
     }
-    return nil
+    return c.b.String(), nil
 }
 
 func (c *jackCompiler) translateFuncDecl(funcdecl *ast.FuncDecl) error {
     c.args = map[string]int{}
+    if funcdecl.Recv != nil {
+        for _, field := range funcdecl.Recv.List {
+            c.args[field.Names[0].Name] = 0
+        }
+    }
     for _, field := range funcdecl.Type.Params.List {
         c.args[field.Names[0].Name] = len(c.args)
     }
     c.locals = map[string]int{}
     ast.Inspect(funcdecl.Body, func(n ast.Node) bool {
         switch t := n.(type) {
-        case *ast.CallExpr:
+        case *ast.CallExpr, *ast.CompositeLit, *ast.SelectorExpr:
             return false
         case *ast.Ident:
             name := t.String()
@@ -216,13 +264,31 @@ func (c *jackCompiler) push(expr ast.Expr) error {
         call := &ast.CallExpr{Fun:toFun(t.Op), Args:[]ast.Expr{t.X, t.Y}}
         return c.translateCall(call)
     case *ast.IndexExpr:
-        call := &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{t.X, t.Index}}
-        if err := c.translateCall(call); err != nil {
+        if err := c.prepareIndex(t); err != nil {
             return err
         }
-        c.b.WriteString("\tpop pointer 1\n")
         c.b.WriteString("\tpush that 0\n")
         return nil
+    case *ast.CompositeLit:
+        className := t.Type.(*ast.Ident).Name
+        file, ok := c.files[className]
+        if !ok || file.class == nil {
+            return fmt.Errorf("push: type not found: %s", className)
+        }
+        if len(t.Elts) != 0 {
+            return fmt.Errorf("push: struct init has to be empty")
+        }
+        c.b.WriteString(fmt.Sprintf("\tpush constant %d\n", len(file.class.fields)))
+        c.b.WriteString("\tcall array.new 1\n")
+        return nil
+    case *ast.SelectorExpr:
+        varname, ok := t.X.(*ast.Ident)
+        if !ok {
+            return fmt.Errorf("push: unexpected %T in selector", t.X)
+        }
+        // TODO: FIGURE OUT TYPE OF VARNAME TO GET INDEX
+        indx := &ast.IndexExpr{X: varname, Index: &ast.BasicLit{Value:"0"}}
+        return c.push(indx)
     }
     return fmt.Errorf("push: unexpected %T", expr)
 }
@@ -234,10 +300,37 @@ func (c *jackCompiler) pop(expr ast.Expr) error {
         c.b.WriteString("\tpop ")
         return c.writeIdent(t)
     case *ast.IndexExpr:
+        if err := c.prepareIndex(t); err != nil {
+            return err
+        }
         c.b.WriteString("\tpop that 0\n")
         return nil
+    case *ast.SelectorExpr:
+        varname, ok := t.X.(*ast.Ident)
+        if !ok {
+            return fmt.Errorf("pop: unexpected %T in selector", t.X)
+        }
+        // TODO: FIGURE OUT TYPE OF VARNAME TO GET INDEX
+        indx := &ast.IndexExpr{X: varname, Index: &ast.BasicLit{Value:"0"}}
+        return c.pop(indx)
     }
     return fmt.Errorf("pop: unexpected %T", expr)
+}
+
+func (c *jackCompiler) prepareIndex(t *ast.IndexExpr) error {
+    if bl, ok := t.Index.(*ast.BasicLit); ok && bl.Value == "0" {
+        c.b.WriteString("\tpush ")
+        if err := c.writeIdent(t.X.(*ast.Ident)); err != nil {
+            return err
+        }
+    } else {
+        call := &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{t.X, t.Index}}
+        if err := c.translateCall(call); err != nil {
+            return err
+        }
+    }
+    c.b.WriteString("\tpop pointer 1\n")
+    return nil
 }
 
 func (c *jackCompiler) writeIdent(ident *ast.Ident) error {
