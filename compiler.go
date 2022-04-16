@@ -15,20 +15,25 @@ type jackCompiler struct {
 
     // reused every file
     b *strings.Builder
-    staticVars map[string]string
+    staticVars map[string]typeNum
     // reused every func
-    args map[string]int
-    locals map[string]int
+    args map[string]typeNum
+    locals map[string]typeNum
 }
 
 type file struct {
     class *class
     funcs map[string]*ast.FuncDecl
-    staticVars map[string]string
+    staticVars map[string]typeNum
 }
 
 type class struct {
-    fields map[string]int
+    fields map[string]typeNum
+}
+
+type typeNum struct {
+    typ string
+    num int
 }
 
 // take a set of .jack files and return machine language code 
@@ -75,7 +80,7 @@ func Compile(filenames ...string) ([]uint16, error) {
 func (c *jackCompiler) analyse(f *ast.File) error {
     file := file{
         funcs: map[string]*ast.FuncDecl{},
-        staticVars: map[string]string{},
+        staticVars: map[string]typeNum{},
     }
     for _, decl := range f.Decls {
         switch t := decl.(type) {
@@ -84,7 +89,7 @@ func (c *jackCompiler) analyse(f *ast.File) error {
         case *ast.GenDecl:
             switch spec := t.Specs[0].(type) {
             case *ast.ValueSpec:
-                file.staticVars[spec.Names[0].Name] = spec.Type.(*ast.Ident).Name
+                file.staticVars[spec.Names[0].Name] = typeNum{spec.Type.(*ast.Ident).Name, 0}
             case *ast.TypeSpec:
                 if file.class != nil {
                     return fmt.Errorf("multiple type declarations in file")
@@ -100,9 +105,9 @@ func (c *jackCompiler) analyse(f *ast.File) error {
 }
 
 func typespec2class(t *ast.TypeSpec) *class {
-    c := &class{fields: map[string]int{}}
+    c := &class{fields: map[string]typeNum{}}
     for i, field := range t.Type.(*ast.StructType).Fields.List {
-        c.fields[field.Names[0].Name] = i
+        c.fields[field.Names[0].Name] = typeNum{field.Type.(*ast.Ident).Name, i}
     }
     return c
 }
@@ -119,16 +124,16 @@ func (c *jackCompiler) translate(f *ast.File) (string, error) {
 }
 
 func (c *jackCompiler) translateFuncDecl(funcdecl *ast.FuncDecl) error {
-    c.args = map[string]int{}
+    c.args = map[string]typeNum{}
     if funcdecl.Recv != nil {
         for _, field := range funcdecl.Recv.List {
-            c.args[field.Names[0].Name] = 0
+            c.args[field.Names[0].Name] = typeNum{field.Type.(*ast.Ident).Name, 0}
         }
     }
     for _, field := range funcdecl.Type.Params.List {
-        c.args[field.Names[0].Name] = len(c.args)
+        c.args[field.Names[0].Name] = typeNum{field.Type.(*ast.Ident).Name, len(c.args)}
     }
-    c.locals = map[string]int{}
+    c.locals = map[string]typeNum{}
     ast.Inspect(funcdecl.Body, func(n ast.Node) bool {
         switch t := n.(type) {
         case *ast.CallExpr, *ast.CompositeLit, *ast.SelectorExpr:
@@ -142,7 +147,8 @@ func (c *jackCompiler) translateFuncDecl(funcdecl *ast.FuncDecl) error {
                 break
             }
             if _, ok := c.locals[name]; !ok {
-                c.locals[name] = len(c.locals)
+                // TODO: infer from init, or explicitly declare
+                c.locals[name] = typeNum{"?", len(c.locals)}
             }
         }
         return true
@@ -339,12 +345,12 @@ func (c *jackCompiler) writeIdent(ident *ast.Ident) error {
         c.b.WriteString(fmt.Sprintf("static %s\n", name))
         return nil
     }
-    if i, ok := c.args[name]; ok {
-        c.b.WriteString(fmt.Sprintf("argument %d\n", i))
+    if tn, ok := c.args[name]; ok {
+        c.b.WriteString(fmt.Sprintf("argument %d\n", tn.num))
         return nil
     }
-    if i, ok := c.locals[name]; ok {
-        c.b.WriteString(fmt.Sprintf("local %d\n", i))
+    if tn, ok := c.locals[name]; ok {
+        c.b.WriteString(fmt.Sprintf("local %d\n", tn.num))
         return nil
     }
     return fmt.Errorf("ident: not found %s", name)
