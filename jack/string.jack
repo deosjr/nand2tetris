@@ -21,19 +21,16 @@ func (s string) length() int {
 }
 
 func (s string) charAt(j int) char {
-    a := s.arr
-    return a[j]
+    return s.arr[j]
 }
 
 func (s string) setCharAt(j int, c char) {
-    a := s.arr
-    a[j] = c
+    s.arr[j] = c
     return
 }
 
 func (s string) appendChar(c char) string {
-    a := s.arr
-    a[s.length] = c
+    s.arr[s.length] = c
     s.length = s.length + 1
     return s
 }

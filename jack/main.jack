@@ -1,18 +1,17 @@
-var test int
-
 // main function of Jack, with a Golang flavor
 func main() {
-    print(42)
-    print(2*3)
-    print(fact.fact(4))
-    test = 32
-    print(test)
-    arr = array.new(10)
-    arr[3] = 14
-    print(arr[3])
+    // TODO somehow setCharAt picks up 'free' var in memory.jack
+    unused = string{}
     str = string{}
     str = string.new(10)
     str.appendChar(97)
-    print(str.charAt(0))
+    str.setCharAt(3, 98)
+    str.appendChar(99)
+    str.setCharAt(0, 97)
+    str.setCharAt(1, 98)
+    //for j:=0; j<=str.length()-1; j++ {
+    for j:=0; j<=1; j++ {
+        print(str.charAt(j))
+    }
     return
 }

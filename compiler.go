@@ -212,13 +212,6 @@ func (c *jackCompiler) translateAssign(stmt *ast.AssignStmt) error {
             c.locals[ident.Name] = typeNum{typeRhs, tn.num}
         }
     }
-    if t, ok := stmt.Lhs[0].(*ast.IndexExpr); ok {
-        call := &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{t.X, t.Index}}
-        if err := c.translateCall(call); err != nil {
-            return err
-        }
-        c.b.WriteString("\tpop pointer 1\n")
-    }
     if err := c.push(stmt.Rhs[0]); err != nil {
         return err
     }
@@ -414,6 +407,9 @@ func (c *jackCompiler) typeOf(expr ast.Expr) (string, error) {
     case *ast.BasicLit:
         if t.Kind == token.INT {
             return "int", nil
+        }
+        if t.Kind == token.CHAR {
+            return "char", nil
         }
     case *ast.BinaryExpr:
         return "int", nil
