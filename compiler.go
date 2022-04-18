@@ -24,6 +24,7 @@ type jackCompiler struct {
 type file struct {
     class *class
     funcs map[string]*ast.FuncDecl
+    methods map[string]*ast.FuncDecl
     staticVars map[string]typeNum
 }
 
@@ -80,12 +81,17 @@ func Compile(filenames ...string) ([]uint16, error) {
 func (c *jackCompiler) analyse(f *ast.File) error {
     file := file{
         funcs: map[string]*ast.FuncDecl{},
+        methods: map[string]*ast.FuncDecl{},
         staticVars: map[string]typeNum{},
     }
     for _, decl := range f.Decls {
         switch t := decl.(type) {
         case *ast.FuncDecl:
-            file.funcs[t.Name.Name] = t
+            if t.Recv == nil {
+                file.funcs[t.Name.Name] = t
+            } else {
+                file.methods[t.Name.Name] = t
+            }
         case *ast.GenDecl:
             switch spec := t.Specs[0].(type) {
             case *ast.ValueSpec:
@@ -116,6 +122,11 @@ func (c *jackCompiler) translate(f *ast.File) (string, error) {
     c.b = &strings.Builder{}
     c.staticVars = c.files[f.Name.Name].staticVars
     for _, fd := range c.files[f.Name.Name].funcs {
+        if err := c.translateFuncDecl(fd); err != nil {
+            return "", err
+        }
+    }
+    for _, fd := range c.files[f.Name.Name].methods {
         if err := c.translateFuncDecl(fd); err != nil {
             return "", err
         }
@@ -215,13 +226,25 @@ func (c *jackCompiler) translateAssign(stmt *ast.AssignStmt) error {
 }
 
 func (c *jackCompiler) translateCall(stmt *ast.CallExpr) error {
+    if t, ok := stmt.Fun.(*ast.SelectorExpr); ok {
+        name := t.X.(*ast.Ident).Name
+        if _, isFile := c.files[name]; isFile {
+            // calling a function by full path, ie mult.mult
+            stmt.Fun = ast.NewIdent(name + "." + t.Sel.Name)
+        } else {
+            // calling a method on var 'name'
+            typ, err := c.typeOf(t.X)
+            if err != nil {
+                return err
+            }
+            stmt.Fun = ast.NewIdent(typ + "." + t.Sel.Name)
+            stmt.Args = append([]ast.Expr{t.X}, stmt.Args...)
+        }
+    }
     for _, arg := range stmt.Args {
         if err := c.push(arg); err != nil {
             return err
         }
-    }
-    if t, ok := stmt.Fun.(*ast.SelectorExpr); ok {
-        stmt.Fun = ast.NewIdent(t.X.(*ast.Ident).Name + "." + t.Sel.Name)
     }
     ident := stmt.Fun.(*ast.Ident)
     switch ident.Name {
