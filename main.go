@@ -4,6 +4,7 @@ import (
     "bufio"
     "fmt"
     "os"
+    "strconv"
     "time"
 
     "github.com/faiface/pixel"
@@ -12,6 +13,18 @@ import (
 
 var headless = true
 var debug = false
+
+type charPrinter struct{}
+
+func (cp charPrinter) Write(p []byte) (int, error) {
+    // some big assumptions here on how tapeWriter writes
+    x, err := strconv.ParseInt(string(p)[:4], 16, 16)
+    if err != nil {
+        return 0, err
+    }
+    fmt.Printf("%c", x)
+    return len(p), nil
+}
 
 func main() {
     program, err := Compile("jack/main.jack", "jack/mult.jack", "jack/fact.jack", "jack/memory.jack", "jack/array.jack", "jack/string.jack", "jack/list.jack")
@@ -23,6 +36,7 @@ func main() {
     computer := NewComputer(cpu)
     fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
+    computer.data_mem.writer.LoadOutputWriter(charPrinter{})
 
     var debugger Debugger
     if debug {

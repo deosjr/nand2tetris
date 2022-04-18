@@ -279,7 +279,10 @@ func (c *jackCompiler) push(expr ast.Expr) error {
     case *ast.BasicLit:
         value := t.Value
         if t.Kind == token.CHAR {
-            // todo convert to int representation of char
+            value = fmt.Sprintf("%d", value[1])
+            if t.Value == "'\\n'" {
+                value = "10"
+            }
         }
         c.b.WriteString(fmt.Sprintf("\tpush constant %s\n", value))
         return nil

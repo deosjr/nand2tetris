@@ -1,11 +1,14 @@
 // main function of Jack, with a Golang flavor
 func main() {
-    l := list{}
-    l = list.new(5, nil)
-    l = list.new(2, list.new(3, l))
-    for j:=0; j<=2; j++ {
-        print(l.car)
-        l = l.cdr
+    str := string{}
+    str = string.new(10)
+    str.appendChar('a')
+    str.appendChar('b')
+    str.appendChar('c')
+    str.appendChar('\n')
+
+    for j:=0; j<=str.length()-1; j++ {
+        print(str.charAt(j))
     }
     return
 }
