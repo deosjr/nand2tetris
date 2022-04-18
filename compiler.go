@@ -147,8 +147,7 @@ func (c *jackCompiler) translateFuncDecl(funcdecl *ast.FuncDecl) error {
                 break
             }
             if _, ok := c.locals[name]; !ok {
-                // TODO: infer from init, or explicitly declare
-                c.locals[name] = typeNum{"?", len(c.locals)}
+                c.locals[name] = typeNum{num: len(c.locals)}
             }
         }
         return true
@@ -191,6 +190,16 @@ func (c *jackCompiler) translateBlock(stmt *ast.BlockStmt) error {
 func (c *jackCompiler) translateAssign(stmt *ast.AssignStmt) error {
     if len(stmt.Lhs) > 1 || len(stmt.Rhs) > 1 {
         return fmt.Errorf("unsupported multiple assign")
+    }
+    // if Lhs is a newly introduced local var, update its type based on Rhs
+    typeRhs, err := c.typeOf(stmt.Rhs[0])
+    if err != nil {
+        return err
+    }
+    if ident, isIdent := stmt.Lhs[0].(*ast.Ident); isIdent {
+        if tn, ok := c.locals[ident.Name]; ok && tn.typ == "" {
+            c.locals[ident.Name] = typeNum{typeRhs, tn.num}
+        }
     }
     if t, ok := stmt.Lhs[0].(*ast.IndexExpr); ok {
         call := &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{t.X, t.Index}}
@@ -292,8 +301,12 @@ func (c *jackCompiler) push(expr ast.Expr) error {
         if !ok {
             return fmt.Errorf("push: unexpected %T in selector", t.X)
         }
-        // TODO: FIGURE OUT TYPE OF VARNAME TO GET INDEX
-        indx := &ast.IndexExpr{X: varname, Index: &ast.BasicLit{Value:"0"}}
+        typ, err := c.typeOf(t.X)
+        if err != nil {
+            return err
+        }
+        i := c.files[typ].class.fields[t.Sel.Name]
+        indx := &ast.IndexExpr{X: varname, Index: &ast.BasicLit{Value:fmt.Sprintf("%d", i.num)}}
         return c.push(indx)
     }
     return fmt.Errorf("push: unexpected %T", expr)
@@ -316,8 +329,12 @@ func (c *jackCompiler) pop(expr ast.Expr) error {
         if !ok {
             return fmt.Errorf("pop: unexpected %T in selector", t.X)
         }
-        // TODO: FIGURE OUT TYPE OF VARNAME TO GET INDEX
-        indx := &ast.IndexExpr{X: varname, Index: &ast.BasicLit{Value:"0"}}
+        typ, err := c.typeOf(t.X)
+        if err != nil {
+            return err
+        }
+        i := c.files[typ].class.fields[t.Sel.Name]
+        indx := &ast.IndexExpr{X: varname, Index: &ast.BasicLit{Value:fmt.Sprintf("%d", i.num)}}
         return c.pop(indx)
     }
     return fmt.Errorf("pop: unexpected %T", expr)
@@ -354,6 +371,35 @@ func (c *jackCompiler) writeIdent(ident *ast.Ident) error {
         return nil
     }
     return fmt.Errorf("ident: not found %s", name)
+}
+
+func (c *jackCompiler) typeOf(expr ast.Expr) (string, error) {
+    switch t := expr.(type) {
+    case *ast.Ident:
+        name := t.Name
+        if tn, ok := c.staticVars[name]; ok {
+            return tn.typ, nil
+        }
+        if tn, ok := c.args[name]; ok {
+            return tn.typ, nil
+        }
+        if tn, ok := c.locals[name]; ok {
+            return tn.typ, nil
+        }
+    case *ast.CallExpr:
+        return "call", nil
+    case *ast.BasicLit:
+        if t.Kind == token.INT {
+            return "int", nil
+        }
+    case *ast.BinaryExpr:
+        return "int", nil
+    case *ast.CompositeLit:
+        return t.Type.(*ast.Ident).Name, nil
+    case *ast.SelectorExpr:
+        return "any", nil
+    }
+    return fmt.Sprintf("notfound %T", expr), nil
 }
 
 func toFun(t token.Token) *ast.Ident {
