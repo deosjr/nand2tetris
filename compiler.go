@@ -69,7 +69,7 @@ func Compile(filenames ...string) ([]uint16, error) {
         }
         vmStrings = append(vmStrings, vm)
     }
-    fmt.Println(vmStrings)
+    //fmt.Println(vmStrings)
     asm, err := vm2asm(filenames, vmStrings)
     if err != nil {
         return nil, err
@@ -374,6 +374,10 @@ func (c *jackCompiler) prepareIndex(t *ast.IndexExpr) error {
 
 func (c *jackCompiler) writeIdent(ident *ast.Ident) error {
     name := ident.Name
+    if name == "nil" {
+        c.b.WriteString("static sys.nil\n")
+        return nil
+    }
     if _, ok := c.staticVars[name]; ok {
         c.b.WriteString(fmt.Sprintf("static %s\n", name))
         return nil

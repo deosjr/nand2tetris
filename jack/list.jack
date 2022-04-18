@@ -1,0 +1,17 @@
+// linked list, Fig 9.4 is a starting point
+
+type list struct {
+    car any
+    cdr list
+}
+
+func new(car any, cdr list) list {
+    l := list{}
+    l.car = car
+    l.cdr = cdr
+    return l
+}
+
+func (l list) dispose() {
+    return
+}

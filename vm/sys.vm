@@ -4,6 +4,8 @@
 // These are call, pushlcl and return
 
 function init 0
+    push constant 0
+    pop static nil
     call memory.init 0
     call main.main 0
 label end
