@@ -349,7 +349,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
         case *ast.BadStmt:
             // syntax error
             posFrom := fset.Position(s.From)
-            return nil, fmt.Errorf("%s: syntax error: %s", posFrom.String(), contents[s.From-1:s.To])
+            return nil, fmt.Errorf("%s: syntax error: %s", posFrom.String(), contents[s.From-1:s.To+1])
         }
     }
     // secondpass
@@ -367,7 +367,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                     iptr, ok := labels[bl.Value]
                     if !ok {
                         posFrom := fset.Position(bl.ValuePos)
-                        return nil, fmt.Errorf("%s: syntax error: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])
+                        return nil, fmt.Errorf("%s: label not found: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])
                     }
                     program = append(program, iptr)
                 } else {
@@ -376,14 +376,14 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                         n, err := strconv.ParseInt(bl.Value[2:], 16, 16)
                         if err != nil {
                             posFrom := fset.Position(bl.ValuePos)
-                            return nil, fmt.Errorf("%s: syntax error: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])
+                            return nil, fmt.Errorf("%s: cant parse: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])
                         }
                         program = append(program, uint16(n))
                         continue
                     }
                     if unicode.IsDigit(rune(bl.Value[0])) {
                         posFrom := fset.Position(bl.ValuePos)
-                        return nil, fmt.Errorf("%s: syntax error: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])
+                        return nil, fmt.Errorf("%s: var starting with digit: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])
                     }
                     iptr, ok := vars[bl.Value]
                     if !ok {
@@ -396,7 +396,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                 n, err := strconv.Atoi(bl.Value)
                 if err != nil {
                     posFrom := fset.Position(bl.ValuePos)
-                    return nil, fmt.Errorf("%s: syntax error: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])
+                    return nil, fmt.Errorf("%s: cant parse: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])
                 }
                 program = append(program, uint16(n))
             }

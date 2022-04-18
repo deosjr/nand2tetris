@@ -287,15 +287,14 @@ func (t *vmTranslator) translatePush(split []string) error {
         case "that":
             varname = "THAT"
         }
-        optional := ""
-        if n == 1 {
-            optional = "+1"
-        } else if n != 0 && segment != "argument" && segment != "local" {
+        if (segment == "this" || segment == "that") && n != 0 {
             return fmt.Errorf("syntax error: push %v", split)
         }
         t.b.WriteString(strings.Join([]string{
+            fmt.Sprintf("\t@%d", n),
+            "D=A",
             "\t@"+varname,
-            "A=M"+optional,
+            "A=D+M",
             "D=M\n",
         }, "\n\t"))
     case "static":
@@ -339,33 +338,49 @@ func (t *vmTranslator) translatePop(split []string) error {
     if err != nil && segment != "static" {
         return err
     }
+    if segment == "local" || segment == "argument" {
+        var varname string
+        if segment == "local" {
+            varname = "LCL"
+        } else {
+            varname = "ARG"
+        }
+        t.b.WriteString(strings.Join([]string{
+            "\t@" + varname,
+            "D=M",
+            "@" + fmt.Sprintf("%d", n),
+            "D=D+A",
+            "@R14",
+            "M=D",
+            "@SP",
+            "AM=M-1",
+            "D=M",
+            "@R14",
+            "A=M",
+            "M=D\n",
+        }, "\n\t"))
+        return nil
+    }
     t.b.WriteString(strings.Join([]string{
         "\t@SP",
         "AM=M-1",
         "D=M\n",
     }, "\n\t"))
     switch segment {
-    case "local", "argument", "this", "that":
+    case "this", "that":
         var varname string
         switch segment {
-        case "local":
-            varname = "LCL"
-        case "argument":
-            varname = "ARG"
         case "this":
             varname = "THIS"
         case "that":
             varname = "THAT"
         }
-        optional := ""
-        if n == 1 {
-            optional = "+1"
-        } else if n != 0 && segment != "argument" && segment != "local" {
+        if n != 0 {
             return fmt.Errorf("syntax error: pop %v", split)
         }
         t.b.WriteString(strings.Join([]string{
             "\t@"+varname,
-            "A=M"+optional,
+            "A=M",
             "M=D\n",
         }, "\n\t"))
     case "static":
