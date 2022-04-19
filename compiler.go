@@ -252,10 +252,16 @@ func (c *jackCompiler) translateCall(stmt *ast.CallExpr) error {
         c.b.WriteString("\tadd\n")
     case "-":
         c.b.WriteString("\tsub\n")
+    case "&":
+        c.b.WriteString("\tand\n")
+    case "|":
+        c.b.WriteString("\tor\n")
     case "==":
         c.b.WriteString("\teq\n")
     case ">":
         c.b.WriteString("\tgt\n")
+    case "<":
+        c.b.WriteString("\tlt\n")
     default:
         c.b.WriteString(fmt.Sprintf("\tcall %s %d\n", stmt.Fun, len(stmt.Args)))
     }
@@ -467,26 +473,35 @@ func (c *jackCompiler) genLabel() string {
     return "yy" + s
 }
 
-func inverseComp(op token.Token) *ast.Ident {
+// boolean=true means we invert by calling not
+func inverseComp(op token.Token) (*ast.Ident, bool) {
     switch op {
     case token.EQL:
-        return ast.NewIdent("!=")
+        return ast.NewIdent("=="), true
     case token.NEQ:
-        return ast.NewIdent("==")
+        return ast.NewIdent("=="), false
     case token.LEQ:
-        return ast.NewIdent(">")
+        return ast.NewIdent(">"), false
+    case token.LSS:
+        return ast.NewIdent("<"), true
+    case token.GEQ:
+        return ast.NewIdent("<"), false
+    case token.GTR:
+        return ast.NewIdent(">"), true
     }
-    fmt.Println(op)
-    return nil
+    return nil, false
 }
 
 func (c *jackCompiler) translateIf(stmt *ast.IfStmt) error {
     endlabel := c.genLabel()
     cond := stmt.Cond.(*ast.BinaryExpr)
-    comp := inverseComp(cond.Op)
+    comp, invert := inverseComp(cond.Op)
     call := &ast.CallExpr{Fun:comp, Args:[]ast.Expr{cond.X, cond.Y}}
     if err := c.translateCall(call); err != nil {
         return err
+    }
+    if invert {
+        c.b.WriteString("\tnot\n")
     }
     c.b.WriteString(fmt.Sprintf("\tif-goto %s\n", endlabel))
     if err := c.translateBlock(stmt.Body); err != nil {
@@ -506,10 +521,13 @@ func (c *jackCompiler) translateFor(stmt *ast.ForStmt) error {
     c.b.WriteString(fmt.Sprintf("label %s\n", looplabel))
     // write comparison and jump out of loop
     cond := stmt.Cond.(*ast.BinaryExpr)
-    comp := inverseComp(cond.Op)
+    comp, invert := inverseComp(cond.Op)
     call := &ast.CallExpr{Fun:comp, Args:[]ast.Expr{cond.X, cond.Y}}
     if err := c.translateCall(call); err != nil {
         return err
+    }
+    if invert {
+        c.b.WriteString("\tnot\n")
     }
     c.b.WriteString(fmt.Sprintf("\tif-goto %s\n", endlabel))
     // write the actual block within the for loop

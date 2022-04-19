@@ -117,13 +117,19 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translatePush(split[1:])
     case "pop":
         return t.translatePop(split[1:])
-    // TODO: neg, gt, lt, and, or, not, read
+    // TODO: neg, read
     case "eq":
         return t.translateEq(split[1:])
     case "gt":
         return t.translateGt(split[1:])
     case "lt":
         return t.translateLt(split[1:])
+    case "and":
+        return t.translateAnd(split[1:])
+    case "or":
+        return t.translateOr(split[1:])
+    case "not":
+        return t.translateNot(split[1:])
     case "add":
         return t.translateAdd(split[1:])
     case "sub":
@@ -479,6 +485,46 @@ func (t *vmTranslator) translateLt(split []string) error {
         "M=!M\n",
     }, "\n\t"))
     t.b.WriteString("("+falselabel+")\n")
+    return nil
+}
+
+func (t *vmTranslator) translateAnd(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: and %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "AM=M-1",
+        "D=M",
+        "A=A-1",
+        "M=D&M\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateOr(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: or %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "AM=M-1",
+        "D=M",
+        "A=A-1",
+        "M=D|M\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateNot(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: not %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        "M=!M\n",
+    }, "\n\t"))
     return nil
 }
 
