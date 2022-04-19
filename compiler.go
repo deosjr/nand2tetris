@@ -248,6 +248,9 @@ func (c *jackCompiler) translateCall(stmt *ast.CallExpr) error {
     case "print":
         // TODO: write only writes one 16-bit word
         c.b.WriteString("\twrite\n")
+    case "read":
+        // read only reads one 16-bit word
+        c.b.WriteString("\tread\n")
     case "+":
         c.b.WriteString("\tadd\n")
     case "-":

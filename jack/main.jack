@@ -12,5 +12,9 @@ func main() {
     for j:=0; j<=str.length()-1; j++ {
         print(str.charAt(j))
     }
+    for j:=0; j<=100; j++ {
+        print(read())
+    }
+    print('\n')
     return
 }

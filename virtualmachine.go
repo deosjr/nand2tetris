@@ -117,7 +117,7 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translatePush(split[1:])
     case "pop":
         return t.translatePop(split[1:])
-    // TODO: neg, read
+    // TODO: neg
     case "eq":
         return t.translateEq(split[1:])
     case "gt":
@@ -134,6 +134,8 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateAdd(split[1:])
     case "sub":
         return t.translateSub(split[1:])
+    case "read":
+        return t.translateRead(split[1:])
     case "write":
         return t.translateWrite(split[1:])
     default:
@@ -552,6 +554,21 @@ func (t *vmTranslator) translateSub(split []string) error {
         "D=M",
         "A=A-1",
         "M=M-D\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateRead(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: read %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@0x6001",
+        "DM=M",
+        "@SP",
+        "M=M+1",
+        "A=M-1",
+        "M=D\n",
     }, "\n\t"))
     return nil
 }
