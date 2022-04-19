@@ -277,6 +277,14 @@ func (c *jackCompiler) translateReturn(stmt *ast.ReturnStmt) error {
 func (c *jackCompiler) push(expr ast.Expr) error {
     switch t := expr.(type) {
     case *ast.BasicLit:
+        if t.Kind == token.STRING {
+            c.b.WriteString(fmt.Sprintf("\tpush constant %d\n\tcall string.new 1\n\tpop temp 0\n", len(t.Value)-2))
+            for _, r := range t.Value[1:len(t.Value)-1] {
+                c.b.WriteString(fmt.Sprintf("\tpush temp 0\n\tpush constant %d\n\tcall string.appendChar 2\n", r))
+            }
+            c.b.WriteString("\tpush temp 0\n")
+            return nil
+        }
         value := t.Value
         if t.Kind == token.CHAR {
             value = fmt.Sprintf("%d", value[1])
@@ -417,6 +425,9 @@ func (c *jackCompiler) typeOf(expr ast.Expr) (string, error) {
         }
         if t.Kind == token.CHAR {
             return "char", nil
+        }
+        if t.Kind == token.STRING {
+            return "string", nil
         }
     case *ast.BinaryExpr:
         return "int", nil

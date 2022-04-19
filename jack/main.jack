@@ -1,10 +1,9 @@
 // main function of Jack, with a Golang flavor
 func main() {
-    str := string{}
-    str = string.new(10)
-    str.appendChar('a')
-    str.appendChar('b')
-    str.appendChar('c')
+    // call string.new(3) and 3 appendChar calls
+    str := "abc"
+    // appends newline since I dont support special chars yet in the above
+    // NOTE: this appends past the length of str atm!
     str.appendChar('\n')
 
     for j:=0; j<=str.length()-1; j++ {

@@ -297,6 +297,11 @@ func (t *vmTranslator) translatePush(split []string) error {
             "A=D+M",
             "D=M\n",
         }, "\n\t"))
+    case "temp":
+        t.b.WriteString(strings.Join([]string{
+            fmt.Sprintf("\t@%d", n+5),
+            "D=M\n",
+        }, "\n\t"))
     case "static":
         varname := strings.ToLower(t.fn) + split[1]
         t.b.WriteString(strings.Join([]string{
@@ -387,6 +392,11 @@ func (t *vmTranslator) translatePop(split []string) error {
         varname := strings.ToLower(t.fn) + split[1]
         t.b.WriteString(strings.Join([]string{
             "\t@"+varname,
+            "M=D\n",
+        }, "\n\t"))
+    case "temp":
+        t.b.WriteString(strings.Join([]string{
+            fmt.Sprintf("\t@%d", n+5),
             "M=D\n",
         }, "\n\t"))
     case "pointer":
