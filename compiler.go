@@ -175,6 +175,10 @@ func (c *jackCompiler) translateBlock(stmt *ast.BlockStmt) error {
             if err := c.translateAssign(t); err != nil {
                 return err
             }
+        case *ast.IfStmt:
+            if err := c.translateIf(t); err != nil {
+                return err
+            }
         case *ast.ForStmt:
             if err := c.translateFor(t); err != nil {
                 return err
@@ -248,7 +252,7 @@ func (c *jackCompiler) translateCall(stmt *ast.CallExpr) error {
         c.b.WriteString("\tadd\n")
     case "-":
         c.b.WriteString("\tsub\n")
-    case "=":
+    case "==":
         c.b.WriteString("\teq\n")
     case ">":
         c.b.WriteString("\tgt\n")
@@ -385,8 +389,12 @@ func (c *jackCompiler) prepareIndex(t *ast.IndexExpr) error {
 
 func (c *jackCompiler) writeIdent(ident *ast.Ident) error {
     name := ident.Name
-    if name == "nil" {
-        c.b.WriteString("static sys.nil\n")
+    if name == "nil" || name == "false" {
+        c.b.WriteString("constant 0\n")
+        return nil
+    }
+    if name == "true" {
+        c.b.WriteString("constant 65535\n")
         return nil
     }
     if _, ok := c.staticVars[name]; ok {
@@ -461,11 +469,30 @@ func (c *jackCompiler) genLabel() string {
 
 func inverseComp(op token.Token) *ast.Ident {
     switch op {
+    case token.EQL:
+        return ast.NewIdent("!=")
     case token.NEQ:
-        return ast.NewIdent("=")
+        return ast.NewIdent("==")
     case token.LEQ:
         return ast.NewIdent(">")
     }
+    fmt.Println(op)
+    return nil
+}
+
+func (c *jackCompiler) translateIf(stmt *ast.IfStmt) error {
+    endlabel := c.genLabel()
+    cond := stmt.Cond.(*ast.BinaryExpr)
+    comp := inverseComp(cond.Op)
+    call := &ast.CallExpr{Fun:comp, Args:[]ast.Expr{cond.X, cond.Y}}
+    if err := c.translateCall(call); err != nil {
+        return err
+    }
+    c.b.WriteString(fmt.Sprintf("\tif-goto %s\n", endlabel))
+    if err := c.translateBlock(stmt.Body); err != nil {
+        return err
+    }
+    c.b.WriteString(fmt.Sprintf("label %s\n", endlabel))
     return nil
 }
 

@@ -2,6 +2,9 @@
 func main() {
     // call string.new(3) and 3 appendChar calls
     str := "abc"
+    if 1!=2 {
+        str.appendChar('d')
+    }
     // appends newline since I dont support special chars yet in the above
     // NOTE: this appends past the length of str atm!
     str.appendChar('\n')
