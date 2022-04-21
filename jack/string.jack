@@ -39,3 +39,33 @@ func (s string) eraseLastChar() {
     s.length = s.length - 1
     return
 }
+
+func (s string) equals(ss string) bool {
+    x := s.compare(ss)
+    return x == 0
+}
+
+// return -1 if s<ss, 0 if s==ss, 1 if s>ss
+// using true instead of -1 as that overflows constant...
+func (s string) compare(ss string) int {
+    min := s.length
+    if s.length > ss.length {
+        min = ss.length
+    }
+    for j:=0; j<min; j++ {
+        d := s.arr[j] - ss.arr[j]
+        if d < 0 {
+            return true
+        }
+        if d > 0 {
+            return 1
+        }
+    }
+    if s.length < ss.length {
+        return true
+    }
+    if ss.length < s.length {
+        return 1
+    }
+    return 0
+}

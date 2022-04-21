@@ -6,6 +6,7 @@ import (
     "go/parser"
     "go/token"
     "os"
+    "strconv"
     "strings"
 )
 
@@ -151,6 +152,9 @@ func (c *jackCompiler) translateFuncDecl(funcdecl *ast.FuncDecl) error {
             return false
         case *ast.Ident:
             name := t.String()
+            if name == "true" || name == "false" || name == "nil" {
+                break
+            }
             if _, ok := c.args[name]; ok {
                 break
             }
@@ -305,7 +309,16 @@ func (c *jackCompiler) push(expr ast.Expr) error {
                 value = "10"
             }
         }
-        c.b.WriteString(fmt.Sprintf("\tpush constant %s\n", value))
+        // if value > 4095, this will result in an A instr
+        // that gets interpreted as a C instr instead!
+        n, err := strconv.Atoi(value)
+        if err != nil {
+            return err
+        }
+        if n > 4095 {
+            return fmt.Errorf("constant overflows A instr: %d", n)
+        }
+        c.b.WriteString(fmt.Sprintf("\tpush constant %d\n", n))
         return nil
     case *ast.Ident:
         c.b.WriteString("\tpush ")
@@ -403,7 +416,7 @@ func (c *jackCompiler) writeIdent(ident *ast.Ident) error {
         return nil
     }
     if name == "true" {
-        c.b.WriteString("constant 65535\n")
+        c.b.WriteString("constant 0\n\tnot\n")
         return nil
     }
     if _, ok := c.staticVars[name]; ok {
@@ -497,9 +510,30 @@ func inverseComp(op token.Token) (*ast.Ident, bool) {
 
 func (c *jackCompiler) translateIf(stmt *ast.IfStmt) error {
     endlabel := c.genLabel()
-    cond := stmt.Cond.(*ast.BinaryExpr)
-    comp, invert := inverseComp(cond.Op)
-    call := &ast.CallExpr{Fun:comp, Args:[]ast.Expr{cond.X, cond.Y}}
+    var comp ast.Expr
+    var invert bool
+    var args []ast.Expr
+    switch cond := stmt.Cond.(type) {
+    case *ast.BinaryExpr:
+        comp, invert = inverseComp(cond.Op)
+        args = []ast.Expr{cond.X, cond.Y}
+    case *ast.UnaryExpr:
+        if cond.Op != token.NOT {
+            return fmt.Errorf("if: only unary op allowed is 'not', got %s", cond.Op)
+        }
+        comp, invert = inverseComp(token.NEQ)
+        args = []ast.Expr{cond.X, ast.NewIdent("true")}
+    case *ast.Ident:
+        comp, invert = inverseComp(token.EQL)
+        args = []ast.Expr{cond, ast.NewIdent("true")}
+    case *ast.CallExpr:
+        comp = cond.Fun
+        args = cond.Args
+        invert = true
+    default:
+        return fmt.Errorf("if: unexpected %T", cond)
+    }
+    call := &ast.CallExpr{Fun:comp, Args:args}
     if err := c.translateCall(call); err != nil {
         return err
     }

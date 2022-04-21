@@ -1,20 +1,19 @@
 // main function of Jack, with a Golang flavor
 func main() {
-    // call string.new(3) and 3 appendChar calls
     str := "abc"
-    if 1==1 {
-        str.appendChar('d')
+    test := "abc"
+    print(str.equals(test))
+    test = "acd"
+    print(str.equals(test))
+    test = "abcd"
+    print(str.equals(test))
+    // doesnt work; creation of "abc" pushes onto stack
+    //print(str.equals("abc"))
+    test = "abc"
+    if str.equals(test) {
+        print('x')
     }
-    // appends newline since I dont support special chars yet in the above
-    // NOTE: this appends past the length of str atm!
-    str.appendChar('\n')
-
-    for j:=0; j<=str.length()-1; j++ {
-        print(str.charAt(j))
-    }
-    for j:=0; j<=100; j++ {
-        print(read())
-    }
-    print('\n')
+    test = "adb"
+    print(str.compare(test))
     return
 }

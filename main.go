@@ -36,8 +36,8 @@ func main() {
     computer := NewComputer(cpu)
     fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
-    computer.data_mem.reader.LoadInputTape("asm/assembler.asm")
-    computer.data_mem.writer.LoadOutputWriter(charPrinter{})
+    //computer.data_mem.reader.LoadInputTape("asm/assembler.asm")
+    //computer.data_mem.writer.LoadOutputWriter(charPrinter{})
 
     var debugger Debugger
     if debug {
