@@ -11,6 +11,14 @@ import (
     "github.com/faiface/pixel/pixelgl"
 )
 
+var stdlib = []string{
+    "jack/mult.jack",
+    "jack/memory.jack",
+    "jack/array.jack",
+    "jack/string.jack",
+    "jack/dict.jack",
+}
+
 var headless = true
 var debug = false
 
@@ -27,7 +35,7 @@ func (cp charPrinter) Write(p []byte) (int, error) {
 }
 
 func main() {
-    program, err := Compile("jack/main.jack", "jack/mult.jack", "jack/fact.jack", "jack/memory.jack", "jack/array.jack", "jack/string.jack", "jack/list.jack")
+    program, err := Compile(append(stdlib, "jack/main.jack")...)
     if err != nil {
         fmt.Println(err)
         return

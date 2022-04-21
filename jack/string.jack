@@ -40,6 +40,13 @@ func (s string) eraseLastChar() {
     return
 }
 
+func (s string) print() {
+    for j:=0; j<s.length; j++ {
+        print(s.arr[j])
+    }
+    return
+}
+
 func (s string) equals(ss string) bool {
     x := s.compare(ss)
     return x == 0

@@ -1,0 +1,82 @@
+// maps implemented by simple binary search tree
+// string->any maps for now
+
+// using name dict since map is builtin and trips up the go parser
+// TODO: maybe change back to map if we can deal with map[string]int{} notation
+type dict struct {
+    key string
+    value any
+    left dict
+    right dict
+}
+
+func new(key string, value any, left dict, right dict) dict {
+    m := dict{}
+    m.key = key
+    m.value = value
+    m.left = left
+    m.right = right
+    return m
+}
+
+func newleaf(key string, value any) dict {
+    return dict.new(key, value, nil, nil)
+}
+
+// does not deal with clashes
+func (m dict) insert(key string, value any) {
+    x := key.compare(m.key)
+    tree := dict{}
+    if x < 0 {
+        tree = m.left
+        if tree == nil {
+            m.left = dict.newleaf(key, value)
+            return
+        }
+    }
+    if x > 0 {
+        tree = m.right
+        if tree == nil {
+            m.right = dict.newleaf(key, value)
+            return
+        }
+    }
+    tree.insert(key, value)
+    return
+}
+
+func (m dict) search(key string) any {
+    // TODO: iterative would be more efficient
+    // but requires implementing a while stmt
+    if m == nil {
+        return m
+    }
+    x := key.compare(m.key)
+    if x == 0 {
+        return m.value
+    }
+    // TODO: m.left.search(key)
+    tree := dict{}
+    if x < 0 {
+        tree = m.left
+        return tree.search(key)
+    }
+    tree = m.right
+    return tree.search(key)
+}
+
+// inorder walk
+func (m dict) print() {
+    if m == nil {
+        return
+    }
+    tree := dict{}
+    tree = m.left
+    tree.print()
+    str := string{}
+    str = m.key
+    str.print()
+    tree = m.right
+    tree.print()
+    return
+}

@@ -1,19 +1,15 @@
 // main function of Jack, with a Golang flavor
 func main() {
-    str := "abc"
-    test := "abc"
-    print(str.equals(test))
-    test = "acd"
-    print(str.equals(test))
-    test = "abcd"
-    print(str.equals(test))
-    // doesnt work; creation of "abc" pushes onto stack
-    //print(str.equals("abc"))
-    test = "abc"
-    if str.equals(test) {
-        print('x')
-    }
-    test = "adb"
-    print(str.compare(test))
+    b := dict{}
+    b := dict.newleaf("b", 42)
+    key := "a"
+    value := 96
+    b.insert(key, value)
+    key = "c"
+    value = 4
+    b.insert(key, value)
+    key := "c"
+    print(b.search(key))
+    b.print()
     return
 }
