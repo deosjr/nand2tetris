@@ -1,3 +1,5 @@
+type array struct {}
+
 func new(size int) array {
     return memory.alloc(size)
 }

@@ -175,6 +175,19 @@ func (c *jackCompiler) translateFuncDecl(funcdecl *ast.FuncDecl) error {
 func (c *jackCompiler) translateBlock(stmt *ast.BlockStmt) error {
     for _, stmt := range stmt.List {
         switch t := stmt.(type) {
+        case *ast.DeclStmt:
+            decl := t.Decl.(*ast.GenDecl)
+            if decl.Tok != token.VAR {
+                return fmt.Errorf("unexpected gendecl %s", decl.Tok)
+            }
+            for _, spec := range decl.Specs {
+                v := spec.(*ast.ValueSpec)
+                if tn, ok := c.locals[v.Names[0].Name]; ok && tn.typ == "" {
+                    c.locals[v.Names[0].Name] = typeNum{v.Type.(*ast.Ident).Name, tn.num}
+                } else {
+                    return fmt.Errorf("unexpected var decl %#v", v)
+                }
+            }
         case *ast.AssignStmt:
             if err := c.translateAssign(t); err != nil {
                 return err
@@ -550,8 +563,10 @@ func (c *jackCompiler) translateIf(stmt *ast.IfStmt) error {
 
 func (c *jackCompiler) translateFor(stmt *ast.ForStmt) error {
     // initialize the loop variable
-    if err := c.translateAssign(stmt.Init.(*ast.AssignStmt)); err != nil {
-        return err
+    if stmt.Init != nil {
+        if err := c.translateAssign(stmt.Init.(*ast.AssignStmt)); err != nil {
+            return err
+        }
     }
     looplabel := c.genLabel()
     endlabel := c.genLabel()
@@ -572,14 +587,16 @@ func (c *jackCompiler) translateFor(stmt *ast.ForStmt) error {
         return err
     }
     // increment or decrement loop counter
-    post := stmt.Post.(*ast.IncDecStmt)
-    call = &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{post.X, &ast.BasicLit{Value:"1", Kind:token.INT}}}
-    if post.Tok == token.DEC {
-        call.Fun = toFun(token.SUB)
-    }
-    assign := &ast.AssignStmt{Lhs:[]ast.Expr{post.X}, Rhs:[]ast.Expr{call}}
-    if err := c.translateAssign(assign); err != nil {
-        return err
+    if stmt.Post != nil {
+        post := stmt.Post.(*ast.IncDecStmt)
+        call = &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{post.X, &ast.BasicLit{Value:"1", Kind:token.INT}}}
+        if post.Tok == token.DEC {
+            call.Fun = toFun(token.SUB)
+        }
+        assign := &ast.AssignStmt{Lhs:[]ast.Expr{post.X}, Rhs:[]ast.Expr{call}}
+        if err := c.translateAssign(assign); err != nil {
+            return err
+        }
     }
     c.b.WriteString(fmt.Sprintf("\tgoto %s\nlabel %s\n", looplabel, endlabel))
     return nil

@@ -1,17 +1,79 @@
-var free int
+var freelist list
+
+// internal use only
+type memory struct {
+    base int
+    length int
+}
 
 func init() {
-    free = 2048
+    // heap space is 2048 - 16383, or 0x0800 - 0x4000
+    // cant alloc here so have to write it out!
+    /*
+    m := memory{}
+    m.base = 2048
+    m.length = 4095 + 4095 + 4095 + 2047 // 14332 // 16384 - 2048 - 4
+    freelist = list.new(m, nil)
+    */
+    m = 2048
+    m[0] = 2052
+    m[1] = 4095 + 4095 + 4095 + 2047
+    m[2] = 2048
+    //m[3] = nil
+    freelist = 2050 
     return
 }
 
 // note: return type is ignored, can write whatever we want here
 func alloc(size int) pointer {
-    pointer := free
-    free = free + size
-    return pointer
+    var segment memory
+    segment = memory.find(freelist, size)
+    if segment == nil {
+        // TODO: defrag
+        //return nil
+        // for now, return out-of-memory
+        return 4095 + 4095 + 4095 + 4095 + 4095 + 4095 + 4095
+    }
+    block := segment.base
+    memory.update(freelist, segment, size)
+    block[0] = size
+    return block + 1
+}
+
+func find(l list, size int) memory {
+    if l == nil {
+        return nil
+    }
+    var m memory
+    m = l.car
+    if m.length > size {
+        return m
+    }
+    return memory.find(l.cdr, size)
+}
+
+// walk through the link list until we find segment
+// then update the memory block in-place
+func update(l list, segment memory, size int) {
+    var m memory
+    sizeone := size + 1
+    for true==true {
+        m = l.car
+        if m == segment {
+            m.base = m.base + sizeone
+            m.length = m.length - sizeone
+            return
+        }
+        l = l.cdr
+    }
 }
 
 func dealloc(o object) {
+    m := memory{}
+    m.base = o - 1
+    temp := m.base
+    m.length = temp[0] + 1
+    // insert m into freelist
+    freelist = list.new(m, freelist)
     return
 }

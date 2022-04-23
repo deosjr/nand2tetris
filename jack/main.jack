@@ -1,15 +1,13 @@
 // main function of Jack, with a Golang flavor
 func main() {
-    b := dict{}
-    b := dict.newleaf("b", 42)
-    key := "a"
-    value := 96
-    b.insert(key, value)
-    key = "c"
-    value = 4
-    b.insert(key, value)
-    key := "c"
-    print(b.search(key))
-    b.print()
+    var x array
+    for j:=0; j<16; j++ {
+        x = array.new(4095)
+        x[0] = j
+        print(x[0])
+        print(x)
+        // comment this out and we go out of memory!
+        x.dispose()
+    }
     return
 }

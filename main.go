@@ -16,6 +16,7 @@ var stdlib = []string{
     "jack/memory.jack",
     "jack/array.jack",
     "jack/string.jack",
+    "jack/list.jack",
     "jack/dict.jack",
 }
 
