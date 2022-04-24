@@ -158,7 +158,6 @@ func NewROM32K(program []uint16) *ROM32K {
             NewBuiltinRAM16K(), NewBuiltinRAM16K(),
     }
     for i, instr := range program {
-        //fmt.Printf("%d: %04x\n", i, instr)
         if i < 16384 {
             rams[0].mem[i] = instr
             continue
@@ -213,7 +212,7 @@ type Memory struct {
 func NewMemory() *Memory {
     return &Memory{
         ram: NewBuiltinRAM16K(),
-        screen: NewScreen256x512(),
+        screen: NewScreen512x256(),
         keyboard: NewSimpleKeyboard(),
         reader: NewTapeReader(),
         writer: NewTapeWriter(),

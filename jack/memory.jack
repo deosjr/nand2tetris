@@ -12,12 +12,12 @@ func init() {
     /*
     m := memory{}
     m.base = 2048
-    m.length = 4095 + 4095 + 4095 + 2047 // 14332 // 16384 - 2048 - 4
+    m.length = 14332 // 16384 - 2048 - 4
     freelist = list.new(m, nil)
     */
     m = 2048
     m[0] = 2052
-    m[1] = 4095 + 4095 + 4095 + 2047
+    m[1] = 14332
     m[2] = 2048
     //m[3] = nil
     freelist = 2050 
@@ -32,7 +32,7 @@ func alloc(size int) pointer {
         // TODO: defrag
         //return nil
         // for now, return out-of-memory
-        return 4095 + 4095 + 4095 + 4095 + 4095 + 4095 + 4095
+        return 32000
     }
     block := segment.base
     memory.update(freelist, segment, size)

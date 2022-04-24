@@ -1,0 +1,31 @@
+// screen memory: 16384 - 24575  ( 0x4000 - 0x5fff )
+
+var screenstart int
+var sizeinmem int
+
+func init() {
+    screenstart = 16384
+    sizeinmem = 8192
+    return
+}
+
+func clearScreen() {
+    s := screenstart    
+    for j:=0; j<sizeinmem; j++ {
+        s[j] = 0
+    }
+    return
+}
+
+// screen is 256 rows and 32 colums of 16 bit words
+func drawWord(w int, row int, column int) {
+    s := screenstart
+    x := 32 * row
+    x = x + column
+    s[x] = w
+    return
+}
+
+// TODO: use bit(x,j) and bitwise ops
+func drawPixel(x int, y int) {
+}

@@ -51,6 +51,64 @@ type TapeWriter interface {
     LoadOutputWriter(io.Writer)
 }
 
+type Screen512x256 struct {
+    ram *BuiltinRAM16K // actually use only the first 8K
+}
+
+func NewScreen512x256() *Screen512x256 {
+    return &Screen512x256{
+        ram: NewBuiltinRAM16K(),
+    }
+}
+
+func (s *Screen512x256) SendIn(in uint16) {
+    s.ram.SendIn(in)
+}
+
+func (s *Screen512x256) SendLoad(load bool) {
+    s.ram.SendLoad(load)
+}
+
+func (s *Screen512x256) SendAddress(addr uint16) {
+    if addr >= 8192 {
+        return
+        //panic("access screen memory beyond 8K")
+    }
+    s.ram.SendAddress(addr)
+}
+
+func (s *Screen512x256) Out() uint16 {
+    return s.ram.Out()
+}
+
+func (s *Screen512x256) ClockTick() {
+    s.ram.ClockTick()
+}
+
+func (s *Screen512x256) RunScreen(win *pixelgl.Window) {
+    // listen to mem and show in a window using pixelgl
+    // NOTE: pixelgl y increases UP, nand2tetris DOWN
+    white := color.RGBA{255,255,255,0}
+    pd := pixel.MakePictureData(win.Bounds())
+    for row:=0;row<256;row++ {
+        for w:=0;w<16;w++ {
+            addr := row*32+w
+            word := s.ram.mem[addr]
+            for c:=0;c<16;c++ {
+                b := nthBit(word, uint16(15-c))
+                if b {
+                    invrow := (255-row)
+                    pd.Pix[invrow*512+32*w+c] = white
+                }
+            }
+        }
+    }
+    sprite := pixel.NewSprite(pd, pd.Bounds())
+    sprite.Draw(win, pixel.IM.Moved(win.Bounds().Center()))
+}
+
+// Lets leave this one for posterity (ie old asm files)
+// but I misunderstood the default screen dimensions :)
 type Screen256x512 struct {
     ram *BuiltinRAM16K // actually use only the first 8K
 }

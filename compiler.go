@@ -331,13 +331,13 @@ func (c *jackCompiler) push(expr ast.Expr) error {
                 value = "10"
             }
         }
-        // if value > 4095, this will result in an A instr
+        // if value > 32767, this will result in an A instr
         // that gets interpreted as a C instr instead!
         n, err := strconv.Atoi(value)
         if err != nil {
             return err
         }
-        if n > 4095 {
+        if n > 32767 {
             return fmt.Errorf("constant overflows A instr: %d", n)
         }
         c.b.WriteString(fmt.Sprintf("\tpush constant %d\n", n))
@@ -495,7 +495,7 @@ func toFun(t token.Token) *ast.Ident {
     var str string
     switch t {
     case token.MUL:
-        str = "mult.mult"
+        str = "math.mult"
     default:
         str = t.String()
     }

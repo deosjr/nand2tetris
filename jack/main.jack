@@ -1,13 +1,11 @@
 // main function of Jack, with a Golang flavor
 func main() {
-    var x array
-    for j:=0; j<16; j++ {
-        x = array.new(4095)
-        x[0] = j
-        print(x[0])
-        print(x)
-        // comment this out and we go out of memory!
-        x.dispose()
+    math.init()
+    screen.init()
+    for r:=0; r<256; r++ {
+        for c:=0; c<32; c++ {
+            screen.drawWord(4095, r, c)
+        }
     }
     return
 }

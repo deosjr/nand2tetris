@@ -12,15 +12,16 @@ import (
 )
 
 var stdlib = []string{
-    "jack/mult.jack",
+    "jack/math.jack",
     "jack/memory.jack",
     "jack/array.jack",
     "jack/string.jack",
     "jack/list.jack",
     "jack/dict.jack",
+    "jack/screen.jack",
 }
 
-var headless = true
+var headless = false
 var debug = false
 
 type charPrinter struct{}
@@ -141,7 +142,7 @@ func runPeripherals(computer *Computer) func() {
     return func() {
         cfg := pixelgl.WindowConfig{
 		    Title:  "nand2tetris",
-		    Bounds: pixel.R(0, 0, 256, 512),
+		    Bounds: pixel.R(0, 0, 512, 256),
 		    VSync:  true,
 	    }
 	    win, err := pixelgl.NewWindow(cfg)

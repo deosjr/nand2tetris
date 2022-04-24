@@ -1,9 +1,0 @@
-func mult(x int, y int) int {
-    sum := 0
-    // should be j:=0; j<y; j++
-    // this is equivalent but matches the vm version
-    for j:=y; j!=0; j-- {
-        sum = sum + x
-    }
-    return sum
-}
