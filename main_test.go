@@ -133,7 +133,7 @@ func TestJackMult(t *testing.T) {
     if w.out[0] != 1512 {
         t.Errorf("expected %04x but got %04x", 1512, w.out[0])
     }
-    t.Fatal(td.steps) // 4521
+    //t.Fatal(td.steps) // 4521
 }
 
 func TestQuarterSquare(t *testing.T) {
@@ -190,5 +190,5 @@ func TestQuarterSquare(t *testing.T) {
     if w.out[0] != 1512 {
         t.Errorf("expected %04x but got %04x", 1512, w.out[0])
     }
-    t.Fatal(td.steps) // 4526 including setting up the lookup table!
+    //t.Fatal(td.steps) // 4526 including setting up the lookup table!
 }
