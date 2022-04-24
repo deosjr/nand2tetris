@@ -26,7 +26,7 @@ func newleaf(key string, value any) dict {
 // does not deal with clashes
 func (m dict) insert(key string, value any) {
     x := key.compare(m.key)
-    tree := dict{}
+    var tree dict
     if x < 0 {
         tree = m.left
         if tree == nil {
@@ -56,7 +56,7 @@ func (m dict) search(key string) any {
         return m.value
     }
     // TODO: m.left.search(key)
-    tree := dict{}
+    var tree dict
     if x < 0 {
         tree = m.left
         return tree.search(key)
@@ -70,10 +70,10 @@ func (m dict) print() {
     if m == nil {
         return
     }
-    tree := dict{}
+    var tree dict
     tree = m.left
     tree.print()
-    str := string{}
+    var str string
     str = m.key
     str.print()
     tree = m.right

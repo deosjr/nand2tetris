@@ -13,6 +13,8 @@ func new(maxlen int) string {
 }
 
 func (s string) dispose() {
+    memory.dealloc(s.arr)
+    memory.dealloc(s)
     return
 }
 

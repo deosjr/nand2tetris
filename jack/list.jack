@@ -13,5 +13,11 @@ func new(car any, cdr list) list {
 }
 
 func (l list) dispose() {
+    var cdr list
+    cdr = l.cdr
+    if cdr != nil {
+        cdr.dispose()
+    }
+    memory.dealloc(l)
     return
 }
