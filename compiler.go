@@ -40,14 +40,23 @@ type typeNum struct {
 
 // take a set of .jack files and return machine language code 
 func Compile(filenames ...string) ([]uint16, error) {
-    fset := token.NewFileSet()
-    var parsed []*ast.File
+    contents := []string{}
     for _, filename := range filenames {
         data, err := os.ReadFile(filename)
         if err != nil {
             return nil, err
         }
-        f, err := parser.ParseFile(fset, filename, "package main\n"+string(data), 0)
+        contents = append(contents, string(data))
+    }
+    return compile(filenames, contents)
+}
+
+func compile(filenames []string, contents []string) ([]uint16, error) {
+    fset := token.NewFileSet()
+    var parsed []*ast.File
+    for i, filename := range filenames {
+        data := contents[i]
+        f, err := parser.ParseFile(fset, filename, "package main\n"+data, 0)
         if err != nil {
             return nil, err
         }
