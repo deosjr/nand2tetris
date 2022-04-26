@@ -91,14 +91,14 @@ func (s *Screen512x256) RunScreen(win *pixelgl.Window) {
     white := color.RGBA{255,255,255,0}
     pd := pixel.MakePictureData(win.Bounds())
     for row:=0;row<256;row++ {
-        for w:=0;w<16;w++ {
+        for w:=0;w<32;w++ {
             addr := row*32+w
             word := s.ram.mem[addr]
             for c:=0;c<16;c++ {
                 b := nthBit(word, uint16(15-c))
                 if b {
                     invrow := (255-row)
-                    pd.Pix[invrow*512+32*w+c] = white
+                    pd.Pix[invrow*512+16*w+c] = white
                 }
             }
         }

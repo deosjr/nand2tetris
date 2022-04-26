@@ -138,6 +138,12 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateRead(split[1:])
     case "write":
         return t.translateWrite(split[1:])
+    // TODO: shifts have been added as separate unary operators
+    // ie 16 different ops for << 0 through << 15
+    case "lshift1":
+        return t.translateShift(1, split[1:])
+    case "lshift5":
+        return t.translateShift(5, split[1:])
     default:
         return fmt.Errorf("syntax error: %s", line)
     }
@@ -526,6 +532,18 @@ func (t *vmTranslator) translateNot(split []string) error {
         "\t@SP",
         "A=M-1",
         "M=!M\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateShift(n int, split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: lshift %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        fmt.Sprintf("M=M<<%d\n", n),
     }, "\n\t"))
     return nil
 }

@@ -264,12 +264,27 @@ func (c *jackCompiler) translateCall(stmt *ast.CallExpr) error {
             stmt.Args = append([]ast.Expr{t.X}, stmt.Args...)
         }
     }
+    ident := stmt.Fun.(*ast.Ident)
+    // HACK to turn leftshift into unary op...
+    if ident.Name == "<<" {
+        if len(stmt.Args) != 2 {
+            return fmt.Errorf("expected 2 args for leftshift, got %v", len(stmt.Args))
+        }
+        if err := c.push(stmt.Args[0]); err != nil {
+            return err
+        }
+        n, err := strconv.Atoi(stmt.Args[1].(*ast.BasicLit).Value)
+        if err != nil {
+            return err
+        }
+        c.b.WriteString(fmt.Sprintf("\tlshift%d\n", n))
+        return nil
+    }
     for _, arg := range stmt.Args {
         if err := c.push(arg); err != nil {
             return err
         }
     }
-    ident := stmt.Fun.(*ast.Ident)
     switch ident.Name {
     case "print":
         // TODO: write only writes one 16-bit word

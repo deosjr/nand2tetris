@@ -19,10 +19,10 @@ func clearScreen() {
 
 // screen is 256 rows and 32 colums of 16 bit words
 func drawWord(w int, row int, column int) {
-    s := screenstart
-    x := 32 * row
+    //x := 32 * row
+    x := row << 5
     x = x + column
-    s[x] = w
+    screenstart[x] = w
     return
 }
 

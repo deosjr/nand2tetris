@@ -4,7 +4,7 @@ func main() {
     screen.init()
     for r:=0; r<256; r++ {
         for c:=0; c<32; c++ {
-            screen.drawWord(4095, r, c)
+            screen.drawWord(255, r, c)
         }
     }
     return
