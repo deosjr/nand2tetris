@@ -10,9 +10,8 @@ func init() {
 }
 
 func clearScreen() {
-    s := screenstart    
     for j:=0; j<sizeinmem; j++ {
-        s[j] = 0
+        screenstart[j] = 0
     }
     return
 }

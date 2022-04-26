@@ -1,6 +1,5 @@
 var twoToThe array
 
-// NOTE: not actually faster atm I think
 func mult(x int, y int) int {
     sum := 0
     shiftedx := x

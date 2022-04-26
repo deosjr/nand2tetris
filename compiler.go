@@ -249,11 +249,19 @@ func (c *jackCompiler) translateAssign(stmt *ast.AssignStmt) error {
 }
 
 func (c *jackCompiler) translateCall(stmt *ast.CallExpr) error {
+    var voidReturn bool
     if t, ok := stmt.Fun.(*ast.SelectorExpr); ok {
         name := t.X.(*ast.Ident).Name
-        if _, isFile := c.files[name]; isFile {
+        if file, isFile := c.files[name]; isFile {
             // calling a function by full path, ie mult.mult
             stmt.Fun = ast.NewIdent(name + "." + t.Sel.Name)
+            f, ok := file.funcs[t.Sel.Name]
+            if !ok {
+                return fmt.Errorf("func not found: %s", stmt.Fun)
+            }
+            if f.Type.Results == nil {
+                voidReturn = true
+            }
         } else {
             // calling a method on var 'name'
             typ, err := c.typeOf(t.X)
@@ -308,6 +316,10 @@ func (c *jackCompiler) translateCall(stmt *ast.CallExpr) error {
         c.b.WriteString("\tlt\n")
     default:
         c.b.WriteString(fmt.Sprintf("\tcall %s %d\n", stmt.Fun, len(stmt.Args)))
+    }
+    // if we just called a void function, consume the 0 return value
+    if voidReturn {
+        c.b.WriteString("\tpop temp 1\n") // dump into temp 1 for now
     }
     return nil
 }
