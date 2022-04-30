@@ -4,8 +4,8 @@ var crow int
 var ccolumn int
 
 func printString(s string) {
-    for i:=0; i< s.length; i++ {
-        output.printChar(s.arr[i])
+    for i:=0; i<s.length; i++ {
+        output.printChar(s.charAt(i))
     }
     return
 }

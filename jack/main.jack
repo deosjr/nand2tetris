@@ -4,6 +4,7 @@ func main() {
     screen.init()
     output.init()
 
+    output.println()
     output.printString("HELLO WORLD!")
 
     return

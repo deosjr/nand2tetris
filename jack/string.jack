@@ -1,11 +1,11 @@
-// TODO once this works: use << trick to
-// make strings use half the space
 type string struct {
     length int
     arr  array
 }
 
 func new(maxlen int) string {
+    maxlen = maxlen + 1
+    maxlen = maxlen / 2
     s := string{}
     s.length = 0
     s.arr = array.new(maxlen)
@@ -23,16 +23,39 @@ func (s string) length() int {
 }
 
 func (s string) charAt(j int) char {
-    return s.arr[j]
+    i := j / 2
+    x := s.arr[i]
+    uneven := math.bit(j, 0)
+    mask := 0x00ff
+    if uneven {
+        x = x & mask
+        return x
+    }
+    mask = mask << 8
+    x = x & mask
+    x = x << 8
+    return x
 }
 
 func (s string) setCharAt(j int, c char) {
-    s.arr[j] = c
+    i := j / 2
+    x := s.arr[i]
+    uneven := math.bit(j, 0)
+    mask := 0x00ff
+    if uneven {
+        mask = mask << 8
+        x = x & mask
+        s.arr[i] = x | c
+        return
+    }
+    x = x & mask
+    c = c << 8
+    s.arr[i] = x | c
     return
 }
 
 func (s string) appendChar(c char) string {
-    s.arr[s.length] = c
+    s.setCharAt(s.length, c)
     s.length = s.length + 1
     return s
 }
@@ -44,7 +67,7 @@ func (s string) eraseLastChar() {
 
 func (s string) print() {
     for j:=0; j<s.length; j++ {
-        print(s.arr[j])
+        print(s.charAt(j))
     }
     return
 }
@@ -62,7 +85,7 @@ func (s string) compare(ss string) int {
         min = ss.length
     }
     for j:=0; j<min; j++ {
-        d := s.arr[j] - ss.arr[j]
+        d := s.charAt(j) - ss.charAt(j)
         if d < 0 {
             return true
         }
