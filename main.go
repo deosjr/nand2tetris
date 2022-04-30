@@ -19,6 +19,7 @@ var stdlib = []string{
     "jack/list.jack",
     "jack/dict.jack",
     "jack/screen.jack",
+    "jack/output.jack",
 }
 
 var headless = false

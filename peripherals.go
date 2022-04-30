@@ -89,6 +89,7 @@ func (s *Screen512x256) RunScreen(win *pixelgl.Window) {
     // listen to mem and show in a window using pixelgl
     // NOTE: pixelgl y increases UP, nand2tetris DOWN
     white := color.RGBA{255,255,255,0}
+    black := color.RGBA{0,0,0,0}
     pd := pixel.MakePictureData(win.Bounds())
     for row:=0;row<256;row++ {
         for w:=0;w<32;w++ {
@@ -96,9 +97,11 @@ func (s *Screen512x256) RunScreen(win *pixelgl.Window) {
             word := s.ram.mem[addr]
             for c:=0;c<16;c++ {
                 b := nthBit(word, uint16(15-c))
+                invrow := (255-row)
                 if b {
-                    invrow := (255-row)
                     pd.Pix[invrow*512+16*w+c] = white
+                } else {
+                    pd.Pix[invrow*512+16*w+c] = black
                 }
             }
         }

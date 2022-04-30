@@ -360,7 +360,7 @@ func (c *jackCompiler) push(expr ast.Expr) error {
         }
         // if value > 32767, this will result in an A instr
         // that gets interpreted as a C instr instead!
-        n, err := strconv.Atoi(value)
+        n, err := strconv.ParseInt(value, 0, 0)
         if err != nil {
             return err
         }
@@ -387,17 +387,41 @@ func (c *jackCompiler) push(expr ast.Expr) error {
         c.b.WriteString("\tpush that 0\n")
         return nil
     case *ast.CompositeLit:
-        className := t.Type.(*ast.Ident).Name
-        file, ok := c.files[className]
-        if !ok || file.class == nil {
-            return fmt.Errorf("push: type not found: %s", className)
+        switch tt := t.Type.(type) {
+        case *ast.Ident:
+            className := tt.Name
+            file, ok := c.files[className]
+            if !ok || file.class == nil {
+                return fmt.Errorf("push: type not found: %s", className)
+            }
+            if len(t.Elts) != 0 {
+                return fmt.Errorf("push: struct init has to be empty")
+            }
+            c.b.WriteString(fmt.Sprintf("\tpush constant %d\n", len(file.class.fields)))
+            c.b.WriteString("\tcall array.new 1\n")
+            return nil
+        case *ast.ArrayType:
+            // TODO: only supporting []int{} declarations
+            c.b.WriteString(fmt.Sprintf("\tpush constant %d\n", len(t.Elts)))
+            c.b.WriteString("\tcall array.new 1\n")
+            c.b.WriteString("\tpop temp 1\n")
+            c.b.WriteString("\tpush temp 1\n")
+            c.b.WriteString("\tpop pointer 1\n")
+            for _, e := range t.Elts {
+                bl := e.(*ast.BasicLit)
+                if bl.Kind != token.INT {
+                    return fmt.Errorf("only int array declarations supported")
+                }
+                c.b.WriteString(fmt.Sprintf("\tpush constant %s\n", bl.Value))
+                c.b.WriteString("\tpop that 0\n")
+                c.b.WriteString("\tpush pointer 1\n")
+                c.b.WriteString("\tpush constant 1\n")
+                c.b.WriteString("\tadd\n")
+                c.b.WriteString("\tpop pointer 1\n")
+            }
+            c.b.WriteString("\tpush temp 1\n")
+            return nil
         }
-        if len(t.Elts) != 0 {
-            return fmt.Errorf("push: struct init has to be empty")
-        }
-        c.b.WriteString(fmt.Sprintf("\tpush constant %d\n", len(file.class.fields)))
-        c.b.WriteString("\tcall array.new 1\n")
-        return nil
     case *ast.SelectorExpr:
         varname, ok := t.X.(*ast.Ident)
         if !ok {
@@ -511,7 +535,12 @@ func (c *jackCompiler) typeOf(expr ast.Expr) (string, error) {
     case *ast.BinaryExpr:
         return "int", nil
     case *ast.CompositeLit:
-        return t.Type.(*ast.Ident).Name, nil
+        switch tt := t.Type.(type) {
+        case *ast.Ident:
+            return tt.Name, nil
+        case *ast.ArrayType:
+            return "array", nil
+        }
     case *ast.SelectorExpr:
         return "any", nil
     }
@@ -523,6 +552,8 @@ func toFun(t token.Token) *ast.Ident {
     switch t {
     case token.MUL:
         str = "math.mult"
+    case token.QUO:
+        str = "math.div"
     default:
         str = t.String()
     }

@@ -2,10 +2,20 @@
 func main() {
     math.init()
     screen.init()
-    for r:=0; r<256; r++ {
-        for c:=0; c<32; c++ {
-            screen.drawWord(255, r, c)
-        }
-    }
+    output.init()
+
+    output.printChar('H')
+    output.printChar('E')
+    output.printChar('L')
+    output.printChar('L')
+    output.printChar('O')
+    output.printChar(' ')
+    output.printChar('W')
+    output.printChar('O')
+    output.printChar('R')
+    output.printChar('L')
+    output.printChar('D')
+    output.printChar('!')
+
     return
 }

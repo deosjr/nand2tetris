@@ -21,7 +21,7 @@ func drawWord(w int, row int, column int) {
     //x := 32 * row
     x := row << 5
     x = x + column
-    screenstart[x] = w
+    screenstart[x] = screenstart[x] | w
     return
 }
 

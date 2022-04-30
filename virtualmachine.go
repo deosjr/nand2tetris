@@ -144,6 +144,8 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateShift(1, split[1:])
     case "lshift5":
         return t.translateShift(5, split[1:])
+    case "lshift8":
+        return t.translateShift(8, split[1:])
     default:
         return fmt.Errorf("syntax error: %s", line)
     }
@@ -281,7 +283,7 @@ func (t *vmTranslator) translatePush(split []string) error {
         return fmt.Errorf("syntax error: push %v", split)
     }
     segment := split[0]
-    n, err := strconv.Atoi(split[1])
+    n, err := strconv.ParseInt(split[1], 0, 0)
     if err != nil && segment != "static" {
         return err
     }

@@ -162,7 +162,7 @@ func NewROM32K(program []uint16) *ROM32K {
             rams[0].mem[i] = instr
             continue
         }
-        rams[1].mem[i] = instr
+        rams[1].mem[i-16384] = instr
     }
     return &ROM32K{
         rams: rams,

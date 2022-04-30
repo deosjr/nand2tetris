@@ -25,6 +25,23 @@ func multBad(x int, y int) int {
 }
 */
 
+func div(x int, y int) int {
+    if y > x {
+        return 0
+    }
+    //q := math.div(x, 2*y)
+    q := y << 1
+    q = x / q
+    //twoq := 2*q
+    twoq := q << 1
+    test := twoq * y
+    test = x - test
+    if test < y {
+        return twoq 
+    }
+    return twoq + 1
+}
+
 // TODO: could be done with shifts instead
 func bit(x int, j int) bool {
     t := twoToThe[j]
@@ -36,22 +53,11 @@ func bit(x int, j int) bool {
 }
 
 func init() {
-    twoToThe = array.new(16)
-    twoToThe[0] = 1
-    twoToThe[1] = 2
-    twoToThe[2] = 4
-    twoToThe[3] = 8
-    twoToThe[4] = 16
-    twoToThe[5] = 32
-    twoToThe[6] = 64
-    twoToThe[7] = 128
-    twoToThe[8] = 256
-    twoToThe[9] = 512
-    twoToThe[10] = 1024
-    twoToThe[11] = 2048
-    twoToThe[12] = 4096
-    twoToThe[13] = 8192
-    twoToThe[14] = 16384
+    twoToThe = []int{
+        1, 2, 4, 8, 16, 32, 64,
+        128, 256, 512, 1024, 2048,
+        4096, 8192, 16384, 0,
+    }
     // because 32768 overflows into a C instr
     twoToThe[15] = 32767 + 1
     return
