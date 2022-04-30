@@ -6,6 +6,9 @@ func main() {
 
     output.println()
     output.printString("HELLO WORLD!")
+    output.println()
+    output.println()
+    output.printString("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
     return
 }
