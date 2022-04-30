@@ -4,18 +4,7 @@ func main() {
     screen.init()
     output.init()
 
-    output.printChar('H')
-    output.printChar('E')
-    output.printChar('L')
-    output.printChar('L')
-    output.printChar('O')
-    output.printChar(' ')
-    output.printChar('W')
-    output.printChar('O')
-    output.printChar('R')
-    output.printChar('L')
-    output.printChar('D')
-    output.printChar('!')
+    output.printString("HELLO WORLD!")
 
     return
 }

@@ -3,6 +3,13 @@ var bitmaps array
 var crow int
 var ccolumn int
 
+func printString(s string) {
+    for i:=0; i< s.length; i++ {
+        output.printChar(s.arr[i])
+    }
+    return
+}
+
 func printChar(c char) {
     j := c - 32
     j = j * 8 // TODO 8x11
