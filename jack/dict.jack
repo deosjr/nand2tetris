@@ -19,7 +19,7 @@ func new(key string, value any, left dict, right dict) dict {
     return m
 }
 
-func newleaf(key string, value any) dict {
+func newLeaf(key string, value any) dict {
     return dict.new(key, value, nil, nil)
 }
 
@@ -30,14 +30,14 @@ func (m dict) insert(key string, value any) {
     if x < 0 {
         tree = m.left
         if tree == nil {
-            m.left = dict.newleaf(key, value)
+            m.left = dict.newLeaf(key, value)
             return
         }
     }
     if x > 0 {
         tree = m.right
         if tree == nil {
-            m.right = dict.newleaf(key, value)
+            m.right = dict.newLeaf(key, value)
             return
         }
     }

@@ -1,0 +1,85 @@
+type sexpr struct {
+    typ int
+    value any
+    left sexpr
+    right sexpr
+}
+
+// types enum:
+// symbol = 0
+// number = 1
+// atom   = 2 = symbol OR number
+// list   = 3 = NOT atom
+// expr   = 4 = atom OR list
+
+func new(typ int, value any, left sexpr, right sexpr) sexpr {
+    s := sexpr{}
+    s.typ = typ
+    s.value = value
+    s.left = left
+    s.right = right
+    return s
+}
+
+func newAtom(typ int, value any) sexpr {
+    return sexpr.new(typ, value, nil, nil)
+}
+
+// only defined for lists, undefined for atoms
+func (s sexpr) length() int {
+    if s == nil {
+        return 0
+    }
+    var ss sexpr
+    ss = s.right
+    return ss.length() + 1
+}
+
+// only defined for lists, undefined for atoms
+func (s sexpr) append(x sexpr) sexpr {
+    if s == nil {
+        return sexpr.new(3, nil, x, nil)
+    }
+    var cdr sexpr
+    cdr = s.right
+    if cdr != nil {
+        s.right = cdr.append(x)
+        return s
+    }
+    s.right = sexpr.new(3, nil, x, nil)
+    return s
+}
+
+// NOTE: print() means rec = 0
+func (s sexpr) print(rec bool) {
+    if s == nil {
+        return
+    }
+    if rec {
+        print(' ')
+    }
+    var ss string
+    if s.typ == 0 {
+        ss = s.value
+        ss.print()
+        return
+    }
+    if s.typ == 1 {
+        // TODO print integer
+        ss = "10"
+        ss.print()
+        return
+    }
+    if !rec {
+        print('(')
+    }
+    var x sexpr
+    x = s.left
+    x.print()
+    x = s.right
+    x.print(true)
+    if !rec {
+        print(')')
+    }
+    return
+}

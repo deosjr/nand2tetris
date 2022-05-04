@@ -12,7 +12,8 @@ func printString(s string) {
 
 func printChar(c char) {
     j := c - 32
-    j = j * 8 // TODO 8x11
+    // j = j * 8
+    j = j << 3 // TODO 8x11
     uneven := math.bit(ccolumn, 0)
     col := ccolumn / 2
     for i:=0; i<8; i++ {

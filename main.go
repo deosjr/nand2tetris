@@ -20,9 +20,14 @@ var stdlib = []string{
     "jack/dict.jack",
     "jack/screen.jack",
     "jack/output.jack",
+    "jack/lisp/lisp.jack",
+    "jack/lisp/env.jack",
+    "jack/lisp/procedure.jack",
+    "jack/lisp/sexpr.jack",
+    "jack/lisp/parser.jack",
 }
 
-var headless = false
+var headless = true
 var debug = false
 
 type charPrinter struct{}
@@ -48,7 +53,7 @@ func main() {
     fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
     //computer.data_mem.reader.LoadInputTape("asm/assembler.asm")
-    //computer.data_mem.writer.LoadOutputWriter(charPrinter{})
+    computer.data_mem.writer.LoadOutputWriter(charPrinter{})
 
     var debugger Debugger
     if debug {

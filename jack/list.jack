@@ -21,3 +21,17 @@ func (l list) dispose() {
     memory.dealloc(l)
     return
 }
+
+func (l list) append(x any) list {
+    if l == nil {
+        return list.new(x, nil)
+    }
+    var cdr list
+    cdr = l.cdr
+    if cdr != nil {
+        l.cdr = cdr.append(x)
+        return l
+    }
+    l.cdr = list.new(x, nil)
+    return l
+}

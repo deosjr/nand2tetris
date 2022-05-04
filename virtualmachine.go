@@ -142,10 +142,14 @@ func (t *vmTranslator) translateLine(line string) error {
     // ie 16 different ops for << 0 through << 15
     case "lshift1":
         return t.translateShift(1, split[1:])
+    case "lshift3":
+        return t.translateShift(3, split[1:])
     case "lshift5":
         return t.translateShift(5, split[1:])
     case "lshift8":
         return t.translateShift(8, split[1:])
+    case "lshift15":
+        return t.translateShift(15, split[1:])
     default:
         return fmt.Errorf("syntax error: %s", line)
     }

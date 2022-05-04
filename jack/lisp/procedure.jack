@@ -1,0 +1,13 @@
+type procedure struct {
+    params array
+    body sexpr
+    env env
+}
+
+func new(params array, body sexpr, env env) procedure {
+    p := procedure{}
+    p.params = params
+    p.body = body
+    p.env = env
+    return p
+}

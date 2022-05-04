@@ -1,0 +1,97 @@
+type parser struct {
+    input list
+}
+
+func new(tokens list) parser {
+    p := parser{}
+    p.input = tokens
+    return p
+}
+
+func (p parser) dispose() {
+    memory.dealloc(p)
+    return
+}
+
+func (p parser) parse() sexpr {
+    listref := p.input
+    expr := p.readTokens()
+    listref.dispose()
+    return expr
+}
+
+func (p parser) pop() string {
+    var tokens list
+    tokens = p.input
+    s := tokens.car
+    p.input = tokens.cdr
+    return s
+}
+
+func (p parser) readTokens() sexpr {
+    var token string
+    token = p.pop()
+    s := "("
+    if token.equals(s) {
+        s = ")"
+        var expr sexpr
+        expr = nil
+        for true == true {
+            var l list
+            l = p.input
+            token = l.car
+            if token.equals(s) {
+                p.pop()
+                return expr
+            }
+            expr = expr.append(p.readTokens())
+        }
+    }
+    s = ")"
+    if token.equals(s) {
+        // TODO syntax error print?
+    }
+    return parser.atom(token)
+}
+
+func atom(token string) sexpr {
+    // number
+    // TODO: integer parsing. hardcode '10' for now
+    s := "10"
+    if token.equals(s) {
+        return sexpr.newAtom(1, 10)
+    }
+    // symbol
+    return sexpr.newAtom(0, token)
+}
+
+func tokenize(input string) list {
+    var tokens list
+    tokens = nil
+    len := input.length()
+    var prev string
+    prev = string.new(32) // MAXLEN STR
+    for i:=0; i<len; i++ {
+        c := input.charAt(i)
+        isSpace = c == ' '
+        isOpen = c == '('
+        isClose = c == ')'
+        test := isSpace | isOpen
+        test = test | isClose
+        if test {
+            if prev.length() > 0 {
+                tokens = tokens.append(prev)
+                prev = string.new(64)
+            }
+        }
+        if !isSpace {
+            prev.appendChar(c)
+        }
+        test = isOpen | isClose
+        if test {
+            tokens = tokens.append(prev)
+            prev = string.new(64)
+        }
+    }
+    return tokens
+}

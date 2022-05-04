@@ -285,8 +285,30 @@ func parseCInstr(line string, pos token.Pos) ast.Stmt {
             return &ast.BadStmt{From:pos, To:pos+token.Pos(len(line))}
         }
         switch line[3] {
-        case '1','2','3','4','5','6','7','8':
+        case '1','2','3','4','5','6','7','8','9':
             expr.Y = &ast.BasicLit{Kind: token.INT, Value: string(line[3])}
+        default:
+            return &ast.BadStmt{From:pos, To:pos+token.Pos(len(line))}
+        }
+        comp = expr
+    case 5:
+        if line[1:3] != "<<" {
+            return &ast.BadStmt{From:pos, To:pos+token.Pos(len(line))}
+        }
+        expr := &ast.BinaryExpr{Op:token.SHL}
+        switch line[0] {
+        case 'A':
+            expr.X = LITA
+        case 'D':
+            expr.X = LITD
+        case 'M':
+            expr.X = LITM
+        default:
+            return &ast.BadStmt{From:pos, To:pos+token.Pos(len(line))}
+        }
+        switch line[3:5] {
+        case "10","11","12","13","14","15":
+            expr.Y = &ast.BasicLit{Kind: token.INT, Value: line[3:5]}
         default:
             return &ast.BadStmt{From:pos, To:pos+token.Pos(len(line))}
         }

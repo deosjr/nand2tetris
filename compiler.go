@@ -520,6 +520,7 @@ func (c *jackCompiler) typeOf(expr ast.Expr) (string, error) {
         if tn, ok := c.locals[name]; ok {
             return tn.typ, nil
         }
+        return "any", nil
     case *ast.CallExpr:
         return "call", nil
     case *ast.BasicLit:
@@ -542,9 +543,16 @@ func (c *jackCompiler) typeOf(expr ast.Expr) (string, error) {
             return "array", nil
         }
     case *ast.SelectorExpr:
+        typ, err := c.typeOf(t.X)
+        if err != nil {
+            return "", err
+        }
+        field := c.files[typ].class.fields[t.Sel.Name]
+        return field.typ, nil
+    case *ast.IndexExpr:
         return "any", nil
     }
-    return fmt.Sprintf("notfound %T", expr), nil
+    return "", fmt.Errorf("notfound %T", expr)
 }
 
 func toFun(t token.Token) *ast.Ident {

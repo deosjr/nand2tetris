@@ -79,13 +79,16 @@ func (s string) equals(ss string) bool {
 
 // return -1 if s<ss, 0 if s==ss, 1 if s>ss
 // using true instead of -1 as that overflows constant...
+// NOTE we can compare two chars at a time now!
 func (s string) compare(ss string) int {
     min := s.length
     if s.length > ss.length {
         min = ss.length
     }
+    min = min + 1
+    min = min / 2
     for j:=0; j<min; j++ {
-        d := s.charAt(j) - ss.charAt(j)
+        d := s.arr[j] - ss.arr[j]
         if d < 0 {
             return true
         }

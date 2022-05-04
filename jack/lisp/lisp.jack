@@ -1,0 +1,75 @@
+var sif string
+var sdefine string
+var smul string
+var sbegin string
+
+func init() {
+    env.init()
+    sif = "if"
+    sdefine = "define"
+    smul = "*"
+    sbegin = "begin"
+    return
+}
+
+func eval(x sexpr) sexpr {
+    e := env.global()
+    return lisp.evalEnv(x, e)
+}
+
+func evalEnv(x sexpr, env env) any {
+    t := x.typ
+    m := env.m
+    // variable reference
+    if t == 0 { // symbol
+        return m.search(x.value)
+    }
+    // constant number
+    if t == 1 { // number
+        return x.value
+    }
+    op := x.left
+    var opstr string
+    opstr = op.value
+    args := x.right
+    // conditional
+    if opstr.equals(sif) {
+        return
+    }
+    // definition
+    if opstr.equals(sdefine) {
+        symbol := args.left
+        args = args.right
+        exp := lisp.evalEnv(args.left, env)
+        m.insert(symbol.value, exp)
+        return 0
+    }
+    // procedure call
+    len := args.length()
+    values := array.new(len)
+    for i:=0; i<len; i++ {
+        values[i] = lisp.evalEnv(args.left, env)
+        args = args.right
+    }
+    // first hardcoded ones (easier than adding in globalenv)
+    if opstr.equals(smul) {
+        return values[0] * values[1]
+    }
+    if opstr.equals(sbegin) {
+        return values[len-1]
+    }
+    // then user-defined procedures
+    proc := lisp.evalEnv(op, env)
+    return 0
+}
+
+func parse(program string) sexpr {
+    var tokens list
+    tokens = parser.tokenize(program)
+    var p parser
+    p := parser.new(tokens)
+    s := p.parse()
+    p.dispose()
+    return s
+}
+
