@@ -5,6 +5,7 @@ var sbegin string
 
 func init() {
     env.init()
+    parser.init()
     sif = "if"
     sdefine = "define"
     smul = "*"

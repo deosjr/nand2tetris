@@ -150,6 +150,11 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateShift(8, split[1:])
     case "lshift15":
         return t.translateShift(15, split[1:])
+    // compiler optimisations / extentions to the vm language spec as shortcuts
+    case "plus1":
+        return t.translatePlus1(split[1:])
+    case "minus1":
+        return t.translatePlus1(split[1:])
     default:
         return fmt.Errorf("syntax error: %s", line)
     }
@@ -293,8 +298,18 @@ func (t *vmTranslator) translatePush(split []string) error {
     }
     switch segment {
     case "constant":
-        // TODO: can shave 2 instrs for n=0, 1 or -1
-        t.b.WriteString(fmt.Sprintf("\t@%d\n\tD=A\n", n))
+        switch n {
+        case 0, 1, -1:
+            t.b.WriteString(strings.Join([]string{
+                "\t@SP",
+                "M=M+1",
+                "A=M-1",
+                fmt.Sprintf("M=%d\n", n),
+            }, "\n\t"))
+            return nil
+        default:
+            t.b.WriteString(fmt.Sprintf("\t@%d\n\tD=A\n", n))
+        }
     case "local", "argument", "this", "that":
         var varname string
         switch segment {
@@ -310,13 +325,28 @@ func (t *vmTranslator) translatePush(split []string) error {
         if (segment == "this" || segment == "that") && n != 0 {
             return fmt.Errorf("syntax error: push %v", split)
         }
-        t.b.WriteString(strings.Join([]string{
-            fmt.Sprintf("\t@%d", n),
-            "D=A",
-            "\t@"+varname,
-            "A=D+M",
-            "D=M\n",
-        }, "\n\t"))
+        switch n {
+        case 0:
+            t.b.WriteString(strings.Join([]string{
+                "\t@"+varname,
+                "A=M",
+                "D=M\n",
+            }, "\n\t"))
+        case 1:
+            t.b.WriteString(strings.Join([]string{
+                "\t@"+varname,
+                "A=M+1",
+                "D=M\n",
+            }, "\n\t"))
+        default:
+            t.b.WriteString(strings.Join([]string{
+                fmt.Sprintf("\t@%d", n),
+                "D=A",
+                "@"+varname,
+                "A=D+M",
+                "D=M\n",
+            }, "\n\t"))
+        }
     case "temp":
         t.b.WriteString(strings.Join([]string{
             fmt.Sprintf("\t@%d", n+5),
@@ -370,20 +400,41 @@ func (t *vmTranslator) translatePop(split []string) error {
         } else {
             varname = "ARG"
         }
-        t.b.WriteString(strings.Join([]string{
-            "\t@" + varname,
-            "D=M",
-            "@" + fmt.Sprintf("%d", n),
-            "D=D+A",
-            "@R14",
-            "M=D",
-            "@SP",
-            "AM=M-1",
-            "D=M",
-            "@R14",
-            "A=M",
-            "M=D\n",
-        }, "\n\t"))
+        switch n {
+        case 0:
+            t.b.WriteString(strings.Join([]string{
+             "@SP",
+             "AM=M-1",
+             "D=M",
+             "\t@" + varname,
+             "A=M",
+             "M=D\n",
+            },  "\n\t"))
+        case 1:
+            t.b.WriteString(strings.Join([]string{
+             "@SP",
+             "AM=M-1",
+             "D=M",
+             "\t@" + varname,
+             "A=M+1",
+             "M=D\n",
+            },  "\n\t"))
+        default:
+            t.b.WriteString(strings.Join([]string{
+             "\t@" + varname,
+             "D=M",
+             "@" + fmt.Sprintf("%d", n),
+             "D=D+A",
+             "@R14",
+             "M=D",
+             "@SP",
+             "AM=M-1",
+             "D=M",
+             "@R14",
+             "A=M",
+             "M=D\n",
+            },  "\n\t"))
+        }
         return nil
     }
     t.b.WriteString(strings.Join([]string{
@@ -469,7 +520,7 @@ func (t *vmTranslator) translateGt(split []string) error {
         "D=M",
         "A=A-1",
         "D=M-D",
-        "M=0", // if D=0 set M=0xffff otherwise set M=0x0000
+        "M=0", // if D>0 set M=0xffff otherwise set M=0x0000
         "@"+falselabel,
         "D;JLE",
         "@SP", // TRUE
@@ -491,7 +542,7 @@ func (t *vmTranslator) translateLt(split []string) error {
         "D=M",
         "A=A-1",
         "D=M-D",
-        "M=0", // if D=0 set M=0xffff otherwise set M=0x0000
+        "M=0", // if D<0 set M=0xffff otherwise set M=0x0000
         "@"+falselabel,
         "D;JGE",
         "@SP", // TRUE
@@ -608,6 +659,124 @@ func (t *vmTranslator) translateWrite(split []string) error {
         "@0x6002",
         "M=D\n",
     }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translatePlus1(split []string) error {
+    if len(split) < 2 {
+        return fmt.Errorf("syntax error: not enough arguments to plus1")
+    }
+    if len(split) > 2 && !strings.HasPrefix(split[2], "//") {
+        return fmt.Errorf("syntax error: plus1 %v", split)
+    }
+    segment := split[0]
+    n, err := strconv.ParseInt(split[1], 0, 0)
+    if err != nil && segment != "static" {
+        return err
+    }
+    switch segment {
+    case "local", "argument", "this", "that":
+        var varname string
+        switch segment {
+        case "local":
+            varname = "LCL"
+        case "argument":
+            varname = "ARG"
+        case "this":
+            varname = "THIS"
+        case "that":
+            varname = "THAT"
+        }
+        if (segment == "this" || segment == "that") && n != 0 {
+            return fmt.Errorf("syntax error: plus1 %v", split)
+        }
+        switch n {
+        case 0:
+            t.b.WriteString(strings.Join([]string{
+                "\t@"+varname,
+                "A=M\n",
+            }, "\n\t"))
+        case 1:
+            t.b.WriteString(strings.Join([]string{
+                "\t@"+varname,
+                "A=M+1\n",
+            }, "\n\t"))
+        default:
+            t.b.WriteString(strings.Join([]string{
+                fmt.Sprintf("\t@%d", n),
+                "D=A",
+                "@"+varname,
+                "A=D+M\n",
+            }, "\n\t"))
+        }
+    case "temp":
+        t.b.WriteString(fmt.Sprintf("\t@%d\n", n+5))
+    case "static":
+        varname := strings.ToLower(t.fn) + split[1]
+        t.b.WriteString(fmt.Sprintf("\t@%s\n", varname))
+    default:
+        return fmt.Errorf("syntax error: plus1 %v", split)
+    }
+    t.b.WriteString("\tM=M+1\n")
+    return nil
+}
+
+func (t *vmTranslator) translateMin1(split []string) error {
+    if len(split) < 2 {
+        return fmt.Errorf("syntax error: not enough arguments to min1")
+    }
+    if len(split) > 2 && !strings.HasPrefix(split[2], "//") {
+        return fmt.Errorf("syntax error: min1 %v", split)
+    }
+    segment := split[0]
+    n, err := strconv.ParseInt(split[1], 0, 0)
+    if err != nil && segment != "static" {
+        return err
+    }
+    switch segment {
+    case "local", "argument", "this", "that":
+        var varname string
+        switch segment {
+        case "local":
+            varname = "LCL"
+        case "argument":
+            varname = "ARG"
+        case "this":
+            varname = "THIS"
+        case "that":
+            varname = "THAT"
+        }
+        if (segment == "this" || segment == "that") && n != 0 {
+            return fmt.Errorf("syntax error: min1 %v", split)
+        }
+        switch n {
+        case 0:
+            t.b.WriteString(strings.Join([]string{
+                "\t@"+varname,
+                "A=M\n",
+            }, "\n\t"))
+        case 1:
+            t.b.WriteString(strings.Join([]string{
+                "\t@"+varname,
+                "A=M+1\n",
+            }, "\n\t"))
+        default:
+            t.b.WriteString(strings.Join([]string{
+                fmt.Sprintf("\t@%d", n),
+                "D=A",
+                "@"+varname,
+                "A=D+M\n",
+            }, "\n\t"))
+        }
+    case "temp":
+        t.b.WriteString(fmt.Sprintf("\t@%d\n", n+5))
+    case "static":
+        varname := strings.ToLower(t.fn) + split[1]
+        t.b.WriteString(fmt.Sprintf("\t@%s\n", varname))
+    default:
+        return fmt.Errorf("syntax error: min1 %v", split)
+    }
+    t.b.WriteString("\tM=M-1\n")
     return nil
 }
 

@@ -2,6 +2,15 @@ type parser struct {
     input list
 }
 
+var popen string
+var pclose string
+
+func init() {
+    popen = "("
+    pclose = ")"
+    return
+}
+
 func new(tokens list) parser {
     p := parser{}
     p.input = tokens
@@ -31,24 +40,21 @@ func (p parser) pop() string {
 func (p parser) readTokens() sexpr {
     var token string
     token = p.pop()
-    s := "("
-    if token.equals(s) {
-        s = ")"
+    if token.equals(popen) {
         var expr sexpr
         expr = nil
-        for true == true {
+        for {
             var l list
             l = p.input
             token = l.car
-            if token.equals(s) {
+            if token.equals(pclose) {
                 p.pop()
                 return expr
             }
             expr = expr.append(p.readTokens())
         }
     }
-    s = ")"
-    if token.equals(s) {
+    if token.equals(pclose) {
         // TODO syntax error print?
     }
     return parser.atom(token)

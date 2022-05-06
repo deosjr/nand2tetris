@@ -84,6 +84,7 @@ func compile(filenames []string, contents []string) ([]uint16, error) {
     if err != nil {
         return nil, err
     }
+    //fmt.Println(asm)
     return assembleFromString(asm)
 }
 
@@ -346,6 +347,7 @@ func (c *jackCompiler) push(expr ast.Expr) error {
         if t.Kind == token.STRING {
             c.b.WriteString(fmt.Sprintf("\tpush constant %d\n\tcall string.new 1\n\tpop temp 0\n", len(t.Value)-2))
             for _, r := range t.Value[1:len(t.Value)-1] {
+                // TODO this can at least be twice as fast now, if not much faster
                 c.b.WriteString(fmt.Sprintf("\tpush temp 0\n\tpush constant %d\n\tcall string.appendChar 2\n", r))
             }
             c.b.WriteString("\tpush temp 0\n")
@@ -647,16 +649,18 @@ func (c *jackCompiler) translateFor(stmt *ast.ForStmt) error {
     endlabel := c.genLabel()
     c.b.WriteString(fmt.Sprintf("label %s\n", looplabel))
     // write comparison and jump out of loop
-    cond := stmt.Cond.(*ast.BinaryExpr)
-    comp, invert := inverseComp(cond.Op)
-    call := &ast.CallExpr{Fun:comp, Args:[]ast.Expr{cond.X, cond.Y}}
-    if err := c.translateCall(call); err != nil {
-        return err
+    if stmt.Cond != nil {
+        cond := stmt.Cond.(*ast.BinaryExpr)
+        comp, invert := inverseComp(cond.Op)
+        call := &ast.CallExpr{Fun:comp, Args:[]ast.Expr{cond.X, cond.Y}}
+        if err := c.translateCall(call); err != nil {
+            return err
+        }
+        if invert {
+            c.b.WriteString("\tnot\n")
+        }
+        c.b.WriteString(fmt.Sprintf("\tif-goto %s\n", endlabel))
     }
-    if invert {
-        c.b.WriteString("\tnot\n")
-    }
-    c.b.WriteString(fmt.Sprintf("\tif-goto %s\n", endlabel))
     // write the actual block within the for loop
     if err := c.translateBlock(stmt.Body); err != nil {
         return err
@@ -664,7 +668,19 @@ func (c *jackCompiler) translateFor(stmt *ast.ForStmt) error {
     // increment or decrement loop counter
     if stmt.Post != nil {
         post := stmt.Post.(*ast.IncDecStmt)
-        call = &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{post.X, &ast.BasicLit{Value:"1", Kind:token.INT}}}
+        switch post.Tok {
+        case token.INC:
+            c.b.WriteString("\tplus1 ")
+        case token.DEC:
+            c.b.WriteString("\tminus1 ")
+        default:
+            return fmt.Errorf("unexpected %s", post.Tok)
+        }
+        ident := post.X.(*ast.Ident)
+        c.writeIdent(ident)
+        /*
+        post := stmt.Post.(*ast.IncDecStmt)
+        call := &ast.CallExpr{Fun:toFun(token.ADD), Args:[]ast.Expr{post.X, &ast.BasicLit{Value:"1", Kind:token.INT}}}
         if post.Tok == token.DEC {
             call.Fun = toFun(token.SUB)
         }
@@ -672,7 +688,11 @@ func (c *jackCompiler) translateFor(stmt *ast.ForStmt) error {
         if err := c.translateAssign(assign); err != nil {
             return err
         }
+        */
     }
-    c.b.WriteString(fmt.Sprintf("\tgoto %s\nlabel %s\n", looplabel, endlabel))
+    c.b.WriteString(fmt.Sprintf("\tgoto %s\n", looplabel))
+    if stmt.Cond != nil {
+        c.b.WriteString(fmt.Sprintf("label %s\n", endlabel))
+    }
     return nil
 }
