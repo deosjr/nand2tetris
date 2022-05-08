@@ -82,21 +82,20 @@ func tokenize(input string) list {
         isSpace = c == ' '
         isOpen = c == '('
         isClose = c == ')'
-        test := isSpace | isOpen
-        test = test | isClose
+        isParens := isOpen | isClose
+        test = isParens | isSpace
         if test {
             if prev.length() > 0 {
                 tokens = tokens.append(prev)
-                prev = string.new(64)
+                prev = string.new(32)
             }
         }
         if !isSpace {
             prev.appendChar(c)
         }
-        test = isOpen | isClose
-        if test {
+        if isParens {
             tokens = tokens.append(prev)
-            prev = string.new(64)
+            prev = string.new(32)
         }
     }
     return tokens

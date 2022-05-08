@@ -33,14 +33,14 @@ func main() {
     ss = sexpr.new(3, nil, right, nil)
     ss = sexpr.new(3, nil, left, ss)
     ss = sexpr.new(3, nil, begin, ss)
-    ss.print()
+    ss.print(false)
     print('\n')
 
     // TODO: http://norvig.com/lispy.html
     // except I dont deal with floats (yet?) so pi = 3
     input := "(begin (define r 10) (* pi (* r r)))"
     ss := lisp.parse(input)
-    ss.print()
+    ss.print(false)
 
     x = lisp.eval(ss)
     print(x)

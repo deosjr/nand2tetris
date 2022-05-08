@@ -75,7 +75,7 @@ func (s sexpr) print(rec bool) {
     }
     var x sexpr
     x = s.left
-    x.print()
+    x.print(false)
     x = s.right
     x.print(true)
     if !rec {

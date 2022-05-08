@@ -607,25 +607,30 @@ func (c *jackCompiler) translateIf(stmt *ast.IfStmt) error {
     case *ast.BinaryExpr:
         comp, invert = inverseComp(cond.Op)
         args = []ast.Expr{cond.X, cond.Y}
+        call := &ast.CallExpr{Fun:comp, Args:args}
+        if err := c.translateCall(call); err != nil {
+            return err
+        }
     case *ast.UnaryExpr:
         if cond.Op != token.NOT {
             return fmt.Errorf("if: only unary op allowed is 'not', got %s", cond.Op)
         }
-        comp, invert = inverseComp(token.NEQ)
-        args = []ast.Expr{cond.X, ast.NewIdent("true")}
+        if err := c.push(cond.X); err != nil {
+            return err
+        }
+        invert = false
     case *ast.Ident:
-        comp, invert = inverseComp(token.EQL)
-        args = []ast.Expr{cond, ast.NewIdent("true")}
-    case *ast.CallExpr:
-        comp = cond.Fun
-        args = cond.Args
+        if err := c.push(cond); err != nil {
+            return err
+        }
         invert = true
+    case *ast.CallExpr:
+        invert = true
+        if err := c.translateCall(cond); err != nil {
+            return err
+        }
     default:
         return fmt.Errorf("if: unexpected %T", cond)
-    }
-    call := &ast.CallExpr{Fun:comp, Args:args}
-    if err := c.translateCall(call); err != nil {
-        return err
     }
     if invert {
         c.b.WriteString("\tnot\n")

@@ -25,32 +25,31 @@ func (s string) length() int {
 func (s string) charAt(j int) char {
     i := j / 2
     x := s.arr[i]
-    uneven := math.bit(j, 0)
-    mask := 0x00ff
-    if uneven {
-        x = x & mask
-        return x
+    even := j & 1
+    // abusing truthy: if integer means if integer is not 0
+    // this means !even does _not_ work as you might expect
+    if even {
+        return x & 0x00ff
     }
-    mask = mask << 8
-    x = x & mask
     x = x << 8
-    return x
+    return x & 0x00ff
 }
 
 func (s string) setCharAt(j int, c char) {
     i := j / 2
     x := s.arr[i]
-    uneven := math.bit(j, 0)
-    mask := 0x00ff
-    if uneven {
-        mask = mask << 8
-        x = x & mask
-        s.arr[i] = x | c
+    even := j & 1
+    if even {
+        x = x << 8
+    }
+    c = c << 8
+    x = x & 0x00ff
+    x = x | c
+    if even {
+        s.arr[i] = x << 8
         return
     }
-    x = x & mask
-    c = c << 8
-    s.arr[i] = x | c
+    s.arr[i] = x
     return
 }
 
