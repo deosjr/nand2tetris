@@ -65,8 +65,7 @@ func (s sexpr) print(rec bool) {
         return
     }
     if s.typ == 1 {
-        // TODO print integer
-        ss = "10"
+        ss := string.intString(s.value)
         ss.print()
         return
     }

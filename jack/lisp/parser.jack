@@ -61,11 +61,14 @@ func (p parser) readTokens() sexpr {
 }
 
 func atom(token string) sexpr {
+    c := token.charAt(0)
     // number
-    // TODO: integer parsing. hardcode '10' for now
-    s := "10"
-    if token.equals(s) {
-        return sexpr.newAtom(1, 10)
+    gteZero := c > 47
+    lteNine := c < 58
+    number := gteZero & lteNine
+    if number {
+        n := string.stringInt(token)
+        return sexpr.newAtom(1, n)
     }
     // symbol
     return sexpr.newAtom(0, token)

@@ -24,6 +24,17 @@ func init() {
     return
 }
 
+func peek(addr int) int {
+    m := 0
+    return m[addr]
+}
+
+func poke(addr int, value int) {
+    m := 0
+    m[addr] = value
+    return
+}
+
 // note: return type is ignored, can write whatever we want here
 func alloc(size int) pointer {
     var segment memory

@@ -1,0 +1,28 @@
+func readChar() char {
+    k := 0x6000
+    in := 0
+    for in == 0 {
+        in := memory.peek(k)
+    }
+    for memory.peek(k) != 0 {}
+    return in
+}
+
+func readLine(msg string) string {
+    output.printString(msg)
+    var s string
+    s = string.new(64) // MAXLEN
+    var c char
+    for c != 0x80 { // newline
+        c = keyboard.readChar()
+        if c == 0x08 {
+            output.backspace()
+            s.eraseLastChar()
+        }
+        if c != 0x08 { // TODO else
+            output.printChar(c)
+            s.appendChar(c)
+        }
+    }
+    return s
+}

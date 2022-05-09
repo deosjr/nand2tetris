@@ -195,8 +195,24 @@ func shift(win *pixelgl.Window) bool {
 
 func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
     switch {
+    case win.Pressed(pixelgl.KeyComma):
+        if shift(win) {
+            k.reg.SendIn(0x3C)
+        } else {
+            k.reg.SendIn(0x2C)
+        }
+    case win.Pressed(pixelgl.KeyPeriod):
+        if shift(win) {
+            k.reg.SendIn(0x3E)
+        } else {
+            k.reg.SendIn(0x2E)
+        }
     case win.Pressed(pixelgl.Key0):
-        k.reg.SendIn(0x30)
+        if shift(win) {
+            k.reg.SendIn(0x29)
+        } else {
+            k.reg.SendIn(0x30)
+        }
     case win.Pressed(pixelgl.Key1):
         if shift(win) {
             k.reg.SendIn(0x21)
@@ -220,9 +236,19 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
     case win.Pressed(pixelgl.Key7):
         k.reg.SendIn(0x37)
     case win.Pressed(pixelgl.Key8):
-        k.reg.SendIn(0x38)
+        if shift(win) {
+            k.reg.SendIn(0x2A)
+        } else {
+            k.reg.SendIn(0x38)
+        }
     case win.Pressed(pixelgl.Key9):
-        k.reg.SendIn(0x39)
+        if shift(win) {
+            k.reg.SendIn(0x28)
+        } else {
+            k.reg.SendIn(0x39)
+        }
+    case win.Pressed(pixelgl.KeyMinus):
+        k.reg.SendIn(0x2D)
     case win.Pressed(pixelgl.KeySemicolon):
         k.reg.SendIn(0x3B)
     case win.Pressed(pixelgl.KeyEqual):
@@ -287,6 +313,8 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
         k.reg.SendIn(0x20)
     case win.Pressed(pixelgl.KeyEnter):
         k.reg.SendIn(0x80)
+    case win.Pressed(pixelgl.KeyBackspace):
+        k.reg.SendIn(0x08)
     default:
         k.reg.SendIn(0)
     }

@@ -25,6 +25,13 @@ func drawWord(w int, row int, column int) {
     return
 }
 
+func maskWord(m int, row int, column int) {
+    x := row << 5
+    x = x + column
+    screenstart[x] = screenstart[x] & m
+    return
+}
+
 // TODO: use bit(x,j) and bitwise ops
 func drawPixel(x int, y int) {
 }

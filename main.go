@@ -20,6 +20,7 @@ var stdlib = []string{
     "jack/dict.jack",
     "jack/screen.jack",
     "jack/output.jack",
+    "jack/keyboard.jack",
     "jack/lisp/lisp.jack",
     "jack/lisp/env.jack",
     "jack/lisp/procedure.jack",
@@ -27,7 +28,7 @@ var stdlib = []string{
     "jack/lisp/parser.jack",
 }
 
-var headless = true
+var headless = false
 var debug = false
 
 type charPrinter struct{}

@@ -11,14 +11,18 @@ func printString(s string) {
 }
 
 func printChar(c char) {
+    if c == 0x80 {
+        output.println()
+        return
+    }
     j := c - 32
     // j = j * 8
     j = j << 3 // TODO 8x11
-    uneven := math.bit(ccolumn, 0)
+    uneven := ccolumn & 1
     col := ccolumn / 2
     for i:=0; i<8; i++ {
         line := bitmaps[j+i]
-        if !uneven {
+        if uneven == 0 {
             line = line << 8
         }
         r := crow + i
@@ -28,11 +32,35 @@ func printChar(c char) {
     return
 }
 
+func printInt(x int) {
+    s := string.intString(x)
+    output.printString(s)
+    return
+}
+
 // advances the cursor once, spilling over to newline if needed
 func advanceCursor() {
     ccolumn = ccolumn + 1
     if ccolumn == 64 {
         output.println()
+    }
+    return
+}
+
+func backspace() {
+    if ccolumn == 0 {
+        return
+    }
+    ccolumn = ccolumn - 1
+    uneven := ccolumn & 1
+    col := ccolumn / 2
+    mask := 0x00ff
+    if uneven == 1 {
+        mask = mask << 8
+    }
+    for i:=0; i<8; i++ {
+        r := crow + i
+        screen.maskWord(mask, r, col)
     }
     return
 }
@@ -46,7 +74,6 @@ func println() {
 func init() {
     // TODO 8x11
     // TODO last line is always 0...
-    // TODO half size here as well?
     bitmaps = []int{
     // space
     0,0,0,0,0,0,0,0,
@@ -72,17 +99,52 @@ func init() {
     // '
     0,0,0,0,0,0,0,0,
     // (
-    0,0,0,0,0,0,0,0,
+    0x0018,
+    0x0030,
+    0x0060,
+    0x0060,
+    0x0060,
+    0x0030,
+    0x0018,
+    0x0000,
     // )
-    0,0,0,0,0,0,0,0,
+    0x0060,
+    0x0030,
+    0x0018,
+    0x0018,
+    0x0018,
+    0x0030,
+    0x0060,
+    0x0000,
     // *
-    0,0,0,0,0,0,0,0,
+    0x0000,
+    0x0066,
+    0x003C,
+    0x00FF,
+    0x003C,
+    0x0066,
+    0x0000,
+    0x0000,
     // +
-    0,0,0,0,0,0,0,0,
+    0x0000,
+    0x0030,
+    0x0030,
+    0x00FC,
+    0x0030,
+    0x0030,
+    0x0000,
+    0x0000,
     // ,
     0,0,0,0,0,0,0,0,
     // -
-    0,0,0,0,0,0,0,0,
+    0x0000,
+    0x0000,
+    0x0000,
+    0x00FC,
+    0x0000,
+    0x0000,
+    0x0000,
+    0x0000,
     // .
     0,0,0,0,0,0,0,0,
     // /
@@ -182,11 +244,25 @@ func init() {
     // ;
     0,0,0,0,0,0,0,0,
     // <
-    0,0,0,0,0,0,0,0,
+    0x0018,
+    0x0030,
+    0x0060,
+    0x00C0,
+    0x0060,
+    0x0030,
+    0x0018,
+    0x0000,
     // =
     0,0,0,0,0,0,0,0,
     // >
-    0,0,0,0,0,0,0,0,
+    0x0060,
+    0x0030,
+    0x0018,
+    0x000C,
+    0x0018,
+    0x0030,
+    0x0060,
+    0x0000,
     // ?
     0,0,0,0,0,0,0,0,
     // @

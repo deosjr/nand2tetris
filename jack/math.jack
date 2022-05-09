@@ -52,6 +52,12 @@ func bit(x int, j int) bool {
     return true
 }
 
+func mod(x int, n int) int {
+    d := x / n
+    d = d * n
+    return x - d
+}
+
 func init() {
     twoToThe = []int{
         1, 2, 4, 8, 16, 32, 64,

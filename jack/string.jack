@@ -4,8 +4,6 @@ type string struct {
 }
 
 func new(maxlen int) string {
-    maxlen = maxlen + 1
-    maxlen = maxlen / 2
     s := string{}
     s.length = 0
     s.arr = array.new(maxlen)
@@ -23,33 +21,11 @@ func (s string) length() int {
 }
 
 func (s string) charAt(j int) char {
-    i := j / 2
-    x := s.arr[i]
-    even := j & 1
-    // abusing truthy: if integer means if integer is not 0
-    // this means !even does _not_ work as you might expect
-    if even {
-        return x & 0x00ff
-    }
-    x = x << 8
-    return x & 0x00ff
+    return s.arr[j]
 }
 
 func (s string) setCharAt(j int, c char) {
-    i := j / 2
-    x := s.arr[i]
-    even := j & 1
-    if even {
-        x = x << 8
-    }
-    c = c << 8
-    x = x & 0x00ff
-    x = x | c
-    if even {
-        s.arr[i] = x << 8
-        return
-    }
-    s.arr[i] = x
+    s.arr[j] = c
     return
 }
 
@@ -60,6 +36,9 @@ func (s string) appendChar(c char) string {
 }
 
 func (s string) eraseLastChar() {
+    if s.length == 0 {
+        return
+    }
     s.length = s.length - 1
     return
 }
@@ -78,14 +57,11 @@ func (s string) equals(ss string) bool {
 
 // return -1 if s<ss, 0 if s==ss, 1 if s>ss
 // using true instead of -1 as that overflows constant...
-// NOTE we can compare two chars at a time now!
 func (s string) compare(ss string) int {
     min := s.length
     if s.length > ss.length {
         min = ss.length
     }
-    min = min + 1
-    min = min / 2
     for j:=0; j<min; j++ {
         d := s.arr[j] - ss.arr[j]
         if d < 0 {
@@ -102,4 +78,47 @@ func (s string) compare(ss string) int {
         return 1
     }
     return 0
+}
+
+func (s string) reverse() {
+    l := s.length()
+    var r string
+    r := string.new(l)
+    r.length = l
+    l = l - 1
+    for i:=0; i<=l; i++ {
+        r.arr[i] = s.arr[l-i]
+    }
+    return r
+}
+
+func intString(x int) string {
+    var s string
+    s := string.new(5)
+    for x > 0 {
+        m := math.mod(x, 10)
+        x = x / 10
+        s.appendChar(m + 48)
+    }
+    ss := s.reverse()
+    s.dispose()
+    return ss
+}
+
+// return the largest prefix of s that could be parsed into int as int
+func stringInt(s string) int {
+    x := 0
+    for i:=0; i<s.length(); i++ {
+        c := s.charAt(i)
+        if c < 48 {
+            return x
+        }
+        if c > 57 {
+            return x
+        }
+        c = c - 48
+        x = x * 10
+        x = x + c
+    }
+    return x
 }

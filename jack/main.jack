@@ -1,49 +1,28 @@
 // main function of Jack, with a Golang flavor
 func main() {
     math.init()
-    //screen.init()
-    //output.init()
+    screen.init()
+    output.init()
     lisp.init()
 
     var ss sexpr
 
-    s = "r"
-    r = sexpr.newAtom(0, s)
-    s = "*"
-    times = sexpr.newAtom(0, s)
-    ten = sexpr.newAtom(1, 10)
-    s = "pi"
-    pi = sexpr.newAtom(0, s)
-    s = "define"
-    define = sexpr.newAtom(0, s)
-    s = "begin"
-    begin = sexpr.newAtom(0, s)
-
-    left = sexpr.new(3, nil, ten, nil)
-    left = sexpr.new(3, nil, r, left)
-    left = sexpr.new(3, nil, define, left)
-
-    right = sexpr.new(3, nil, r, nil)
-    right = sexpr.new(3, nil, r, right)
-    right = sexpr.new(3, nil, times, right)
-    right = sexpr.new(3, nil, right, nil)
-    right = sexpr.new(3, nil, pi, right)
-    right = sexpr.new(3, nil, times, right)
-
-    ss = sexpr.new(3, nil, right, nil)
-    ss = sexpr.new(3, nil, left, ss)
-    ss = sexpr.new(3, nil, begin, ss)
-    ss.print(false)
-    print('\n')
-
     // TODO: http://norvig.com/lispy.html
     // except I dont deal with floats (yet?) so pi = 3
-    input := "(begin (define r 10) (* pi (* r r)))"
+    //input := "(begin (define r 10) (* pi (* r r)))"
+    input := "(if (> 10 20) (+ 1 1) (+ 3 3))"
     ss := lisp.parse(input)
-    ss.print(false)
-
     x = lisp.eval(ss)
-    print(x)
+    output.printInt(x) // 6
+
+    output.println()
+
+    // TODO: BEGIN vs begin
+    s := "> "
+    s = keyboard.readLine(s)
+    ss = lisp.parse(s)
+    x = lisp.eval(ss)
+    output.printInt(x)
 
     return
 }

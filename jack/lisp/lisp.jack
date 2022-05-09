@@ -1,15 +1,21 @@
 var sif string
 var sdefine string
-var smul string
 var sbegin string
+var sadd string
+var smul string
+var sgt string
+var slt string
 
 func init() {
     env.init()
     parser.init()
     sif = "if"
     sdefine = "define"
-    smul = "*"
     sbegin = "begin"
+    sadd = "+"
+    smul = "*"
+    sgt = ">"
+    slt = "<"
     return
 }
 
@@ -35,12 +41,21 @@ func evalEnv(x sexpr, env env) any {
     args := x.right
     // conditional
     if opstr.equals(sif) {
-        return
+        test := args.left
+        args = args.right
+        conseq := args.left
+        args = args.right
+        alt := args.left
+        if lisp.evalEnv(test, env) {
+            return lisp.evalEnv(conseq, env)
+        }
+        return lisp.evalEnv(alt, env)
     }
     // definition
     if opstr.equals(sdefine) {
         symbol := args.left
         args = args.right
+        // exp = args.left
         exp := lisp.evalEnv(args.left, env)
         m.insert(symbol.value, exp)
         return 0
@@ -53,8 +68,17 @@ func evalEnv(x sexpr, env env) any {
         args = args.right
     }
     // first hardcoded ones (easier than adding in globalenv)
+    if opstr.equals(sadd) {
+        return values[0] + values[1]
+    }
     if opstr.equals(smul) {
         return values[0] * values[1]
+    }
+    if opstr.equals(sgt) {
+        return values[0] > values[1]
+    }
+    if opstr.equals(slt) {
+        return values[0] < values[1]
     }
     if opstr.equals(sbegin) {
         return values[len-1]
