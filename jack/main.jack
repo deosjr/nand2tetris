@@ -17,12 +17,14 @@ func main() {
 
     output.println()
 
-    // TODO: BEGIN vs begin
-    s := "> "
-    s = keyboard.readLine(s)
-    ss = lisp.parse(s)
-    x = lisp.eval(ss)
-    output.printInt(x)
+    for {
+        s := "> "
+        s = keyboard.readLine(s)
+        ss = lisp.parse(s)
+        x = lisp.eval(ss)
+        output.printInt(x)
+        output.println()
+    }
 
     return
 }

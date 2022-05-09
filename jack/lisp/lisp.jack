@@ -2,6 +2,7 @@ var sif string
 var sdefine string
 var sbegin string
 var sadd string
+var ssub string
 var smul string
 var sgt string
 var slt string
@@ -13,6 +14,7 @@ func init() {
     sdefine = "define"
     sbegin = "begin"
     sadd = "+"
+    ssub = "-"
     smul = "*"
     sgt = ">"
     slt = "<"
@@ -70,6 +72,9 @@ func evalEnv(x sexpr, env env) any {
     // first hardcoded ones (easier than adding in globalenv)
     if opstr.equals(sadd) {
         return values[0] + values[1]
+    }
+    if opstr.equals(ssub) {
+        return values[0] - values[1]
     }
     if opstr.equals(smul) {
         return values[0] * values[1]

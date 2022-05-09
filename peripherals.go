@@ -189,38 +189,42 @@ func (k *SimpleKeyboard) ClockTick() {
     k.reg.ClockTick()
 }
 
-func shift(win *pixelgl.Window) bool {
-    return win.Pressed(pixelgl.KeyLeftShift) || win.Pressed(pixelgl.KeyRightShift)
+func upperIfShift(upper uint16, shift bool) uint16 {
+    if shift {
+        return upper
+    }
+    return upper + 32
 }
 
 func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
+    shift :=  win.Pressed(pixelgl.KeyLeftShift) || win.Pressed(pixelgl.KeyRightShift)
     switch {
     case win.Pressed(pixelgl.KeyComma):
-        if shift(win) {
+        if shift {
             k.reg.SendIn(0x3C)
         } else {
             k.reg.SendIn(0x2C)
         }
     case win.Pressed(pixelgl.KeyPeriod):
-        if shift(win) {
+        if shift {
             k.reg.SendIn(0x3E)
         } else {
             k.reg.SendIn(0x2E)
         }
     case win.Pressed(pixelgl.Key0):
-        if shift(win) {
+        if shift {
             k.reg.SendIn(0x29)
         } else {
             k.reg.SendIn(0x30)
         }
     case win.Pressed(pixelgl.Key1):
-        if shift(win) {
+        if shift {
             k.reg.SendIn(0x21)
         } else {
             k.reg.SendIn(0x31)
         }
     case win.Pressed(pixelgl.Key2):
-        if shift(win) {
+        if shift {
             k.reg.SendIn(0x40)
         } else {
             k.reg.SendIn(0x32)
@@ -236,13 +240,13 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
     case win.Pressed(pixelgl.Key7):
         k.reg.SendIn(0x37)
     case win.Pressed(pixelgl.Key8):
-        if shift(win) {
+        if shift {
             k.reg.SendIn(0x2A)
         } else {
             k.reg.SendIn(0x38)
         }
     case win.Pressed(pixelgl.Key9):
-        if shift(win) {
+        if shift {
             k.reg.SendIn(0x28)
         } else {
             k.reg.SendIn(0x39)
@@ -252,63 +256,63 @@ func (k *SimpleKeyboard) RunKeyboard(win *pixelgl.Window) {
     case win.Pressed(pixelgl.KeySemicolon):
         k.reg.SendIn(0x3B)
     case win.Pressed(pixelgl.KeyEqual):
-        if shift(win) {
+        if shift {
             k.reg.SendIn(0x2B)
         } else {
             k.reg.SendIn(0x3D)
         }
     case win.Pressed(pixelgl.KeyA):
-        k.reg.SendIn(0x41)
+        k.reg.SendIn(upperIfShift(0x41, shift))
     case win.Pressed(pixelgl.KeyB):
-        k.reg.SendIn(0x42)
+        k.reg.SendIn(upperIfShift(0x42, shift))
     case win.Pressed(pixelgl.KeyC):
-        k.reg.SendIn(0x43)
+        k.reg.SendIn(upperIfShift(0x43, shift))
     case win.Pressed(pixelgl.KeyD):
-        k.reg.SendIn(0x44)
+        k.reg.SendIn(upperIfShift(0x44, shift))
     case win.Pressed(pixelgl.KeyE):
-        k.reg.SendIn(0x45)
+        k.reg.SendIn(upperIfShift(0x45, shift))
     case win.Pressed(pixelgl.KeyF):
-        k.reg.SendIn(0x46)
+        k.reg.SendIn(upperIfShift(0x46, shift))
     case win.Pressed(pixelgl.KeyG):
-        k.reg.SendIn(0x47)
+        k.reg.SendIn(upperIfShift(0x47, shift))
     case win.Pressed(pixelgl.KeyH):
-        k.reg.SendIn(0x48)
+        k.reg.SendIn(upperIfShift(0x48, shift))
     case win.Pressed(pixelgl.KeyI):
-        k.reg.SendIn(0x49)
+        k.reg.SendIn(upperIfShift(0x49, shift))
     case win.Pressed(pixelgl.KeyJ):
-        k.reg.SendIn(0x4A)
+        k.reg.SendIn(upperIfShift(0x4A, shift))
     case win.Pressed(pixelgl.KeyK):
-        k.reg.SendIn(0x4B)
+        k.reg.SendIn(upperIfShift(0x4B, shift))
     case win.Pressed(pixelgl.KeyL):
-        k.reg.SendIn(0x4C)
+        k.reg.SendIn(upperIfShift(0x4C, shift))
     case win.Pressed(pixelgl.KeyM):
-        k.reg.SendIn(0x4D)
+        k.reg.SendIn(upperIfShift(0x4D, shift))
     case win.Pressed(pixelgl.KeyN):
-        k.reg.SendIn(0x4E)
+        k.reg.SendIn(upperIfShift(0x4E, shift))
     case win.Pressed(pixelgl.KeyO):
-        k.reg.SendIn(0x4F)
+        k.reg.SendIn(upperIfShift(0x4F, shift))
     case win.Pressed(pixelgl.KeyP):
-        k.reg.SendIn(0x50)
+        k.reg.SendIn(upperIfShift(0x50, shift))
     case win.Pressed(pixelgl.KeyQ):
-        k.reg.SendIn(0x51)
+        k.reg.SendIn(upperIfShift(0x51, shift))
     case win.Pressed(pixelgl.KeyR):
-        k.reg.SendIn(0x52)
+        k.reg.SendIn(upperIfShift(0x52, shift))
     case win.Pressed(pixelgl.KeyS):
-        k.reg.SendIn(0x53)
+        k.reg.SendIn(upperIfShift(0x53, shift))
     case win.Pressed(pixelgl.KeyT):
-        k.reg.SendIn(0x54)
+        k.reg.SendIn(upperIfShift(0x54, shift))
     case win.Pressed(pixelgl.KeyU):
-        k.reg.SendIn(0x55)
+        k.reg.SendIn(upperIfShift(0x55, shift))
     case win.Pressed(pixelgl.KeyV):
-        k.reg.SendIn(0x56)
+        k.reg.SendIn(upperIfShift(0x56, shift))
     case win.Pressed(pixelgl.KeyW):
-        k.reg.SendIn(0x57)
+        k.reg.SendIn(upperIfShift(0x57, shift))
     case win.Pressed(pixelgl.KeyX):
-        k.reg.SendIn(0x58)
+        k.reg.SendIn(upperIfShift(0x58, shift))
     case win.Pressed(pixelgl.KeyY):
-        k.reg.SendIn(0x59)
+        k.reg.SendIn(upperIfShift(0x59, shift))
     case win.Pressed(pixelgl.KeyZ):
-        k.reg.SendIn(0x5A)
+        k.reg.SendIn(upperIfShift(0x5A, shift))
     case win.Pressed(pixelgl.KeySpace):
         k.reg.SendIn(0x20)
     case win.Pressed(pixelgl.KeyEnter):

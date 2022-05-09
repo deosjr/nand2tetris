@@ -709,6 +709,8 @@ func (t *vmTranslator) translatePlus1(split []string) error {
                 "A=D+M\n",
             }, "\n\t"))
         }
+    case "pointer":
+        t.b.WriteString(fmt.Sprintf("\t@%d\n", n+3))
     case "temp":
         t.b.WriteString(fmt.Sprintf("\t@%d\n", n+5))
     case "static":
@@ -768,6 +770,8 @@ func (t *vmTranslator) translateMin1(split []string) error {
                 "A=D+M\n",
             }, "\n\t"))
         }
+    case "pointer":
+        t.b.WriteString(fmt.Sprintf("\t@%d\n", n+3))
     case "temp":
         t.b.WriteString(fmt.Sprintf("\t@%d\n", n+5))
     case "static":

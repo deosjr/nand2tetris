@@ -416,10 +416,13 @@ func (c *jackCompiler) push(expr ast.Expr) error {
                 }
                 c.b.WriteString(fmt.Sprintf("\tpush constant %s\n", bl.Value))
                 c.b.WriteString("\tpop that 0\n")
+                /*
                 c.b.WriteString("\tpush pointer 1\n")
                 c.b.WriteString("\tpush constant 1\n")
                 c.b.WriteString("\tadd\n")
                 c.b.WriteString("\tpop pointer 1\n")
+                */
+                c.b.WriteString("\tplus1 pointer 1\n")
             }
             c.b.WriteString("\tpush temp 1\n")
             return nil
