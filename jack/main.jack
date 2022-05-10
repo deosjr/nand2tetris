@@ -9,22 +9,17 @@ func main() {
 
     // TODO: http://norvig.com/lispy.html
     // except I dont deal with floats (yet?) so pi = 3
+    /*
     //input := "(begin (define r 10) (* pi (* r r)))"
-    input := "(if (> 10 20) (+ 1 1) (+ 3 3))"
+    //input := "(if (> 10 20) (+ 1 1) (+ 3 3))"
+    //input := "(begin (define circlearea (lambda (r) (* pi (* r r)))) (circlearea 3))"
+    input := "(begin (define twice (lambda (x) (* 2 x))) (define repeat (lambda (f) (lambda (x) (f (f x))))) ((repeat twice) 10))"
     ss := lisp.parse(input)
     x = lisp.eval(ss)
-    output.printInt(x) // 6
-
+    output.printInt(x) // 40
     output.println()
+    */
 
-    for {
-        s := "> "
-        s = keyboard.readLine(s)
-        ss = lisp.parse(s)
-        x = lisp.eval(ss)
-        output.printInt(x)
-        output.println()
-    }
-
+    lisp.repl()
     return
 }

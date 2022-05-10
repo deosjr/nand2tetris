@@ -1,13 +1,18 @@
 type procedure struct {
-    params array
+    params sexpr
     body sexpr
     env env
 }
 
-func new(params array, body sexpr, env env) procedure {
+func new(params sexpr, body sexpr, env env) procedure {
     p := procedure{}
     p.params = params
     p.body = body
     p.env = env
     return p
+}
+
+func (p procedure) call(args array) sexpr {
+    e := env.newFromProc(p.params, args, p.env)
+    return lisp.evalEnv(p.body, e)
 }

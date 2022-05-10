@@ -1,6 +1,7 @@
 var sif string
 var sdefine string
 var sbegin string
+var slambda string
 var sadd string
 var ssub string
 var smul string
@@ -13,6 +14,7 @@ func init() {
     sif = "if"
     sdefine = "define"
     sbegin = "begin"
+    slambda = "lambda"
     sadd = "+"
     ssub = "-"
     smul = "*"
@@ -21,16 +23,30 @@ func init() {
     return
 }
 
+func repl() {
+    for {
+        s := "> "
+        s = keyboard.readLine(s)
+        ss = lisp.parse(s)
+        x = lisp.eval(ss)
+        output.printInt(x)
+        output.println()
+    }
+}
+
 func eval(x sexpr) sexpr {
     e := env.global()
     return lisp.evalEnv(x, e)
 }
 
-func evalEnv(x sexpr, env env) any {
+func evalEnv(x sexpr, e env) any {
     t := x.typ
-    m := env.m
+    m := e.m
     // variable reference
     if t == 0 { // symbol
+        var inner env
+        inner := e.find(x.value)
+        m = inner.m
         return m.search(x.value)
     }
     // constant number
@@ -48,25 +64,34 @@ func evalEnv(x sexpr, env env) any {
         conseq := args.left
         args = args.right
         alt := args.left
-        if lisp.evalEnv(test, env) {
-            return lisp.evalEnv(conseq, env)
+        if lisp.evalEnv(test, e) {
+            return lisp.evalEnv(conseq, e)
         }
-        return lisp.evalEnv(alt, env)
+        return lisp.evalEnv(alt, e)
     }
     // definition
     if opstr.equals(sdefine) {
         symbol := args.left
         args = args.right
         // exp = args.left
-        exp := lisp.evalEnv(args.left, env)
+        exp := lisp.evalEnv(args.left, e)
         m.insert(symbol.value, exp)
         return 0
+    }
+    // procedure
+    var p procedure
+    if opstr.equals(slambda) {
+        params := args.left
+        args = args.right
+        body := args.left
+        p := procedure.new(params, body, e)
+        return sexpr.newAtom(5, p)
     }
     // procedure call
     len := args.length()
     values := array.new(len)
     for i:=0; i<len; i++ {
-        values[i] = lisp.evalEnv(args.left, env)
+        values[i] = lisp.evalEnv(args.left, e)
         args = args.right
     }
     // first hardcoded ones (easier than adding in globalenv)
@@ -88,9 +113,11 @@ func evalEnv(x sexpr, env env) any {
     if opstr.equals(sbegin) {
         return values[len-1]
     }
-    // then user-defined procedures
-    proc := lisp.evalEnv(op, env)
-    return 0
+    // then procedures defined by user
+    var proc sexpr
+    proc := lisp.evalEnv(op, e)
+    p = proc.value
+    return p.call(values)
 }
 
 func parse(program string) sexpr {

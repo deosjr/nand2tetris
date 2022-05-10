@@ -11,6 +11,7 @@ type sexpr struct {
 // atom   = 2 = symbol OR number
 // list   = 3 = NOT atom
 // expr   = 4 = atom OR list
+// proc   = 5 = lambda
 
 func new(typ int, value any, left sexpr, right sexpr) sexpr {
     s := sexpr{}
