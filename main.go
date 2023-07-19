@@ -134,7 +134,8 @@ func run(computer *Computer, debugger Debugger) {
             debugger.AfterTick(computer)
         }
         // NOTE: without this sleep, output printing can lag behind program ending!
-        time.Sleep(10*time.Nanosecond)
+        //time.Sleep(10*time.Nanosecond)
+        time.Sleep(10000*time.Nanosecond)
         //time.Sleep(10*time.Millisecond)
         // NOTE: this halts running the computer after finding a tight loop
         if pprev == computer.cpu.PC() {

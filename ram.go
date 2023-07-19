@@ -9,7 +9,7 @@ type RAM8 struct {
 }
 
 func NewRAM8(in, out chan [16]bit, addr chan [3]bit, load chan bit) RAM8 {
-    ins := fanout16(in, 8)
+    ins := fanout(in, 8)
     registers := make([]Register, 8)
     for i:=0; i<8; i++ {
         rout := make(chan [16]bit, 1)
@@ -28,7 +28,7 @@ func NewRAM8(in, out chan [16]bit, addr chan [3]bit, load chan bit) RAM8 {
 func (ram8 RAM8) Run(clock chan bit) {
     go Run(clock, ram8.registers[0], ram8.registers[1], ram8.registers[2], ram8.registers[3],
         ram8.registers[4], ram8.registers[5], ram8.registers[6], ram8.registers[7])
-    addrs := fanout3(ram8.Address, 2)
+    addrs := fanout(ram8.Address, 2)
     // combinational in
     go func(addr chan [3]bit) {
         var address [3]bit
@@ -80,7 +80,7 @@ type RAM64 struct {
 }
 
 func NewRAM64(in, out chan [16]bit, addr chan [6]bit, load chan bit) RAM64 {
-    ins := fanout16(in, 8)
+    ins := fanout(in, 8)
     ram8s := make([]RAM8, 8)
     for i:=0; i<8; i++ {
         rout := make(chan [16]bit, 1)
@@ -100,7 +100,7 @@ func NewRAM64(in, out chan [16]bit, addr chan [6]bit, load chan bit) RAM64 {
 func (ram64 RAM64) Run(clock chan bit) {
     go Run(clock, ram64.ram8s[0], ram64.ram8s[1], ram64.ram8s[2], ram64.ram8s[3],
         ram64.ram8s[4], ram64.ram8s[5], ram64.ram8s[6], ram64.ram8s[7])
-    addrs := fanout6(ram64.Address, 2)
+    addrs := fanout(ram64.Address, 2)
     // combinational in
     go func(addr chan [6]bit) {
         var addrHigh [3]bit
@@ -158,7 +158,7 @@ type RAM512 struct {
 }
 
 func NewRAM512(in, out chan [16]bit, addr chan [9]bit, load chan bit) RAM512 {
-    ins := fanout16(in, 8)
+    ins := fanout(in, 8)
     ram64s := make([]RAM64, 8)
     for i:=0; i<8; i++ {
         rout := make(chan [16]bit, 1)
@@ -179,7 +179,7 @@ func NewRAM512(in, out chan [16]bit, addr chan [9]bit, load chan bit) RAM512 {
 func (ram512 RAM512) Run(clock chan bit) {
     go Run(clock, ram512.ram64s[0], ram512.ram64s[1], ram512.ram64s[2], ram512.ram64s[3],
         ram512.ram64s[4], ram512.ram64s[5], ram512.ram64s[6], ram512.ram64s[7])
-    addrs := fanout9(ram512.Address, 2)
+    addrs := fanout(ram512.Address, 2)
     // combinational in
     go func(addr chan [9]bit) {
         var addrHigh [3]bit
@@ -237,7 +237,7 @@ type RAM4K struct {
 }
 
 func NewRAM4K(in, out chan [16]bit, addr chan [12]bit, load chan bit) RAM4K {
-    ins := fanout16(in, 8)
+    ins := fanout(in, 8)
     rams := make([]RAM512, 8)
     for i:=0; i<8; i++ {
         rout := make(chan [16]bit, 1)
@@ -257,7 +257,7 @@ func NewRAM4K(in, out chan [16]bit, addr chan [12]bit, load chan bit) RAM4K {
 func (r RAM4K) Run(clock chan bit) {
     go Run(clock, r.rams[0], r.rams[1], r.rams[2], r.rams[3],
         r.rams[4], r.rams[5], r.rams[6], r.rams[7])
-    addrs := fanout12(r.Address, 2)
+    addrs := fanout(r.Address, 2)
     // combinational in
     go func(addr chan [12]bit) {
         var addrHigh [3]bit
