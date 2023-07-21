@@ -1,6 +1,6 @@
 module github.com/deosjr/nand2tetris
 
-go 1.21
+go 1.20
 
 require github.com/faiface/pixel v0.10.0
 

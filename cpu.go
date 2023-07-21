@@ -282,6 +282,8 @@ func (cpu *BarrelShiftCPU) decode() (bit, bit, bit, [7]bit, [3]bit, [3]bit) {
     return isC, pcrl, shift, comp, dest, jump
 }
 
+// NOTE: I don't think jumps will work when using the shift instruction
+// since zr/ng are still based on alu output (which will be nonsensical)
 func (b *BarrelShiftCPU) evalALU() (out uint16, zr, ng bit) {
     _, _, shift, c, _, _ := b.decode()
     x := toBit16(b.d.Out())
