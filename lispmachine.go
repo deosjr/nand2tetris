@@ -28,6 +28,8 @@ package main
 // CONS vm instruction uses SETCAR and SETCDR instrs and creates the pointer to return
 // the vm level is also where 'free' lives (?!), we cant calculate pointer without it
 // CAR/CDR vm level instructions
+// ASSQ is a vm level instruction that takes a key and a pointer to a cons cell
+// which is assumed to be an assoc list, and returns value associated with key or NIL
 
 // renamed Computer
 // TODO: could be an interface instead, see peripherals
@@ -232,18 +234,27 @@ func (b *LispCPU) evalALU() (outCar, outCdr uint16, zr, ng bit) {
 
 // type info of a 16 bit word: ISPROC ISATOM ISSYMBOL
 // if not ISPROC, then ISEXPR
-// for isproc, next bit defined builtin or no, not sure if meaningful
+// for isproc, next bit defines whether it is special(1) or not(0)
+// and the one after that defines builtin(1) or userdefined(0)
+// special procs do not eval their arguments before calling
 // if ISEXPR bit not ISATOM then ISPAIR
-// A pair is a pointer into memory!
+// A pair is a pointer to a cons cell in memory (heap)!
+// if ISPAIR then third bit defines emptylist if set
 // if ISEXPR and ISATOM but not ISSYMBOL then ISPRIMITIVE
-// this way pairs can start with 000, ie everything in mem at start
-// the pair at 0 (p0, ie 0x0) is NIL
-func typeInfo(x [16]bit) (isExpr, isAtom, isSymb, isProc, isPair, isPrim bit) {
+// NOTE: all types have cdr set to 0x0000 except PAIR, for pair thats an error
+// without this we cant distinguish (n . 0) and n in memory!
+// this func only checks the prefix of CAR
+// NOTE: this means EQL checks can be fast (1 instr) on pointers
+// but comparing cons cells means comparing both CAR and CDR of each
+func typeInfo(x [16]bit) (isExpr, isAtom, isSymb, isProc, isSpecial, isBuiltin, isPair, isEmptyList, isPrim bit) {
     isExpr = Not(x[0])
     isAtom = And(isExpr, x[1])
     isSymb = And(isAtom, x[2])
     isProc = x[0]
+    isSpecial = And(isProc, x[1])
+    isBuiltin = And(isProc, x[2])
     isPair = And(isExpr, Not(x[1]))
+    isEmptyList = And(isPair, x[2])
     isPrim = And(isAtom, Not(x[2]))
     return
 }

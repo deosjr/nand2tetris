@@ -23,12 +23,18 @@ func NewSim() *sim {
 }
 
 func (s *sim) run(program []string) {
+    i := 0
     for {
+        i++
+        if i > 10000 {
+            // prevent infinite loops
+            break
+        }
         if int(s.pc) >= len(program) {
             break
         }
         instr := program[s.pc]
-        //fmt.Println(instr)
+        //fmt.Println(s.pc, instr)
         n, err := strconv.Atoi(instr)
         if err == nil {
             s.a = uint16(n)
@@ -52,10 +58,18 @@ func (s *sim) run(program []string) {
                 s.pc = s.a
                 continue
             }
+        case "D;JNE":
+            if s.d != 0 {
+                s.pc = s.a
+                continue
+            }
         // new in lispmachine
+        // some of these might overlap; still playing around with which ones
+        // i would need in order to build the simplest eval
         case "SETCAR D": // so currently equivalent to M=D. Maybe not if we introduce another register though
             s.ramCar[s.a] = s.d
         case "SETCDR D":
+            // with the added dest in Cinstr, this could just be MCDR=D
             s.ramCdr[s.a] = s.d
         case "D=EQLAD":
             if s.a == s.d {
@@ -71,6 +85,47 @@ func (s *sim) run(program []string) {
             }
         case "D=MCDR":
             s.d = s.ramCdr[s.a]
+        case "D=ISSYM":
+            if s.ramCdr[s.a] != 0 {
+                s.d = 0
+                s.pc += 1
+                continue
+            }
+            // bit prefix should be 011
+            m := s.ramCar[s.a]
+            if !nthBit(m, 15) && nthBit(m, 14) && nthBit(m, 13) {
+                s.d = 0xffff
+            } else {
+                s.d = 0
+            }
+        case "D=ISPRIM":
+            if s.ramCdr[s.a] != 0 {
+                s.d = 0
+                s.pc += 1
+                continue
+            }
+            // bit prefix should be 010
+            m := s.ramCar[s.a]
+            if !nthBit(m, 15) && nthBit(m, 14) && !nthBit(m, 13) {
+                s.d = 0xffff
+            } else {
+                s.d = 0
+            }
+        case "D=CDRISEMPTY":
+            // bit prefix should be 001
+            m := s.ramCdr[s.a]
+            if !nthBit(m, 15) && !nthBit(m, 14) && nthBit(m, 13) {
+                s.d = 0xffff
+            } else {
+                s.d = 0
+            }
+        /*
+        // JMP if M (or D) is type:
+        // this will only work (or save instr) if we would have another register
+        case "JMPISSYM":
+        case "JMPISPRIM":
+        case "JMPISEMPTY":
+        */
         // bonus for debug
         case "RET":
             return
