@@ -23,7 +23,7 @@ func TestLispMachine(t *testing.T) {
         },
         {
             // load 5, move A to D, load 0, move D to M
-            program: []uint16{0x5, 0xD820, 0x0, 0xC610},
+            program: []uint16{0x5, 0xEC10, 0x0, 0xE308},
             n: 4,
             wantOutCarM: 5,
             wantWriteCarM: true,

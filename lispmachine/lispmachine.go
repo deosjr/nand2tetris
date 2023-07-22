@@ -3,15 +3,14 @@ package main
 // start by copying some builtins over from the nand2tetris builtin definitions
 
 // instruction table change:
-// we move everything up one bit to the left, adding one to 'dest' of C-instr
-// because we will have two M's: a car and a cdr of the pair
-// we can read/write separately from/to those, but A is still the sole instruction register
-// this leaves only one bit in the instruction unused: the second one
-// we will use this bit to indicate bypassing the ALU (similar to how bitshiftCPU works)
+// We will have two M's: a car and a cdr of the pair
+// We can read/write separately from/to those, but A is still the sole instruction register
+// we will use the second bit to indicate bypassing the ALU (similar to how bitshiftCPU works)
 // and we'll add lisp builtin machine instructions this way
 // we will use a stack-based vm similar to the hack vm for the lisp machine
+// third bit unused as of now
 
-// As for types, we use the same as in desojr/whistle:
+// As for types, we use the same as in deosjr/whistle:
 // sexpression bool flags
 // isExpression isAtom    isSymbol
 // else Proc    else Pair else Primitive
@@ -116,14 +115,18 @@ func (m *LispMemory) SendIn(inCar, inCdr uint16) {
 // TODO: is there a bug here where load remains high on screen
 // when ram.SendLoad is called?
 func (m *LispMemory) SendLoad(loadCar, loadCdr bool) {
-    m.sendLoad(m.ramCar, loadCar)
-    m.sendLoad(m.ramCdr, loadCdr)
+    m.sendLoad(m.ramCar, loadCar, true)
+    m.sendLoad(m.ramCdr, loadCdr, false)
 }
 
-func (m *LispMemory) sendLoad(ram *BuiltinRAM16K, load bool) {
+// NOTE: peripherals are called twice atm!
+func (m *LispMemory) sendLoad(ram *BuiltinRAM16K, load, sendToPeripherals bool) {
     bit1, address := splitaddr(m.address)
     if bit1 == 0 {
         ram.SendLoad(load)
+        return
+    }
+    if !sendToPeripherals {
         return
     }
     // NOTE first two bits have been masked to 0 here already
@@ -187,6 +190,17 @@ func (m *LispMemory) ClockTick() {
     m.writer.ClockTick()
 }
 
+type CPU interface {
+    SendInM(uint16)
+    SendInstr(uint16)
+    SendReset(bool)
+    OutM() uint16
+    WriteM() bool
+    AddressM() uint16
+    PC() uint16
+    ClockTick()
+}
+
 type LispCPU struct {
     inCarM uint16
     inCdrM uint16
@@ -207,19 +221,20 @@ func NewLispCPU() *LispCPU {
     }
 }
 
-func (cpu *LispCPU) decode() (bit, bit, [7]bit, [4]bit, [3]bit) {
+func (cpu *LispCPU) decode() (bit, bit, bit, [7]bit, [3]bit, [3]bit) {
     b := toBit16(cpu.instr)
     isC := b[0]    // isA if false
     useAlu := b[1] // if false, bypass ALU and use lisp machine instructions
-    comp := [7]bit{b[2], b[3], b[4], b[5], b[6], b[7], b[8]}
-    dest := [4]bit{b[9], b[10], b[11], b[12]}
+    // b[2] is still free! lets use it as 'write to mcdr' for now
+    comp := [7]bit{b[3], b[4], b[5], b[6], b[7], b[8], b[9]}
+    dest := [3]bit{b[10], b[11], b[12]}
     jump := [3]bit{b[13], b[14], b[15]}
-    return isC, useAlu, comp, dest, jump
+    return isC, useAlu, b[2], comp, dest, jump
 }
 
 // TODO: typecheck some of this to only happen on primitives?
 func (b *LispCPU) evalALU() (outCar, outCdr uint16, zr, ng bit) {
-    _, useALU, c, _, _ := b.decode()
+    _, useALU, _, c, _, _ := b.decode()
     x := toBit16(b.d.Out())
     y := Mux16(toBit16(b.a.Out()), toBit16(b.inCarM), c[0])
     var o [16]bit
@@ -259,26 +274,49 @@ func typeInfo(x [16]bit) (isExpr, isAtom, isSymb, isProc, isSpecial, isBuiltin, 
     return
 }
 
-func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f bit) (car, cdr [16]bit, typeErr bit) {
+func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f bit) (car, cdr [16]bit, typeOK bit) {
     true16 := toBit16(0xffff)
     false16 := toBit16(0x0000)
     // TODO decide by control bits
-    x, y := regD, inCarM
-    and16 := And16(x, y)
+    and16 := And16(regD, inCarM)
     sameType := And(and16[0], And(and16[1], and16[2]))
-    // TODO: switch on a-f bits using gates
-    // SETCAR / SETCDR: setcar is mostly useless, but only way to set smth to inCdrM
-    // lispALU is only way to write to outCdrM, hence setcdr here.
+    // TODO: switch on a-f bits using gates/mux
+    switch {
+    // SETCAR is an alias for M=D from the normal ALU. setting M to D is implicit, no other options make sense
+    // SETCDR: lispALU is only way to write to outCdrM, hence setcdr here.
     // setting both at the same time would need another register (or only write same value to both)
+    // NOTE: SETCDR needs b2 to be set as well atm!
+    case bool(a) && bool(b) && bool(c) && bool(d) && bool(e) && bool(f): // SETCDR
+        return regD, regD, true
     // so CONS is a vm instruction that uses SETCAR/SETCDR for now
-    // ISPAIR: returns boolean true or boolean false based on typecheck
+    // MCDR: set D to the cdr of register indexed by A
+    // NOTE: MCDR needs dest set to D
+    case !bool(a) && bool(b) && bool(c) && bool(d) && bool(e) && bool(f): // MCDR
+        return inCdrM, inCdrM, true
+    // ISPAIR: sets D to boolean true or boolean false based on typecheck of M
+    // all of the typeinfo variants exist, so ISEXPR and ISATOM and so forth
+    // all of them check type of pointers; to check type of cell in memory, more is needed
+    case !bool(a) && !bool(b) && bool(c): // check type prefix of car against d/e/f
+        eql := And(And(d, inCarM[0]), And(And(e, inCarM[1]), And(f, inCarM[2])))
+        out := Mux16(false16, true16, eql)
+        return out, out, true
+    // EMPTYCDR: sets D to boolean true or false based on whether cdr of M is emptylist
+    case !bool(a) && !bool(b) && !bool(c): // check type prefix of cdr against d/e/f
+        eql := And(And(d, inCdrM[0]), And(And(e, inCdrM[1]), And(f, inCdrM[2])))
+        out := Mux16(false16, true16, eql)
+        return out, out, true
     // EQL: used to check equality of lisp types. simple nested AND, 0xffff if true otherwise 0x0000
-    eql := sameType
-    for _, n := range and16[3:] {
-        eql = And(eql, n)
+    // split into two actual instructions: EQLA and EQLM, both write to D
+    case !bool(a) && bool(b) && !bool(c) && bool(d) && bool(e) && bool(f): // EQLM
+        eql := sameType
+        for _, n := range and16[3:] {
+            eql = And(eql, n)
+        }
+        out := Mux16(false16, true16, eql)
+        return out, out, sameType
     }
-    out := Mux16(false16, true16, eql)
-    return out, out, sameType
+    // default: return an error
+    return inCarM, inCdrM, false
 }
 
 func (b *LispCPU) SendInCarM(in uint16) {
@@ -306,13 +344,13 @@ func (b *LispCPU) OutCdrM() uint16 {
 }
 
 func (b *LispCPU) WriteCarM() bool {
-    isC, _, _, dest, _ := b.decode()
+    isC, _, _, _, dest, _ := b.decode()
     return bool(And(isC, dest[2]))
 }
 
 func (b *LispCPU) WriteCdrM() bool {
-    isC, _, _, dest, _ := b.decode()
-    return bool(And(isC, dest[3]))
+    isC, useAlu, b2, _, _, _ := b.decode()
+    return bool(And(And(isC, Not(useAlu)), b2))
 }
 
 func (b *LispCPU) AddressM() uint16 {
@@ -324,11 +362,12 @@ func (b *LispCPU) PC() uint16 {
 }
 
 func (b *LispCPU) ClockTick() {
-    outCarM, _, isZero, isNeg := b.evalALU()
+    outCarM, outCdrM, isZero, isNeg := b.evalALU()
     b.outCarM = outCarM
+    b.outCdrM = outCdrM
     isPos := And(Not(isNeg), Not(isZero))
     outA := b.a.Out()
-    isC, _, _, dest, jump := b.decode()
+    isC, useAlu, _,  _, dest, jump := b.decode()
 
     // NOTE: currently if alu is bypassed, jump is not reliable and shouldnt ever be used
     jgt := And(And(Not(jump[0]), And(Not(jump[1]), jump[2])), isPos)
@@ -338,7 +377,7 @@ func (b *LispCPU) ClockTick() {
     jne := And(And(jump[0], And(Not(jump[1]), jump[2])), Not(isZero))
     jle := And(And(jump[0], And(jump[1], Not(jump[2]))), Or(isZero, isNeg))
     jmp := And(jump[0], And(jump[1], jump[2]))
-    shouldJump := bool(And(isC, Or(jgt, Or(jeq, Or(jge, Or(jlt, Or(jne, Or(jle, jmp))))))))
+    shouldJump := bool(And(And(isC, useAlu), Or(jgt, Or(jeq, Or(jge, Or(jlt, Or(jne, Or(jle, jmp))))))))
 
     b.pc.SendIn(outA)
     // we either jump or incr pc, never both
