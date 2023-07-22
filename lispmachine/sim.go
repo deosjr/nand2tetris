@@ -135,3 +135,22 @@ func (s *sim) run(program []string) {
         s.pc += 1
     }
 }
+
+func pair(n int) uint16 {
+    return uint16(n) // | 0b0000000000000000
+}
+func emptylist() uint16 {
+    return uint16(0b0010000000000000)
+}
+func symbol(n int) uint16 {
+    return uint16(n) | 0b0110000000000000
+}
+func primitive(n int) uint16 {
+    return uint16(n) | 0b0100000000000000
+}
+func special(n int) uint16 {
+    return uint16(n) | 0b1110000000000000
+}
+func builtin(n int) uint16 {
+    return uint16(n) | 0b1010000000000000
+}

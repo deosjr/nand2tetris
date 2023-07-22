@@ -329,11 +329,10 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
     // firstpass
     statements := []ast.Stmt{}
     labels := map[string]uint16{
-        "SP":       0x0000,
-        "LCL":      0x0001,
-        "ARG":      0x0002,
-        "THIS":     0x0003,
-        "THAT":     0x0004,
+        "NIL":      0x0000,
+        "SP":       0x0001,
+        "ENV":      0x0002,
+        "ARG":      0x0003,
         "R0":       0x0000,
         "R1":       0x0001,
         "R2":       0x0002,
@@ -437,15 +436,15 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                 case "EQLA":
                     program = append(program, 0b0)
                 case "EQLM":
-                    program = append(program, 0b0)
+                    program = append(program, 0b1000010111010000)
                 case "MCDR":
                     program = append(program, 0b1000011111010000)
                 case "ISSYMB":
-                    program = append(program, 0b0)
+                    program = append(program, 0b1000001011010000)
                 case "ISPRIM":
-                    program = append(program, 0b0)
-                case "EMPRYCDR":
-                    program = append(program, 0b0)
+                    program = append(program, 0b1000001010010000)
+                case "EMPTYCDR":
+                    program = append(program, 0b1000000001010000)
                 default:
                     posFrom := fset.Position(bl.ValuePos)
                     return nil, fmt.Errorf("%s: invalid instr: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])

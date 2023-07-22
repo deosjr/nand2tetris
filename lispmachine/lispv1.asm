@@ -1,20 +1,84 @@
-    @0x48
+//(START)
+    @100
     D=A
-    @0
-    SETCAR
-    @0x49
+    @ENV
+    M=D
+    @111
     D=A
-    @0
-    SETCDR
-    // ram[0] should have (x48 . x49 )
-    @0
-    D=M     // D = CAR of RAM[0]
+    @ARG
+    M=D
+(EVAL)
+    @ARG
+    A=M
+    ISSYMB
+    @EVALSYMBOL
+    D;JNE
+    @ARG
+    A=M
+    ISPRIM
+    @EVALPRIM
+    D;JNE
+    // TODO fallthrough: procedure call
+    // which includes if/define and other special funcs checked first
+    @END
+    0;JMP
+(EVALSYMBOL)
+    @ENV
+    D=M
+    @R12
+    M=D
+    @ARG
+    A=M
+    D=M
+    @R11
+    M=D
+    @ASSQ
+    0;JMP
+(EVALPRIM)
+    @ARG
+    A=M
+    D=M
     @0x6002
     M=D
-    @0
-    MCDR    // D = CDR of RAM[0]
+    @END
+    0;JMP
+(ASSQ)
+    // assume @R11 = K and @R12 = P
+    @R12
+    A=M
+    A=M
+    D=M
+    @R11
+    EQLM
+    @ASSQCONTINUE
+    D;JEQ
+    // here K == D !
+    @R12
+    A=M
+    A=M
+    MCDR
     @0x6002
     M=D
+    @END
+    0;JMP
+(ASSQCONTINUE)
+    @R12
+    A=M
+    EMPTYCDR 
+    @FAILTOFIND
+    D;JNE
+    @R12
+    A=M
+    MCDR
+    @R12
+    M=D
+    @ASSQ
+    0;JMP
+(FAILTOFIND)
+    @END
+    0;JMP
+//(PLUS)
+// TODO
 (END)
     @END
     0;JMP

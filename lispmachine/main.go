@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "strconv"
+    //"strconv"
     "time"
 )
 
@@ -20,6 +20,20 @@ func main() {
     fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
     computer.data_mem.writer.LoadOutputWriter(charPrinter{})
+
+    // setup data, see sim_test
+    for i:=100; i<105; i++ {
+        computer.data_mem.ramCar.mem[i] = pair(i+5)
+        computer.data_mem.ramCdr.mem[i] = pair(i+1)
+        computer.data_mem.ramCar.mem[i+5] = symbol(i-99)
+        computer.data_mem.ramCdr.mem[i+5] = primitive(i-94)
+        if i == 104 {
+            computer.data_mem.ramCdr.mem[i] = emptylist()
+            computer.data_mem.ramCdr.mem[i+5] = builtin(0) // PLUS
+        }
+    }
+    computer.data_mem.ramCar.mem[111] = primitive(42) // expect prim(42) = 0x402a
+    //computer.data_mem.ramCar.mem[111] = symbol(2)       // expect prim(7) = 0x4007
 
     var debugger Debugger
     if debug {
@@ -81,9 +95,9 @@ func (sd *standardDebugger) BeforeTick(c *LispMachine) {
 
 func (sd *standardDebugger) AfterTick(c *LispMachine) {
     //fmt.Printf(" %04x %04x %04x\n", c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.OutCarM())
-    fmt.Printf("%03d: %04x %04x %04x %04x", c.cpu.pc.Out(), c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.OutCarM(), c.cpu.OutCdrM())
-    fmt.Printf(" %04x %04x", c.data_mem.ramCar.mem[0], c.data_mem.ramCdr.mem[0])
-    fmt.Printf(" %04x %04x\n", c.data_mem.writer.(*tapeWriter).reg.in, c.data_mem.writer.(*tapeWriter).reg.out)
+    fmt.Printf("%03d: %04x %04x %04x %04x", c.cpu.pc.Out(), c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.inCarM, c.cpu.inCdrM)
+    fmt.Println()
+    //fmt.Printf(" %04x %04x\n", c.data_mem.ramCar.mem[0], c.data_mem.ramCdr.mem[0])
     // TODO: wait for keyboard press to make step-through debugger
     //fmt.Println()
 }
@@ -91,11 +105,14 @@ func (sd *standardDebugger) AfterTick(c *LispMachine) {
 type charPrinter struct{}
 
 func (cp charPrinter) Write(p []byte) (int, error) {
+    fmt.Println(string(p))
+    /*
     // some big assumptions here on how tapeWriter writes
     x, err := strconv.ParseInt(string(p)[:4], 16, 16)
     if err != nil {
         return 0, err
     }
     fmt.Printf("%c", x)
+    */
     return len(p), nil
 }
