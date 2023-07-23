@@ -1,0 +1,10 @@
+// Two more functions are considered part of sys
+// but their implementation is given directly in 
+// the translator, in assembly code
+// These are call and return
+
+function init
+    push constant 0   // each func HAS to take one arg!
+    call main.main
+label end
+    goto end

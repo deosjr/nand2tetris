@@ -1,0 +1,13 @@
+function main
+    push constant 2
+    push constant 3
+    cons
+    // free starts at 2048
+    push constant 2048
+    car
+    write
+    push constant 2048
+    cdr
+    write
+    push constant 0 // void return
+    return

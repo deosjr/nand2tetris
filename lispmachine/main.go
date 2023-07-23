@@ -9,7 +9,14 @@ import (
 var debug = false
 
 func main() {
-    program, err := Assemble("lispv1.asm")
+//    program, err := Assemble("lispv1.asm")
+    asm, err := Translate([]string{"vm/main.vm"})
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    //fmt.Println(asm)
+    program, err := assembleFromString(asm)
     if err != nil {
         fmt.Println(err)
         return
