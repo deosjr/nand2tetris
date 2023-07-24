@@ -294,6 +294,8 @@ func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f bit) (car, cdr
     // ISPAIR: sets D to boolean true or boolean false based on typecheck of M
     // all of the typeinfo variants exist, so ISEXPR and ISATOM and so forth
     // all of them check type of pointers; to check type of cell in memory, more is needed
+    // NOTE: only symbol/primitive/emptylist works like this, other checks are masks!
+    // ie ISPROC only checks first bit
     case !bool(a) && !bool(b) && bool(c): // check type prefix of car against d/e/f
         eql := And(Not(Xor(d, inCarM[0])), And(Not(Xor(e, inCarM[1])), Not(Xor(f, inCarM[2]))))
         out := Mux16(false16, true16, eql)

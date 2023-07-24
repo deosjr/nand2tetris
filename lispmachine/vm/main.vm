@@ -1,13 +1,11 @@
 function main
-    push constant 2
-    push constant 3
+    push constant 100   // pointer to ENV, set in main.go
+    push constant 16426 // primitive(42)
+    push constant 24578 // symbol(2)
+    // push constant 8192  // 0x2000 = emptylist
     cons
-    // free starts at 2048
-    push constant 2048
-    car
-    write
-    push constant 2048
-    cdr
+    cons
+    call eval.eval
     write
     push constant 0 // void return
     return

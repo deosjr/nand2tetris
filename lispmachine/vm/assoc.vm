@@ -1,0 +1,33 @@
+// (assq assoclist key) -> value associated with key, or NIL if error
+// so much more inefficient than the handwritten assembly code...
+function assq
+    push argument
+    car
+    pop r 5
+    push argument
+    cdr
+    car
+    pop r 6
+label loop
+    push r 5
+    car
+    car
+    push r 6
+    equal
+    if-goto found
+    push r 5
+    cdr
+    is-emptylist
+    if-goto failtofind
+    push r 5
+    cdr
+    pop r 5
+    goto loop
+label found
+    push r 5
+    car
+    cdr
+    return
+label failtofind
+    push constant 0
+    return

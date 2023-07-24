@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     //"strconv"
+    //"strings"
     "time"
 )
 
@@ -10,12 +11,26 @@ var debug = false
 
 func main() {
 //    program, err := Assemble("lispv1.asm")
-    asm, err := Translate([]string{"vm/main.vm"})
+    asm, err := Translate([]string{"vm/main.vm", "vm/eval.vm", "vm/assoc.vm"})
     if err != nil {
         fmt.Println(err)
         return
     }
-    //fmt.Println(asm)
+    /*
+    i := -1
+    for _, s := range strings.Split(asm, "\n") {
+        if len(s) == 0 { continue }
+        if strings.HasPrefix(strings.TrimSpace(s), "//") {
+            continue
+        }
+        if s[0] == '(' {
+            fmt.Println(s)
+            continue
+        }
+        i++
+        fmt.Println(i+1,  s)
+    }
+    */
     program, err := assembleFromString(asm)
     if err != nil {
         fmt.Println(err)
@@ -39,8 +54,6 @@ func main() {
             computer.data_mem.ramCdr.mem[i+5] = builtin(0) // PLUS
         }
     }
-    computer.data_mem.ramCar.mem[111] = primitive(42) // expect prim(42) = 0x402a
-    //computer.data_mem.ramCar.mem[111] = symbol(2)       // expect prim(7) = 0x4007
 
     var debugger Debugger
     if debug {
@@ -102,7 +115,10 @@ func (sd *standardDebugger) BeforeTick(c *LispMachine) {
 
 func (sd *standardDebugger) AfterTick(c *LispMachine) {
     //fmt.Printf(" %04x %04x %04x\n", c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.OutCarM())
-    fmt.Printf("%03d: %04x %04x %04x %04x", c.cpu.pc.Out(), c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.inCarM, c.cpu.inCdrM)
+    fmt.Printf("%03d: %04x %04x %04x %04x %04x", c.cpu.pc.Out(), c.cpu.instr, c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.inCarM, c.cpu.inCdrM)
+    fmt.Printf(" %04x %04x %04x %04x %04x", c.data_mem.ramCar.mem[13], c.data_mem.ramCar.mem[14], c.data_mem.ramCar.mem[15], c.data_mem.ramCar.mem[1], c.data_mem.ramCar.mem[3])
+    fmt.Printf(" [%04x %04x %04x %04x %04x", c.data_mem.ramCar.mem[256], c.data_mem.ramCar.mem[257], c.data_mem.ramCar.mem[258], c.data_mem.ramCar.mem[259], c.data_mem.ramCar.mem[260])
+    fmt.Printf(" %04x %04x %04x %04x %04x]", c.data_mem.ramCar.mem[261], c.data_mem.ramCar.mem[262], c.data_mem.ramCar.mem[263], c.data_mem.ramCar.mem[264], c.data_mem.ramCar.mem[265])
     fmt.Println()
     //fmt.Printf(" %04x %04x\n", c.data_mem.ramCar.mem[0], c.data_mem.ramCdr.mem[0])
     // TODO: wait for keyboard press to make step-through debugger

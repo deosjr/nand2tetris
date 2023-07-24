@@ -1,0 +1,25 @@
+// (eval env e) -> evaluation of e in env, or NIL if error
+function eval
+    push argument
+    cdr
+    car
+    pop r 5     // store e in @R5
+    push r 5
+    is-procedure
+    if-goto evalself
+    push r 5
+    is-symbol
+    if-goto evalsymbol
+    push r 5
+    is-primitive
+    if-goto evalself
+    // guaranteed to be a pair!
+//label evalpair
+// TODO
+label evalself
+    push r 5
+    return
+label evalsymbol
+    push argument
+    call assoc.assq
+    return

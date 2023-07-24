@@ -160,6 +160,16 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateCar(split[1:])
     case "cdr":
         return t.translateCdr(split[1:])
+    case "is-procedure":
+        return t.translateIsProcedure(split[1:])
+    case "is-symbol":
+        return t.translateIsSymbol(split[1:])
+    case "is-primitive":
+        return t.translateIsPrimitive(split[1:])
+    case "is-emptylist":
+        return t.translateIsEmptyList(split[1:])
+    case "equal":
+        return t.translateEqual(split[1:])
     default:
         return fmt.Errorf("syntax error: %s", line)
     }
@@ -261,19 +271,19 @@ func (t *vmTranslator) translateReturn(split []string) error {
 }
 
 func (t *vmTranslator) translatePush(split []string) error {
-    if len(split) < 2 {
+    if len(split) < 1 {
         return fmt.Errorf("syntax error: not enough arguments to push")
     }
     if len(split) > 2 && !strings.HasPrefix(split[2], "//") {
         return fmt.Errorf("syntax error: push %v", split)
     }
     segment := split[0]
-    n, err := strconv.ParseInt(split[1], 0, 0)
-    if err != nil && segment != "static" {
-        return err
-    }
     switch segment {
     case "constant":
+        n, err := strconv.ParseInt(split[1], 0, 0)
+        if err != nil {
+            return err
+        }
         switch n {
         case 0, 1, -1:
             t.b.WriteString(strings.Join([]string{
@@ -293,6 +303,10 @@ func (t *vmTranslator) translatePush(split []string) error {
              "D=M\n",
         }, "\n\t"))
     case "r":
+        n, err := strconv.ParseInt(split[1], 0, 0)
+        if err != nil {
+            return err
+        }
         t.b.WriteString(strings.Join([]string{
             "\t@R"+fmt.Sprintf("%d", n),
              "D=M\n",
@@ -316,17 +330,13 @@ func (t *vmTranslator) translatePush(split []string) error {
 }
 
 func (t *vmTranslator) translatePop(split []string) error {
-    if len(split) < 2 {
+    if len(split) < 1 {
         return fmt.Errorf("syntax error: not enough arguments to pop")
     }
     if len(split) > 2 && !strings.HasPrefix(split[2], "//") {
         return fmt.Errorf("syntax error: pop %v", split)
     }
     segment := split[0]
-    n, err := strconv.Atoi(split[1])
-    if err != nil && segment != "static" {
-        return err
-    }
     t.b.WriteString(strings.Join([]string{
         "\t@SP",
         "AM=M-1",
@@ -346,6 +356,10 @@ func (t *vmTranslator) translatePop(split []string) error {
             "M=D\n",
         }, "\n\t"))
     case "r":
+        n, err := strconv.Atoi(split[1])
+        if err != nil {
+            return err
+        }
         t.b.WriteString(strings.Join([]string{
             "\t@R"+fmt.Sprintf("%d", n),
              "M=D\n",
@@ -581,6 +595,73 @@ func (t *vmTranslator) translateCdr(split []string) error {
     return nil
 }
 
+func (t *vmTranslator) translateIsSymbol(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: is-symbol %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        "ISSYMB",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateIsPrimitive(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: is-primitive %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        "ISPRIM",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateIsProcedure(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: is-procedure %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        "ISPROC",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateIsEmptyList(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: is-emptylist %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        "ISEMPTY",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateEqual(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: equal %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "AM=M-1",
+        "D=M",
+        "A=A-1",
+        "EQLM",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
 func (t *vmTranslator) translatePlus1(split []string) error {
     if len(split) < 2 {
         return fmt.Errorf("syntax error: not enough arguments to plus1")
@@ -708,7 +789,6 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     @ARG
     D=M
     @R14    // FRAME
-    M=D
     // RET = *(FRAME+1)
     AM=D+1
     D=M
@@ -721,22 +801,22 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     @ARG
     A=M
     M=D
-    // SP = ARG+1
-    @ARG
-    D=M+1
+    // SP = ARG+1 = FRAME
+    @R14
+    D=M
     @SP
     M=D
-    // ARG = *(FRAME+2)
-    @R14
-    AM=M+1
-    D=M
-    @ARG
-    M=D
-    // ENV = *(FRAME+3)
+    // ENV = *(FRAME+2)
     @R14
     AM=M+1
     D=M
     @ENV
+    M=D
+    // ARG = *(FRAME+3)
+    @R14
+    AM=M+1
+    D=M
+    @ARG
     M=D
     // goto RET
     @R15
