@@ -239,7 +239,7 @@ func (b *LispCPU) evalALU() (outCar, outCdr uint16, zr, ng bit) {
     y := Mux16(toBit16(b.a.Out()), toBit16(b.inCarM), c[0])
     var o [16]bit
     o, zr, ng = Alu(x, y, c[1], c[2], c[3], c[4], c[5], c[6])
-    car, cdr, _ := lispALU(toBit16(b.a.Out()), toBit16(b.d.Out()), toBit16(b.inCarM), toBit16(b.inCdrM), c[1], c[2], c[3], c[4], c[5], c[6])
+    car, cdr, _ := lispALU(toBit16(b.a.Out()), toBit16(b.d.Out()), toBit16(b.inCarM), toBit16(b.inCdrM), c[0], c[1], c[2], c[3], c[4], c[5], c[6])
     // We only allow ALU operations on car, so cdr always comes from lispALU
     // This means we have to be extra careful when to set WriteCdrM or we write garbage
     outCar = fromBit16(Mux16(car, o, useALU))
@@ -274,7 +274,8 @@ func typeInfo(x [16]bit) (isExpr, isAtom, isSymb, isProc, isSpecial, isBuiltin, 
     return
 }
 
-func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f bit) (car, cdr [16]bit, typeOK bit) {
+// TODO: g introduced later, weird order!
+func lispALU(regA, regD, inCarM, inCdrM [16]bit, g, a, b, c, d, e, f bit) (car, cdr [16]bit, typeOK bit) {
     true16 := toBit16(0xffff)
     false16 := toBit16(0x0000)
     sameType := And(Not(Xor(regD[0], inCarM[0])), And(Not(Xor(regD[1], inCarM[1])), Not(Xor(regD[2], inCarM[2]))))

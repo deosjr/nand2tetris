@@ -1,25 +1,102 @@
 // (eval env e) -> evaluation of e in env, or NIL if error
+// NOTE env is an argument, not ENV.
+// TODO: if first argument is not an env assoc list (how?), use *ENV instead
 function eval
+    push constant 0     // prepare local 0 = e
+    push constant 0     // prepare local 1 = evaluated procedure
+    push constant 0     // prepare local 2 = num args
     push argument
     cdr
     car
-    pop r 5     // store e in @R5
-    push r 5
+    pop local 0         // store e in lcl0
+    push local 0
     is-procedure
     if-goto evalself
-    push r 5
+    push local 0
     is-symbol
     if-goto evalsymbol
-    push r 5
+    push local 0
     is-primitive
     if-goto evalself
     // guaranteed to be a pair!
-//label evalpair
-// TODO
+label evalpair
+    push argument
+    car         // env on the stack
+    push local 0
+    car
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    call eval.eval
+    pop local 1
+    push local 1        // evalled procedure
+    is-procedure
+    if-goto evalargs
+    // attempt to apply non-procedure
+    push constant 0
+    return
 label evalself
-    push r 5
+    push local 0
     return
 label evalsymbol
     push argument
     call assoc.assq
+    return
+label evalargs
+    // we will need to build ( evaluatedargs ... )
+    // on the stack, then call the evaluated func with those args
+    push local 0
+    cdr
+    // if emptylist, we ran out of args
+    is-emptylist
+    if-goto evalprocedure
+    push local 2
+    push constant 1
+    add
+    pop local 2     // numargs++
+    push local 0
+    cdr
+    pop local 0
+    push argument
+    car             // env on the stack
+    push local 0
+    car
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    call eval.eval  // returns evalled arg, or NIL if error
+    goto evalargs
+label evalprocedure
+    push constant 8192  // 0x2000 = emptylist
+// cons numargs times
+label consloop
+    push constant 0
+    push local 2
+    eq
+    if-goto call
+    cons
+    push local 2
+    push constant 1
+    sub
+    pop local 2
+    goto consloop
+// actually call the function stored in local 1
+label call
+    // TODO
+    call eval.plus
+    return
+
+// TODO: make variadic, just have to check emptylist in a loop
+function plus
+    push argument
+    car
+    push argument
+    cdr
+    car
+    add
+    // NOTE: primitives are prefixed with 010
+    push constant 8191  // 0x1fff
+    and
+    push constant 16384 // 0x4000
+    or
     return

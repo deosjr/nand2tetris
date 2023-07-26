@@ -1,5 +1,8 @@
 // (assq assoclist key) -> value associated with key, or NIL if error
 // so much more inefficient than the handwritten assembly code...
+// NOTE: this could use r5-15 registers as it doesnt make any calls
+// TODO: still we can make a version that doesnt, either replace with argument/car/cdr
+// or by assigning first two pointers on working stack as local vars (see eval)
 function assq
     push argument
     car

@@ -14,6 +14,9 @@ import (
 // local/this/that also don't exist
 // instead, we can refer to register R0-15 directly
 // these are assumed to contain garbage!
+// NOTE: adding local back, will be sparingly used
+// refers to first n places on working stack
+// those need to be explicitly pushed at start of function!
 // some are used by SYS and should not be used by others
 // SHIFT is gone
 // bunch of lisp specific instructions added, including EVAL
@@ -296,6 +299,18 @@ func (t *vmTranslator) translatePush(split []string) error {
         default:
             t.b.WriteString(fmt.Sprintf("\t@%d\n\tD=A\n", n))
         }
+    case "local":
+        n, err := strconv.ParseInt(split[1], 0, 0)
+        if err != nil {
+            return err
+        }
+        t.b.WriteString(strings.Join([]string{
+            fmt.Sprintf("\t@%d", n+4),
+            "D=A",
+            "@ARG",
+            "A=D+M",
+            "D=M\n",
+        }, "\n\t"))
     case "argument":
         t.b.WriteString(strings.Join([]string{
             "\t@ARG",
@@ -337,6 +352,27 @@ func (t *vmTranslator) translatePop(split []string) error {
         return fmt.Errorf("syntax error: pop %v", split)
     }
     segment := split[0]
+    if segment == "local" {
+        n, err := strconv.Atoi(split[1])
+        if err != nil {
+            return err
+        }
+        t.b.WriteString(strings.Join([]string{
+         "\t@ARG",
+         "D=M",
+         "@" + fmt.Sprintf("%d", n+4),
+         "D=D+A",
+         "@R14",
+         "M=D",
+         "@SP",
+         "AM=M-1",
+         "D=M",
+         "@R14",
+         "A=M",
+         "M=D\n",
+        },  "\n\t"))
+        return nil
+    }
     t.b.WriteString(strings.Join([]string{
         "\t@SP",
         "AM=M-1",

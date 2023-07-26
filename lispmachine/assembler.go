@@ -447,8 +447,8 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                 case "ISPRIM":
                     program = append(program, 0b1000001010010000)
                 case "ISPROC":
-                    // NOTE: checks 100 prefix atm
-                    program = append(program, 0b1000001100010000)
+                    // NOTE: checks 101 prefix atm
+                    program = append(program, 0b1000001101010000)
                 case "ISEMPTY":
                     program = append(program, 0b1000001001010000)
                 case "EMPTYCDR":

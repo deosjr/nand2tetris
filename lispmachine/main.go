@@ -43,7 +43,7 @@ func main() {
     computer.LoadProgram(NewROM32K(program))
     computer.data_mem.writer.LoadOutputWriter(charPrinter{})
 
-    // setup data, see sim_test
+    // setup ENV data, see sim_test
     for i:=100; i<105; i++ {
         computer.data_mem.ramCar.mem[i] = pair(i+5)
         computer.data_mem.ramCdr.mem[i] = pair(i+1)
@@ -60,6 +60,24 @@ func main() {
         debugger = &standardDebugger{}
     }
     run(computer, debugger)
+
+/*
+    for i:=0x100; i<0x100 + 30; i++ {
+        fmt.Print(i)
+        fmt.Printf(" %04x", computer.data_mem.ramCar.mem[i])
+        fmt.Printf(" %04x", computer.data_mem.ramCdr.mem[i])
+        fmt.Println()
+    }
+
+    fmt.Println()
+
+    for i:=0x800; i<0x800 + 30; i++ {
+        fmt.Print(i)
+        fmt.Printf(" %04x", computer.data_mem.ramCar.mem[i])
+        fmt.Printf(" %04x", computer.data_mem.ramCdr.mem[i])
+        fmt.Println()
+    }
+    */
 }
 
 func run(computer *LispMachine, debugger Debugger) {
