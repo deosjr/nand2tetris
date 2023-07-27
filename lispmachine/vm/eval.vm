@@ -82,21 +82,6 @@ label consloop
     goto consloop
 // actually call the function stored in local 1
 label call
-    // TODO
-    call eval.plus
-    return
-
-// TODO: make variadic, just have to check emptylist in a loop
-function plus
-    push argument
-    car
-    push argument
-    cdr
-    car
-    add
-    // NOTE: primitives are prefixed with 010
-    push constant 8191  // 0x1fff
-    and
-    push constant 16384 // 0x4000
-    or
+    push local 1
+    call-builtin
     return

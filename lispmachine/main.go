@@ -43,18 +43,6 @@ func main() {
     computer.LoadProgram(NewROM32K(program))
     computer.data_mem.writer.LoadOutputWriter(charPrinter{})
 
-    // setup ENV data, see sim_test
-    for i:=100; i<105; i++ {
-        computer.data_mem.ramCar.mem[i] = pair(i+5)
-        computer.data_mem.ramCdr.mem[i] = pair(i+1)
-        computer.data_mem.ramCar.mem[i+5] = symbol(i-99)
-        computer.data_mem.ramCdr.mem[i+5] = primitive(i-94)
-        if i == 104 {
-            computer.data_mem.ramCdr.mem[i] = emptylist()
-            computer.data_mem.ramCdr.mem[i+5] = builtin(0) // PLUS
-        }
-    }
-
     var debugger Debugger
     if debug {
         debugger = &standardDebugger{}

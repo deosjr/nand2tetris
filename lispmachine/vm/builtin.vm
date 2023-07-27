@@ -1,0 +1,28 @@
+// TODO: make variadic, just have to check emptylist in a loop
+function add
+    push argument
+    car
+    push argument
+    cdr
+    car
+    add
+    // NOTE: primitives are prefixed with 010
+    push constant 8191  // 0x1fff
+    and
+    push constant 16384 // 0x4000
+    or
+    return
+
+function sub
+    push argument
+    car
+    push argument
+    cdr
+    car
+    sub
+    // NOTE: primitives are prefixed with 010
+    push constant 8191  // 0x1fff
+    and
+    push constant 16384 // 0x4000
+    or
+    return

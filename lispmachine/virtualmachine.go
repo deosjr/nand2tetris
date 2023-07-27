@@ -32,7 +32,7 @@ func Translate(filenames []string) (string, error) {
     t := &vmTranslator{}
     out := preamble(filenames)
     // translating sys.vm first allows us to drop into sys.init at start
-    o, err := t.translateFiles("vm/sys.vm")
+    o, err := t.translateFiles("vm/sys.vm", "vm/builtin.vm")
     if err != nil {
         return "", err
     }
@@ -173,6 +173,10 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateIsEmptyList(split[1:])
     case "equal":
         return t.translateEqual(split[1:])
+    case "builtin":
+        return t.translateBuiltin(split[1:])
+    case "call-builtin":
+        return t.translateCallBuiltin(split[1:])
     default:
         return fmt.Errorf("syntax error: %s", line)
     }
@@ -282,6 +286,9 @@ func (t *vmTranslator) translatePush(split []string) error {
     }
     segment := split[0]
     switch segment {
+    case "label":
+        label := strings.ToUpper(strings.Replace(split[1], ".", "", -1))
+        t.b.WriteString(fmt.Sprintf("\t@%s\n\tD=A\n", label))
     case "constant":
         n, err := strconv.ParseInt(split[1], 0, 0)
         if err != nil {
@@ -314,6 +321,12 @@ func (t *vmTranslator) translatePush(split []string) error {
     case "argument":
         t.b.WriteString(strings.Join([]string{
             "\t@ARG",
+             "A=M",
+             "D=M\n",
+        }, "\n\t"))
+    case "environment":
+        t.b.WriteString(strings.Join([]string{
+            "\t@ENV",
              "A=M",
              "D=M\n",
         }, "\n\t"))
@@ -382,6 +395,12 @@ func (t *vmTranslator) translatePop(split []string) error {
     case "argument":
         t.b.WriteString(strings.Join([]string{
             "\t@ARG",
+            "A=M",
+            "M=D\n",
+        }, "\n\t"))
+    case "environment":
+        t.b.WriteString(strings.Join([]string{
+            "\t@ENV",
             "A=M",
             "M=D\n",
         }, "\n\t"))
@@ -698,6 +717,50 @@ func (t *vmTranslator) translateEqual(split []string) error {
     return nil
 }
 
+// since procedures go beyond the 15-bit limit of constants we can push
+// this function simply adds 0xa000 to the previous value on stack
+// NOTE: since we use OR, if we try to create a builtin larger than 0x1fff,
+// this wil fail in unexpected ways!
+func (t *vmTranslator) translateBuiltin(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: builtin %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@0x7fff",
+        "D=A",
+        "@0x2001",
+        "D=D+A",
+        "@SP",
+        "A=M-1",
+        "M=D|M\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateCallBuiltin(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: call-builtin %v", split)
+    }
+    returnlabel := t.genLabel()
+    lines := strings.Join([]string{
+        "\t@SP",
+        "AM=M-1",
+        "D=M",
+        "@0x1fff",
+        "D=D&A",    // mask off first three bits (TODO, could check them first)
+        "@R13",
+        "M=D",
+        "@" + returnlabel,
+        "D=A",
+        "@R15",
+        "M=D",
+        "@SYSCALL",
+        "0;JMP",
+    }, "\n\t")
+    t.b.WriteString(fmt.Sprintf("\t%s\n(%s)\n", lines, returnlabel))
+    return nil
+}
+
 func (t *vmTranslator) translatePlus1(split []string) error {
     if len(split) < 2 {
         return fmt.Errorf("syntax error: not enough arguments to plus1")
@@ -773,7 +836,7 @@ func (t *vmTranslator) genLabel() string {
 
 func preamble(filenames []string) string {
     return fmt.Sprintf(`// VM translation of %s
-@256
+@256    // TODO: we can probably start stack way earlier
 D=A
 @SP
 M=D
