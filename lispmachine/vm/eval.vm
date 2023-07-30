@@ -31,7 +31,7 @@ label evalpair
     pop local 1
     push local 1        // evalled procedure
     is-procedure
-    if-goto evalargs
+    if-goto evalprocedure
     // attempt to apply non-procedure
     push constant 0
     return
@@ -42,6 +42,10 @@ label evalsymbol
     push argument
     call assoc.assq
     return
+label evalprocedure
+    push local 1
+    is-special
+    if-goto evalspecial
 label evalargs
     // we will need to build ( evaluatedargs ... )
     // on the stack, then call the evaluated func with those args
@@ -49,7 +53,7 @@ label evalargs
     cdr
     // if emptylist, we ran out of args
     is-emptylist
-    if-goto evalprocedure
+    if-goto evalfunc
     push local 2
     push constant 1
     add
@@ -66,7 +70,7 @@ label evalargs
     cons
     call eval.eval  // returns evalled arg, or NIL if error
     goto evalargs
-label evalprocedure
+label evalfunc
     push constant 8192  // 0x2000 = emptylist
 // cons numargs times
 label consloop
@@ -84,4 +88,48 @@ label consloop
 label call
     push local 1
     call-builtin
+    return
+label evalspecial
+    // remove mask
+    push local 1
+    push constant 8191  // 0x1fff
+    and
+    // TODO: check and jump between different special forms
+// label evalif
+    push argument
+    car                 // env on the stack
+    push local 0
+    cdr
+    car                 // test
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    call eval.eval
+    push constant 0
+    equal
+    if-goto evalalt
+// label evalconseq
+    push argument
+    car                 // env on the stack
+    push local 0
+    cdr
+    cdr
+    car                 // conseq
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    call eval.eval
+    return
+label evalalt
+    push argument
+    car                 // env on the stack
+    push local 0
+    cdr
+    cdr
+    cdr
+    car                 // alt
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    call eval.eval
     return

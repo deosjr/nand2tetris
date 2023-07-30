@@ -43,5 +43,27 @@ function main
     call eval.eval
     write               // expect 0x401c
 
+    push environment
+    push constant 24584 // symbol(8) representing 'if' bound to special(0) in ENV
+    push constant 24583 // symbol(7) representing '>', bound to builtin(gt) in ENV
+    push constant 16426 // primitive(42)
+    push constant 24578 // symbol(2) representing 'x', bound to primitive(7) in ENV
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    cons
+    push constant 16400 // primitive(16)
+    push constant 16416 // primitive(32)
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    cons
+    cons
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    call eval.eval
+    write               // expect 0x4010
+
     push constant 0 // void return
     return

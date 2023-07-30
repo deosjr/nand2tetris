@@ -28,7 +28,16 @@ function init
     push label builtin.sub
     builtin                 // builtin(sub)
     cons
+    push constant 24583     // symbol(7)
+    push label builtin.gt
+    builtin                 // builtin(gt)
+    cons
+    push constant 24584     // symbol(8)
+    special 0               // special(if)
+    cons
     push constant 8192      // 0x2000 = emptylist
+    cons
+    cons
     cons
     cons
     cons

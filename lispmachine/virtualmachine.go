@@ -165,6 +165,10 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateCdr(split[1:])
     case "is-procedure":
         return t.translateIsProcedure(split[1:])
+    case "is-builtin":
+        return t.translateIsBuiltin(split[1:])
+    case "is-special":
+        return t.translateIsSpecial(split[1:])
     case "is-symbol":
         return t.translateIsSymbol(split[1:])
     case "is-primitive":
@@ -177,6 +181,8 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateBuiltin(split[1:])
     case "call-builtin":
         return t.translateCallBuiltin(split[1:])
+    case "special":
+        return t.translateSpecial(split[1:])
     default:
         return fmt.Errorf("syntax error: %s", line)
     }
@@ -689,6 +695,32 @@ func (t *vmTranslator) translateIsProcedure(split []string) error {
     return nil
 }
 
+func (t *vmTranslator) translateIsBuiltin(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: is-builtin %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        "ISBUILTIN",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateIsSpecial(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: is-special %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        "ISSPECIAL",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
 func (t *vmTranslator) translateIsEmptyList(split []string) error {
     if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
         return fmt.Errorf("syntax error: is-emptylist %v", split)
@@ -758,6 +790,32 @@ func (t *vmTranslator) translateCallBuiltin(split []string) error {
         "0;JMP",
     }, "\n\t")
     t.b.WriteString(fmt.Sprintf("\t%s\n(%s)\n", lines, returnlabel))
+    return nil
+}
+
+func (t *vmTranslator) translateSpecial(split []string) error {
+    if len(split) < 1 {
+        return fmt.Errorf("syntax error: not enough arguments to special")
+    }
+    if len(split) > 1 && !strings.HasPrefix(split[1], "//") {
+        return fmt.Errorf("syntax error: special %v", split)
+    }
+    n, err := strconv.ParseInt(split[0], 0, 0)
+    if err != nil {
+        return err
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@"+fmt.Sprintf("%d", n),
+        "D=A",
+        "@0x7fff",
+        "D=D+A",
+        "@0x6001",
+        "D=D+A",
+        "@SP",
+        "M=M+1",
+        "A=M-1",
+        "M=D\n",
+    }, "\n\t"))
     return nil
 }
 

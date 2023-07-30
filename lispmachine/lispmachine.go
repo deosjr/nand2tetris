@@ -274,47 +274,55 @@ func typeInfo(x [16]bit) (isExpr, isAtom, isSymb, isProc, isSpecial, isBuiltin, 
     return
 }
 
-// TODO: g introduced later, weird order!
-func lispALU(regA, regD, inCarM, inCdrM [16]bit, g, a, b, c, d, e, f bit) (car, cdr [16]bit, typeOK bit) {
+func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f, g bit) (car, cdr [16]bit, typeOK bit) {
     true16 := toBit16(0xffff)
     false16 := toBit16(0x0000)
     sameType := And(Not(Xor(regD[0], inCarM[0])), And(Not(Xor(regD[1], inCarM[1])), Not(Xor(regD[2], inCarM[2]))))
-    // TODO: switch on a-f bits using gates/mux
-    switch {
+    // TODO: switch on a-g bits using gates/mux
+    selector := 0
+    prefix := 0
+    if g { selector = 0b1 }
+    if f { selector |= 0b10 }
+    if e { selector |= 0b100 }
+    if d { selector |= 0b1000 }
+    if c { selector |= 0b10000; prefix |= 0b1 }
+    if b { selector |= 0b100000; prefix |= 0b10 }
+    if a { selector |= 0b1000000; prefix |= 0b100 }
+    if prefix == 0b000 {    // check type prefix against e/f/g
+        x := inCdrM
+        if d { x = inCarM }
+    // ISPAIR: sets D to boolean true or boolean false based on typecheck of M
+    // all of the typeinfo variants exist, so ISEXPR and ISATOM and so forth
+    // all of them check type of pointers; to check type of cell in memory, more is needed
+    // EMPTYCDR: sets D to boolean true or false based on whether cdr of M is emptylist
+        eql := And(Not(Xor(e, x[0])), And(Not(Xor(f, x[1])), Not(Xor(g, x[2]))))
+        out := Mux16(false16, true16, eql)
+        return out, out, true
+    }
+    switch selector {
     // SETCAR is an alias for M=D from the normal ALU. setting M to D is implicit, no other options make sense
     // SETCDR: lispALU is only way to write to outCdrM, hence setcdr here.
     // setting both at the same time would need another register (or only write same value to both)
     // NOTE: SETCDR needs b2 to be set as well atm!
-    case bool(a) && bool(b) && bool(c) && bool(d) && bool(e) && bool(f): // SETCDR
+    case 0b0111111: // SETCDR
         return regD, regD, true
     // so CONS is a vm instruction that uses SETCAR/SETCDR for now
     // MCDR: set D to the cdr of register indexed by A
     // NOTE: MCDR needs dest set to D
-    case !bool(a) && bool(b) && bool(c) && bool(d) && bool(e) && bool(f): // MCDR
+    case 0b0011111: // MCDR
         return inCdrM, inCdrM, true
-    // ISPAIR: sets D to boolean true or boolean false based on typecheck of M
-    // all of the typeinfo variants exist, so ISEXPR and ISATOM and so forth
-    // all of them check type of pointers; to check type of cell in memory, more is needed
-    // NOTE: only symbol/primitive/emptylist works like this, other checks are masks!
-    // ie ISPROC only checks first bit
-    case !bool(a) && !bool(b) && bool(c): // check type prefix of car against d/e/f
-        eql := And(Not(Xor(d, inCarM[0])), And(Not(Xor(e, inCarM[1])), Not(Xor(f, inCarM[2]))))
-        out := Mux16(false16, true16, eql)
-        return out, out, true
-    // EMPTYCDR: sets D to boolean true or false based on whether cdr of M is emptylist
-    case !bool(a) && !bool(b) && !bool(c): // check type prefix of cdr against d/e/f
-        eql := And(Not(Xor(d, inCdrM[0])), And(Not(Xor(e, inCdrM[1])), Not(Xor(f, inCdrM[2]))))
-        out := Mux16(false16, true16, eql)
-        return out, out, true
     // EQL: used to check equality of lisp types. simple nested AND, 0xffff if true otherwise 0x0000
     // split into two actual instructions: EQLA and EQLM, both write to D
-    case !bool(a) && bool(b) && !bool(c) && bool(d) && bool(e) && bool(f): // EQLM
+    case 0b0010111: // EQLM
         eql := sameType
         for i:=3; i<16; i++ {
             eql = And(eql, Not(Xor(regD[i], inCarM[i])))
         }
         out := Mux16(false16, true16, eql)
         return out, out, sameType
+    case 0b1000000: // ISPROC
+        out := Mux16(false16, true16, inCarM[0])
+        return out, out, true
     }
     // default: return an error
     return inCarM, inCdrM, false

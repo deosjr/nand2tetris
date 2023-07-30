@@ -26,3 +26,12 @@ function sub
     push constant 16384 // 0x4000
     or
     return
+
+function gt
+    push argument
+    car
+    push argument
+    cdr
+    car
+    gt
+    return
