@@ -2,35 +2,31 @@ package main
 
 import (
     "fmt"
-    //"strconv"
-    //"strings"
+    "os"
     "time"
 )
 
 var debug = false
 
 func main() {
-//    program, err := Assemble("lispv1.asm")
+    out, err := compile("test.scm")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+
+    err = os.WriteFile("vm/main.vm", []byte(out), 0666)
+	if err != nil {
+        fmt.Println(err)
+        return
+    }
+
     asm, err := Translate([]string{"vm/main.vm", "vm/eval.vm", "vm/assoc.vm"})
     if err != nil {
         fmt.Println(err)
         return
     }
-    /*
-    i := -1
-    for _, s := range strings.Split(asm, "\n") {
-        if len(s) == 0 { continue }
-        if strings.HasPrefix(strings.TrimSpace(s), "//") {
-            continue
-        }
-        if s[0] == '(' {
-            fmt.Println(s)
-            continue
-        }
-        i++
-        fmt.Println(i+1,  s)
-    }
-    */
+
     program, err := assembleFromString(asm)
     if err != nil {
         fmt.Println(err)
@@ -48,24 +44,6 @@ func main() {
         debugger = &standardDebugger{}
     }
     run(computer, debugger)
-
-/*
-    for i:=0x100; i<0x100 + 30; i++ {
-        fmt.Print(i)
-        fmt.Printf(" %04x", computer.data_mem.ramCar.mem[i])
-        fmt.Printf(" %04x", computer.data_mem.ramCdr.mem[i])
-        fmt.Println()
-    }
-
-    fmt.Println()
-
-    for i:=0x800; i<0x800 + 30; i++ {
-        fmt.Print(i)
-        fmt.Printf(" %04x", computer.data_mem.ramCar.mem[i])
-        fmt.Printf(" %04x", computer.data_mem.ramCdr.mem[i])
-        fmt.Println()
-    }
-    */
 }
 
 func run(computer *LispMachine, debugger Debugger) {
