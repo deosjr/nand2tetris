@@ -94,8 +94,13 @@ label evalspecial
     push local 1
     push constant 8191  // 0x1fff
     and
-    // TODO: check and jump between different special forms
-// label evalif
+    pop local 1
+    push local 1
+    push constant 0
+    eq
+    if-goto evalif
+    goto evaldefine
+label evalif
     push argument
     car                 // env on the stack
     push local 0
@@ -132,4 +137,27 @@ label evalalt
     cons
     cons
     call eval.eval
+    return
+label evaldefine
+    // TODO: this just adds, doesnt check if already exists in env
+    push local 0
+    cdr 
+    car                 // symbol
+    // TODO: if not symbol, error!
+    push argument
+    car                 // env on the stack
+    push local 0
+    cdr
+    cdr
+    car                 // exp
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    call eval.eval
+    cons                // (symbol . (eval exp))
+    push environment
+    cons
+    // TODO: we need to repoint for any stored pointers
+    pop environment     // cons onto existing env
+    push constant 1
     return

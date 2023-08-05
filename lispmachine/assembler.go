@@ -438,6 +438,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                     program = append(program, 0b0)
                 case "EQLM":
                     program = append(program, 0b1000010111010000)
+                // TODO: MCAR should set typeError when called on non-pair?
                 case "MCAR": // same as D=M
                     program = append(program, 0b1111110000010000)
                 case "MCDR":

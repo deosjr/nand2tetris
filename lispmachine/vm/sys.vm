@@ -35,6 +35,9 @@ function init
     push constant 24584     // symbol(8)
     special 0               // special(if)
     cons
+    push constant 24585     // symbol(9)
+    special 1               // special(define)
+    cons
     push constant 8192      // 0x2000 = emptylist
     cons
     cons
@@ -45,8 +48,8 @@ function init
     cons
     cons
     cons
+    cons
     pop environment
-    push constant 0   // each func HAS to take one arg!
+    push constant 0         // each func HAS to take one arg!
     call main.main
-label end
     goto end

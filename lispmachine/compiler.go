@@ -11,6 +11,7 @@ var symbolTable = map[string]int{
     // later we could create an actual symbol table in memory
     // for use in 'read'
     "if": 8,
+    "define":9,
     ">": 7,
     "-": 6,
     "+": 5,

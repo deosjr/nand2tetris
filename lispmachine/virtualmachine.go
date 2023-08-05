@@ -367,9 +367,6 @@ func (t *vmTranslator) translatePop(split []string) error {
     if len(split) < 1 {
         return fmt.Errorf("syntax error: not enough arguments to pop")
     }
-    if len(split) > 2 && !strings.HasPrefix(split[2], "//") {
-        return fmt.Errorf("syntax error: pop %v", split)
-    }
     segment := split[0]
     if segment == "local" {
         n, err := strconv.Atoi(split[1])
@@ -903,6 +900,9 @@ D=A
 @FREE
 M=D
 @SYSINIT
+0;JMP
+(SYSEND)
+@SYSEND // address 10
 0;JMP
 `, strings.Join(filenames, ","))
 }
