@@ -10,12 +10,12 @@ var symbolTable = map[string]int{
     // TODO: create vm/sys.vm using compiled symbols
     // later we could create an actual symbol table in memory
     // for use in 'read'
-    "if": 8,
-    "define":9,
-    ">": 7,
-    "-": 6,
-    "+": 5,
-    "x": 2,
+    "if": 0,
+    "define":1,
+    "+": 2,
+    "-": 3,
+    ">": 4,
+    "x": 5,
 }
 
 func compile(filename string) (string, error) {

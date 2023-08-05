@@ -210,7 +210,12 @@ func (t *vmTranslator) translateGoto(split []string) error {
     if len(split) > 1 && !strings.HasPrefix(split[1], "//") {
         return fmt.Errorf("syntax error: goto %v", split)
     }
-    label = t.fn + strings.ToUpper(label)
+    label = strings.ToUpper(label)
+    if strings.Contains(label, ".") {
+        label = strings.Replace(label, ".", "", -1)
+    } else {
+        label = t.fn + label
+    }
     t.b.WriteString(fmt.Sprintf("\t@%s\n\t0;JMP\n", label))
     return nil
 }
@@ -223,7 +228,12 @@ func (t *vmTranslator) translateIfGoto(split []string) error {
     if len(split) > 1 && !strings.HasPrefix(split[1], "//") {
         return fmt.Errorf("syntax error: if-goto %v", split)
     }
-    label = t.fn + strings.ToUpper(label)
+    label = strings.ToUpper(label)
+    if strings.Contains(label, ".") {
+        label = strings.Replace(label, ".", "", -1)
+    } else {
+        label = t.fn + label
+    }
     lines := strings.Join([]string{
         "\t@SP",
         "AM=M-1",

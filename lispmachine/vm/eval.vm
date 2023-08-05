@@ -33,14 +33,20 @@ label evalpair
     is-procedure
     if-goto evalprocedure
     // attempt to apply non-procedure
-    push constant 0
-    return
+    goto sys.end
 label evalself
     push local 0
     return
 label evalsymbol
     push argument
     call assoc.assq
+    pop local 2
+    push local 2
+    push constant 0
+    eq
+    // symbol not found
+    if-goto sys.end
+    push local 2
     return
 label evalprocedure
     push local 1
@@ -159,5 +165,5 @@ label evaldefine
     cons
     // TODO: we need to repoint for any stored pointers
     pop environment     // cons onto existing env
-    push constant 1
+    push constant 0
     return
