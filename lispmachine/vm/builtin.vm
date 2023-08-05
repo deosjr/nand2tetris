@@ -35,3 +35,18 @@ function gt
     car
     gt
     return
+
+function begin
+label beginloop
+    push argument
+    cdr
+    is-emptylist
+    if-goto beginend
+    push argument
+    cdr
+    pop argument
+    goto beginloop
+label beginend
+    push argument
+    car
+    return

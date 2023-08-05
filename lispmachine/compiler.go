@@ -12,10 +12,11 @@ var symbolTable = map[string]int{
     // for use in 'read'
     "if": 0,
     "define":1,
-    "+": 2,
-    "-": 3,
-    ">": 4,
-    "x": 5,
+    "begin":2,
+    "+": 3,
+    "-": 4,
+    ">": 5,
+    "x": 6,
 }
 
 func compile(filename string) (string, error) {
