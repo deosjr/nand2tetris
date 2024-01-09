@@ -5,29 +5,33 @@
 
 function init
     // building the initial environment
-    push constant 24576     // symbol(0)
+    symbol 0
     special 0               // special(if)
     cons
-    push constant 24577     // symbol(1)
+    symbol 1
     special 1               // special(define)
     cons
-    push constant 24578     // symbol(2)
+    symbol 2
+    special 2               // special(quote)
+    cons
+    symbol 5
     push label builtin.begin
     builtin                 // builtin(begin)
     cons
-    push constant 24579     // symbol(3)
+    symbol 6
     push label builtin.add
     builtin                 // builtin(add)
     cons
-    push constant 24580     // symbol(4)
+    symbol 7
     push label builtin.sub
     builtin                 // builtin(sub)
     cons
-    push constant 24581     // symbol(5)
+    symbol 8
     push label builtin.gt
     builtin                 // builtin(gt)
     cons
     push constant 8192      // 0x2000 = emptylist
+    cons
     cons
     cons
     cons

@@ -105,7 +105,16 @@ label evalspecial
     push constant 0
     eq
     if-goto evalif
-    goto evaldefine
+    push local 1
+    push constant 1
+    eq
+    if-goto evaldefine
+    push local 1
+    push constant 2
+    eq
+    if-goto evalquote
+    // unknown builtin, return err
+    goto sys.end
 label evalif
     push argument
     car                 // env on the stack
@@ -164,6 +173,12 @@ label evaldefine
     push environment
     cons
     // TODO: we need to repoint for any stored pointers
+    // OR do we? Might happen automagically in sys.return!
     pop environment     // cons onto existing env
     push constant 0
+    return
+label evalquote
+    push local 0
+    cdr
+    car
     return

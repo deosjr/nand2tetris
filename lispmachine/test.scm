@@ -6,6 +6,8 @@
 
 (begin x y z)
 
+(quote z)
+
 (if (> 3 x) (- 1 2) 42)
 
 (if (> 3 x) fail 42)

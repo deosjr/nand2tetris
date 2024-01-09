@@ -177,12 +177,15 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateIsEmptyList(split[1:])
     case "equal":
         return t.translateEqual(split[1:])
+    // syntactic sugar
     case "builtin":
         return t.translateBuiltin(split[1:])
     case "call-builtin":
         return t.translateCallBuiltin(split[1:])
     case "special":
         return t.translateSpecial(split[1:])
+    case "symbol":
+        return t.translateSymbol(split[1:])
     default:
         return fmt.Errorf("syntax error: %s", line)
     }
@@ -818,6 +821,29 @@ func (t *vmTranslator) translateSpecial(split []string) error {
         "D=D+A",
         "@0x6001",
         "D=D+A",
+        "@SP",
+        "M=M+1",
+        "A=M-1",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateSymbol(split []string) error {
+    if len(split) < 1 {
+        return fmt.Errorf("syntax error: not enough arguments to symbol")
+    }
+    if len(split) > 1 && !strings.HasPrefix(split[1], "//") {
+        return fmt.Errorf("syntax error: symbol %v", split)
+    }
+    n, err := strconv.ParseInt(split[0], 0, 0)
+    if err != nil {
+        return err
+    }
+    n += 24576 // symbol prefix 011
+    t.b.WriteString(strings.Join([]string{
+        "\t@"+fmt.Sprintf("%d", n),
+        "D=A",
         "@SP",
         "M=M+1",
         "A=M-1",
