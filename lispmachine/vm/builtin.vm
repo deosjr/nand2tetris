@@ -134,17 +134,15 @@ label maprec
     push constant 1
     add
     pop local 2         // numargs++
-    push environment
     push local 0
     push local 1
     car
     push constant 8192  // 0x2000 = emptylist
-    cons
-    cons                // (f arg)
+    cons                // (arg)
     push constant 8192  // 0x2000 = emptylist
     cons
-    cons                // (env (f arg))
-    call eval.eval      // TODO: call builtin.apply, without needing env?
+    cons                // (f (arg))
+    call builtin.apply
     push local 1
     cdr
     pop local 1
