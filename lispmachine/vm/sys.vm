@@ -41,10 +41,15 @@ function init
     builtin                 // builtin(map)
     cons
     symbol 10
+    push label builtin.apply
+    builtin                 // builtin(apply)
+    cons
+    symbol 11
     push label builtin.write
     builtin                 // builtin(write)
     cons
     push constant 8192      // 0x2000 = emptylist
+    cons
     cons
     cons
     cons

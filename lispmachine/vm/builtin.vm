@@ -64,9 +64,57 @@ function eval
     call eval.eval
     return
 
+function apply
+    push argument
+    car
+    is-builtin
+    if-goto callbuiltin
+// label userdefined
+    push constant 0
+    // remove mask
+    push argument
+    car
+    push constant 8191  // 0x1fff
+    and
+    pop local 0
+    // zip f.params with args
+    // TODO: for now, assume length of both = 1
+    push local 0
+    cdr
+    car                 // f.params
+    car
+    push argument
+    cdr
+    car
+    car
+    cons
+    push local 0
+    // cons on top of f.env -> newenv
+    car                 // f.env
+    cons
+    // call eval.eval of newenv and f.body
+    push local 0
+    cdr
+    cdr
+    car                 // f.body
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    call eval.eval
+    return
+label callbuiltin
+    push argument
+    cdr
+    car
+    push argument
+    car
+    call-builtin
+    return
+
 // (map f list ...)
 // TODO: variadic function taking multiple lists
 // TODO: returns a list when f returns NIL, but should just return NIL
+// or maybe nvm? scheme returns a list of #<void> elements
 function map
     push constant 0     // prepare local 0 = f
     push constant 0     // prepare local 1 = args
@@ -96,7 +144,7 @@ label maprec
     push constant 8192  // 0x2000 = emptylist
     cons
     cons                // (env (f arg))
-    call eval.eval      // TODO: call eval.apply, without needing env?
+    call eval.eval      // TODO: call builtin.apply, without needing env?
     push local 1
     cdr
     pop local 1

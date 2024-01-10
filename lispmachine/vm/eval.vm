@@ -93,42 +93,13 @@ label consloop
     goto consloop
 // actually call the function stored in local 1
 label call
+    pop local 2
     push local 1
-    is-builtin
-    if-goto callbuiltin
-// label userdefined
-    // remove mask
-    push local 1
-    push constant 8191  // 0x1fff
-    and
-    pop local 1
-    // zip f.params with args
-    // TODO: for now, assume length of both = 1
-    pop local 2         // evalled args are still on the stack
-    push local 1
-    cdr
-    car                 // f.params
-    car
     push local 2
-    car
-    cons
-    push local 1
-    // cons on top of f.env -> newenv
-    car                 // f.env
-    cons
-    // call eval.eval of newenv and f.body
-    push local 1
-    cdr
-    cdr
-    car                 // f.body
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
-    call eval.eval
-    return
-label callbuiltin
-    push local 1
-    call-builtin
+    call builtin.apply
     return
 label evalspecial
     push local 0

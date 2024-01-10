@@ -20,7 +20,8 @@ var symbolTable = map[string]int{
     "-": 7,
     ">": 8,
     "map": 9,
-    "write": 10,
+    "apply": 10,
+    "write": 11,
 }
 
 func compile(filename string) (string, error) {

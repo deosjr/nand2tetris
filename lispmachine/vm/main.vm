@@ -2,21 +2,21 @@ function main
 	push environment
 	push constant 24581
 	push constant 24577
-	push constant 24587
+	push constant 24588
 	push constant 16391
 	push constant 8192
 	cons
 	cons
 	cons
 	push constant 24577
-	push constant 24588
+	push constant 24589
 	push constant 16392
 	push constant 8192
 	cons
 	cons
 	cons
 	push constant 24577
-	push constant 24589
+	push constant 24590
 	push constant 16393
 	push constant 8192
 	cons
@@ -45,9 +45,9 @@ function main
 	write
 	push environment
 	push constant 24581
-	push constant 24587
 	push constant 24588
 	push constant 24589
+	push constant 24590
 	push constant 8192
 	cons
 	cons
@@ -60,7 +60,7 @@ function main
 	write
 	push environment
 	push constant 24578
-	push constant 24589
+	push constant 24590
 	push constant 8192
 	cons
 	cons
@@ -71,12 +71,12 @@ function main
 	write
 	push environment
 	push constant 24577
-	push constant 24590
+	push constant 24591
 	push constant 24580
-	push constant 24587
+	push constant 24588
 	push constant 8192
 	cons
-	push constant 24587
+	push constant 24588
 	push constant 8192
 	cons
 	cons
@@ -91,7 +91,7 @@ function main
 	call eval.eval
 	write
 	push environment
-	push constant 24590
+	push constant 24591
 	push constant 16426
 	push constant 8192
 	cons
@@ -103,7 +103,7 @@ function main
 	write
 	push environment
 	push constant 24585
-	push constant 24590
+	push constant 24591
 	push constant 24578
 	push constant 16385
 	push constant 16386
@@ -126,7 +126,7 @@ function main
 	write
 	push environment
 	push constant 24585
-	push constant 24586
+	push constant 24587
 	push constant 24578
 	push constant 16385
 	push constant 16386
@@ -134,6 +134,25 @@ function main
 	push constant 8192
 	cons
 	cons
+	cons
+	push constant 8192
+	cons
+	cons
+	push constant 8192
+	cons
+	cons
+	cons
+	push constant 8192
+	cons
+	cons
+	call eval.eval
+	write
+	push environment
+	push constant 24586
+	push constant 24591
+	push constant 24578
+	push constant 16426
+	push constant 8192
 	cons
 	push constant 8192
 	cons
@@ -151,7 +170,7 @@ function main
 	push constant 24576
 	push constant 24584
 	push constant 16387
-	push constant 24587
+	push constant 24588
 	push constant 8192
 	cons
 	cons
@@ -178,12 +197,12 @@ function main
 	push constant 24576
 	push constant 24584
 	push constant 16387
-	push constant 24587
+	push constant 24588
 	push constant 8192
 	cons
 	cons
 	cons
-	push constant 24591
+	push constant 24592
 	push constant 16426
 	push constant 8192
 	cons
@@ -199,7 +218,7 @@ function main
 	push constant 24576
 	push constant 24584
 	push constant 16387
-	push constant 24591
+	push constant 24592
 	push constant 8192
 	cons
 	cons
