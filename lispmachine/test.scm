@@ -14,6 +14,9 @@
 
 (test 42)
 
+(map test (quote (1 2 3)))
+(map write (quote (1 2 3)))
+
 (if (> 3 x) (- 1 2) 42)
 
 (if (> 3 x) fail 42)

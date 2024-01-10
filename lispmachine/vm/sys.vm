@@ -36,7 +36,17 @@ function init
     push label builtin.gt
     builtin                 // builtin(gt)
     cons
+    symbol 9
+    push label builtin.map
+    builtin                 // builtin(map)
+    cons
+    symbol 10
+    push label builtin.write
+    builtin                 // builtin(write)
+    cons
     push constant 8192      // 0x2000 = emptylist
+    cons
+    cons
     cons
     cons
     cons

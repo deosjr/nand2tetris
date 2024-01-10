@@ -50,3 +50,69 @@ label beginend
     push argument
     car
     return
+
+function write
+    push argument
+    car
+    write
+    push constant 0
+    return
+
+// (eval env e)
+function eval
+    push argument
+    call eval.eval
+    return
+
+// (map f list ...)
+// TODO: variadic function taking multiple lists
+// TODO: returns a list when f returns NIL, but should just return NIL
+function map
+    push constant 0     // prepare local 0 = f
+    push constant 0     // prepare local 1 = args
+    push constant 0     // prepare local 2 = numargs
+    push argument
+    car
+    pop local 0
+    push argument
+    cdr
+    car
+    pop local 1
+label maprec
+    push local 1
+    is-emptylist
+    if-goto endmaprec
+    push local 2
+    push constant 1
+    add
+    pop local 2         // numargs++
+    push environment
+    push local 0
+    push local 1
+    car
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons                // (f arg)
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons                // (env (f arg))
+    call eval.eval      // TODO: call eval.apply, without needing env?
+    push local 1
+    cdr
+    pop local 1
+    goto maprec
+label endmaprec
+    push constant 8192  // 0x2000 = emptylist
+label consloop
+    push constant 0
+    push local 2
+    eq
+    if-goto mapend
+    cons
+    push local 2
+    push constant 1
+    sub
+    pop local 2
+    goto consloop
+label mapend
+    return
