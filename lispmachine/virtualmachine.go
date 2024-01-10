@@ -184,6 +184,8 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateBuiltin(split[1:])
     case "call-builtin":
         return t.translateCallBuiltin(split[1:])
+    case "userdefined":
+        return t.translateUserdefined(split[1:])
     case "special":
         return t.translateSpecial(split[1:])
     case "symbol":
@@ -804,6 +806,24 @@ func (t *vmTranslator) translateCallBuiltin(split []string) error {
     return nil
 }
 
+// same warning as for Builtin
+func (t *vmTranslator) translateUserdefined(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: userdefined %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@0x7fff",
+        "D=A",
+        "@0x0001",
+        "D=D+A",
+        "@SP",
+        "A=M-1",
+        "M=D|M\n",
+    }, "\n\t"))
+    return nil
+}
+
+// same warning as for Builtin
 func (t *vmTranslator) translateSpecial(split []string) error {
     if len(split) < 1 {
         return fmt.Errorf("syntax error: not enough arguments to special")

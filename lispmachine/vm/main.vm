@@ -70,6 +70,38 @@ function main
 	call eval.eval
 	write
 	push environment
+	push constant 24577
+	push constant 24588
+	push constant 24580
+	push constant 24585
+	push constant 8192
+	cons
+	push constant 24585
+	push constant 8192
+	cons
+	cons
+	cons
+	push constant 8192
+	cons
+	cons
+	cons
+	push constant 8192
+	cons
+	cons
+	call eval.eval
+	write
+	push environment
+	push constant 24588
+	push constant 16426
+	push constant 8192
+	cons
+	cons
+	push constant 8192
+	cons
+	cons
+	call eval.eval
+	write
+	push environment
 	push constant 24576
 	push constant 24584
 	push constant 16387
@@ -105,7 +137,7 @@ function main
 	cons
 	cons
 	cons
-	push constant 24588
+	push constant 24589
 	push constant 16426
 	push constant 8192
 	cons
@@ -121,7 +153,7 @@ function main
 	push constant 24576
 	push constant 24584
 	push constant 16387
-	push constant 24588
+	push constant 24589
 	push constant 8192
 	cons
 	cons

@@ -55,6 +55,7 @@ label evalprocedure
 label evalargs
     // we will need to build ( evaluatedargs ... )
     // on the stack, then call the evaluated func with those args
+    // this is an implementation of (map eval ...)
     push local 0
     cdr
     // if emptylist, we ran out of args
@@ -63,18 +64,18 @@ label evalargs
     push local 2
     push constant 1
     add
-    pop local 2     // numargs++
+    pop local 2         // numargs++
     push local 0
     cdr
     pop local 0
     push argument
-    car             // env on the stack
+    car                 // env on the stack
     push local 0
     car
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
-    call eval.eval  // returns evalled arg, or NIL if error
+    call eval.eval      // returns evalled arg, or NIL if error
     goto evalargs
 label evalfunc
     push constant 8192  // 0x2000 = emptylist
@@ -93,9 +94,46 @@ label consloop
 // actually call the function stored in local 1
 label call
     push local 1
+    is-builtin
+    if-goto callbuiltin
+// label userdefined
+    // remove mask
+    push local 1
+    push constant 8191  // 0x1fff
+    and
+    pop local 1
+    // zip f.params with args
+    // TODO: for now, assume length of both = 1
+    pop local 2         // evalled args are still on the stack
+    push local 1
+    cdr
+    car                 // f.params
+    car
+    push local 2
+    car
+    cons
+    push local 1
+    // cons on top of f.env -> newenv
+    car                 // f.env
+    cons
+    // call eval.eval of newenv and f.body
+    push local 1
+    cdr
+    cdr
+    car                 // f.body
+    push constant 8192  // 0x2000 = emptylist
+    cons
+    cons
+    call eval.eval
+    return
+label callbuiltin
+    push local 1
     call-builtin
     return
 label evalspecial
+    push local 0
+    cdr
+    pop local 0         // at this point, we no longer care about car of e
     // remove mask
     push local 1
     push constant 8191  // 0x1fff
@@ -113,13 +151,20 @@ label evalspecial
     push constant 2
     eq
     if-goto evalquote
+    push local 1
+    push constant 3
+    eq
+    if-goto evalset
+    push local 1
+    push constant 4
+    eq
+    if-goto evallambda
     // unknown builtin, return err
     goto sys.end
 label evalif
     push argument
     car                 // env on the stack
     push local 0
-    cdr
     car                 // test
     push constant 8192  // 0x2000 = emptylist
     cons
@@ -133,7 +178,6 @@ label evalif
     car                 // env on the stack
     push local 0
     cdr
-    cdr
     car                 // conseq
     push constant 8192  // 0x2000 = emptylist
     cons
@@ -146,7 +190,6 @@ label evalalt
     push local 0
     cdr
     cdr
-    cdr
     car                 // alt
     push constant 8192  // 0x2000 = emptylist
     cons
@@ -157,13 +200,11 @@ label evaldefine
     // TODO: this just adds, doesnt check if already exists in env
     // meaning currently the assoc list could have duplicate keys
     push local 0
-    cdr 
     car                 // symbol
     // TODO: if not symbol, error!
     push argument
     car                 // env on the stack
     push local 0
-    cdr
     cdr
     car                 // exp
     push constant 8192  // 0x2000 = emptylist
@@ -189,6 +230,16 @@ label evaldefine
     return
 label evalquote
     push local 0
-    cdr
     car
+    return
+label evalset
+    // TODO
+label evallambda
+    // (lambda (params ...) body)
+    // assumption: params is a list of symbols
+    // TODO: typecheck param arg and check length of args=2
+    push environment
+    push local 0
+    cons
+    userdefined
     return

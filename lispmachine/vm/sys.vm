@@ -14,6 +14,12 @@ function init
     symbol 2
     special 2               // special(quote)
     cons
+    symbol 3
+    special 3               // special(set!)
+    cons
+    symbol 4
+    special 4               // special(lambda)
+    cons
     symbol 5
     push label builtin.begin
     builtin                 // builtin(begin)
@@ -31,6 +37,8 @@ function init
     builtin                 // builtin(gt)
     cons
     push constant 8192      // 0x2000 = emptylist
+    cons
+    cons
     cons
     cons
     cons

@@ -10,6 +10,10 @@
 
 (quote z)
 
+(define test (lambda (x) x))
+
+(test 42)
+
 (if (> 3 x) (- 1 2) 42)
 
 (if (> 3 x) fail 42)
