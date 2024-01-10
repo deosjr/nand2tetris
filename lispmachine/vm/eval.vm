@@ -155,6 +155,7 @@ label evalalt
     return
 label evaldefine
     // TODO: this just adds, doesnt check if already exists in env
+    // meaning currently the assoc list could have duplicate keys
     push local 0
     cdr 
     car                 // symbol
@@ -169,12 +170,21 @@ label evaldefine
     cons
     cons
     call eval.eval
-    cons                // (symbol . (eval exp))
+    cons                // (symbol . (eval exp)) = entry
+    // we need to modify the env pointer, because ENV will be restored
+    // to whatever the caller's ENV was
+    // first we duplicate existing env pointer on heap
+    // then we repoint original pointer to ( entry . duplicatepointer )
     push environment
-    cons
-    // TODO: we need to repoint for any stored pointers
-    // OR do we? Might happen automagically in sys.return!
-    pop environment     // cons onto existing env
+    car
+    push environment
+    cdr
+    cons                // allocate another cons cell to current env
+    cons                // ( entry . duplicatepointer )
+    // TODO: difference between caller ENV and argument env ?
+    push environment    // original env
+    copy-pointer
+    // cleanup duplicate cons cell on the heap should happen due to GC at some point
     push constant 0
     return
 label evalquote

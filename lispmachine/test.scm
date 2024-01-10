@@ -4,6 +4,8 @@
     (define z 9)
 )
 
+(quote 42)
+
 (begin x y z)
 
 (quote z)

@@ -33,6 +33,17 @@ function main
 	call eval.eval
 	write
 	push environment
+	push constant 24578
+	push constant 16426
+	push constant 8192
+	cons
+	cons
+	push constant 8192
+	cons
+	cons
+	call eval.eval
+	write
+	push environment
 	push constant 24581
 	push constant 24585
 	push constant 24586

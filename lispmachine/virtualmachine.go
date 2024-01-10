@@ -177,6 +177,8 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateIsEmptyList(split[1:])
     case "equal":
         return t.translateEqual(split[1:])
+    case "copy-pointer":
+        return t.translateCopyPointer(split[1:])
     // syntactic sugar
     case "builtin":
         return t.translateBuiltin(split[1:])
@@ -300,7 +302,7 @@ func (t *vmTranslator) translatePush(split []string) error {
     if len(split) < 1 {
         return fmt.Errorf("syntax error: not enough arguments to push")
     }
-    if len(split) > 2 && !strings.HasPrefix(split[2], "//") {
+    if len(split) > 2 && !(strings.HasPrefix(split[1], "//") || strings.HasPrefix(split[2], "//")) {
         return fmt.Errorf("syntax error: push %v", split)
     }
     segment := split[0]
@@ -346,7 +348,6 @@ func (t *vmTranslator) translatePush(split []string) error {
     case "environment":
         t.b.WriteString(strings.Join([]string{
             "\t@ENV",
-             "A=M",
              "D=M\n",
         }, "\n\t"))
     case "r":
@@ -417,7 +418,6 @@ func (t *vmTranslator) translatePop(split []string) error {
     case "environment":
         t.b.WriteString(strings.Join([]string{
             "\t@ENV",
-            "A=M",
             "M=D\n",
         }, "\n\t"))
     case "static":
@@ -606,6 +606,7 @@ func (t *vmTranslator) translateWrite(split []string) error {
 
 // assumes 2 values pushed two stack: first CAR and then CDR
 // consumes both, writes a new cons cell, then returns pointer to stack
+// SETCDR goes first, because it overwrites CAR as well!
 func (t *vmTranslator) translateCons(split []string) error {
     if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
         return fmt.Errorf("syntax error: cons %v", split)
@@ -848,6 +849,38 @@ func (t *vmTranslator) translateSymbol(split []string) error {
         "M=M+1",
         "A=M-1",
         "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+// used in eval define to modify ENV; going against general immutability of pointers
+// assumes two values on stack: first destination pointer then source pointer
+// sole user of R7 and R8 registers
+func (t *vmTranslator) translateCopyPointer(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: copy-pointer %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "AM=M-1",
+        "D=M",
+        "@R7",  // dest
+        "M=D",
+        "@SP",
+        "AM=M-1",
+        "D=M",
+        "@R8",  // src
+        "AM=D",
+        "MCDR",
+        "@R7",
+        "A=M",
+        "SETCDR",
+        "@R8",
+        "A=M",
+        "MCAR",
+        "@R7",
+        "A=M",
+        "SETCAR\n",
     }, "\n\t"))
     return nil
 }
