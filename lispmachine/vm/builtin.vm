@@ -65,12 +65,15 @@ function eval
     return
 
 function apply
+    push constant 0     // prepare local 0 = f
+    push constant 0     // prepare local 1 = f.params
+    push constant 0     // prepare local 2 = args
+    push constant 0     // prepare local 3 = numargs
     push argument
     car
     is-builtin
     if-goto callbuiltin
 // label userdefined
-    push constant 0
     // remove mask
     push argument
     car
@@ -78,20 +81,51 @@ function apply
     and
     pop local 0
     // zip f.params with args
-    // TODO: for now, assume length of both = 1
     push local 0
     cdr
     car                 // f.params
-    car
+    pop local 1
     push argument
     cdr
+    car                 // args
+    pop local 2
+label applyrec
+    // TODO: check if len(params) == len(args)
+    push local 1
+    is-emptylist
+    if-goto endapplyrec
+    push local 3
+    push constant 1
+    add
+    pop local 3         // numargs++
+    push local 1 
     car
+    push local 2
     car
     cons
-    push local 0
+    push local 1
+    cdr
+    pop local 1
+    push local 2
+    cdr
+    pop local 2
+    goto applyrec
+label endapplyrec
     // cons on top of f.env -> newenv
+    push local 0
     car                 // f.env
+label applyconsloop
+    push constant 0
+    push local 3
+    eq
+    if-goto applyend
     cons
+    push local 3
+    push constant 1
+    sub
+    pop local 3
+    goto applyconsloop
+label applyend
     // call eval.eval of newenv and f.body
     push local 0
     cdr
@@ -149,7 +183,7 @@ label maprec
     goto maprec
 label endmaprec
     push constant 8192  // 0x2000 = emptylist
-label consloop
+label mapconsloop
     push constant 0
     push local 2
     eq
@@ -159,6 +193,6 @@ label consloop
     push constant 1
     sub
     pop local 2
-    goto consloop
+    goto mapconsloop
 label mapend
     return

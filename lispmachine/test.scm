@@ -10,14 +10,13 @@
 
 (quote z)
 
-(define test (lambda (x) x))
+(define test (lambda (a b) (+ a b)))
 
-(test 42)
+(test 1 41)
 
-(map test (quote (1 2 3)))
 (map write (quote (1 2 3)))
 
-(apply test (quote (42)))
+(apply test (quote (41 1)))
 
 (if (> 3 x) (- 1 2) 42)
 
