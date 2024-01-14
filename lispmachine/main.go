@@ -2,7 +2,7 @@ package main
 
 import (
     "fmt"
-    "os"
+    //"os"
     "time"
 )
 
@@ -15,13 +15,15 @@ func main() {
         return
     }
 
+/*
     err = os.WriteFile("vm/main.vm", []byte(out), 0666)
 	if err != nil {
         fmt.Println(err)
         return
     }
+*/
 
-    asm, err := Translate([]string{"vm/main.vm", "vm/eval.vm", "vm/assoc.vm"})
+    asm, err := Translate([]string{"vm/eval.vm", "vm/assoc.vm"}, out)
     if err != nil {
         fmt.Println(err)
         return

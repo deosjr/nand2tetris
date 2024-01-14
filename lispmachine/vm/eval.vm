@@ -156,6 +156,7 @@ label evalif
     call eval.eval
     return
 label evalalt
+    // TODO: if no alt, return 'false'
     push argument
     car                 // env on the stack
     push local 0

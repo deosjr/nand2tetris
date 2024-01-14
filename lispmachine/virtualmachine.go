@@ -28,11 +28,16 @@ type vmTranslator struct {
 }
 
 // take a set of .vm files and return a single .asm file
-func Translate(filenames []string) (string, error) {
+func Translate(filenames []string, compiledMain string) (string, error) {
     t := &vmTranslator{}
     out := preamble(filenames)
     // translating sys.vm first allows us to drop into sys.init at start
     o, err := t.translateFiles("vm/sys.vm", "vm/builtin.vm")
+    if err != nil {
+        return "", err
+    }
+    out += o
+    o, err = t.vm2asm([]string{"vm/main.vm"}, []string{compiledMain})
     if err != nil {
         return "", err
     }
@@ -46,17 +51,11 @@ func Translate(filenames []string) (string, error) {
     return out, nil
 }
 
-func vm2asm(filenames, vmStrings []string) (string, error) {
+func (t *vmTranslator) vm2asm(filenames, vmStrings []string) (string, error) {
     if len(filenames) != len(vmStrings) {
         return "", fmt.Errorf("filenames and vmStrings doesnt match")
     }
-    t := &vmTranslator{}
-    out := preamble(filenames)
-    o, err := t.translateFiles("vm/sys.vm")
-    if err != nil {
-        return "", err
-    }
-    out += o
+    var out string
     for i, f := range filenames {
         vm := vmStrings[i]
         asm, err := t.translateString(f, vm)
@@ -65,7 +64,6 @@ func vm2asm(filenames, vmStrings []string) (string, error) {
         }
         out += asm
     }
-    out += builtins
     return out, nil
 }
 
