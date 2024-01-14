@@ -37,8 +37,8 @@ function init
     builtin                 // builtin(gt)
     cons
     symbol 9
-    push label builtin.map
-    builtin                 // builtin(map)
+    push label builtin.isnull
+    builtin                 // builtin(null?)
     cons
     symbol 10
     push label builtin.apply
@@ -48,7 +48,22 @@ function init
     push label builtin.write
     builtin                 // builtin(write)
     cons
+    symbol 12
+    push label builtin.cons
+    builtin                 // builtin(cons)
+    cons
+    symbol 13
+    push label builtin.car
+    builtin                 // builtin(car)
+    cons
+    symbol 14
+    push label builtin.cdr
+    builtin                 // builtin(cdr)
+    cons
     push constant 8192      // 0x2000 = emptylist
+    cons
+    cons
+    cons
     cons
     cons
     cons

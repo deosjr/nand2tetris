@@ -1,15 +1,11 @@
-(begin
-    (define x 7)
-    (define y 8)
-    (define z 9)
-)
+(define map (lambda (f x)
+                (if (null? x) (quote ())
+                  (cons (f (car x)) (map f (cdr x))))))
 
-(quote 42)
+(null? (quote ()))
 
-(begin x y z)
+(null? 1)
 
-(quote z)
+(car (cdr (quote (1 2 3))))
 
-(define test (lambda (a b) (+ a b)))
-
-(test 1 41)
+(map (lambda (x) (write (+ x 1))) (quote (1 2 3)))
