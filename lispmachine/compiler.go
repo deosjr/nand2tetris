@@ -27,24 +27,26 @@ var symbolTable = map[string]int{
     "cdr": 14,
 }
 
-func compile(filename string) (string, error) {
-    sexps, err := lisp.ParseFile(filename)
-    if err != nil {
-        return "", err
-    }
+func compile(filenames ...string) (string, error) {
     s := "function main\n"
-    for _, sexp := range sexps {
-        s += "\tpush environment\n"
-        out, err := compileSExp(sexp)
+    for _, filename := range filenames {
+        sexps, err := lisp.ParseFile(filename)
         if err != nil {
             return "", err
         }
-        s += out
-        s += "\tpush constant 8192\n"   // 0x2000 = emptylist
-        s += "\tcons\n"
-        s += "\tcons\n"
-        s += "\tcall eval.eval\n"
-        s += "\twrite\n"
+        for _, sexp := range sexps {
+            s += "\tpush environment\n"
+            out, err := compileSExp(sexp)
+            if err != nil {
+                return "", err
+            }
+            s += out
+            s += "\tpush constant 8192\n"   // 0x2000 = emptylist
+            s += "\tcons\n"
+            s += "\tcons\n"
+            s += "\tcall eval.eval\n"
+            s += "\twrite\n"
+        }
     }
     s += "\tpush constant 0\n"
     s += "\treturn\n"
