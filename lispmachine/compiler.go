@@ -25,6 +25,7 @@ var symbolTable = map[string]int{
     "cons": 12,
     "car": 13,
     "cdr": 14,
+    "=": 15,
 }
 
 func compile(filenames ...string) (string, error) {

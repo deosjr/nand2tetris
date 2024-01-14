@@ -9,7 +9,7 @@ import (
 var debug = false
 
 func main() {
-    out, err := compile("lisp/list.scm", "test.scm")
+    out, err := compile("lisp/list.scm", "lisp/main.scm")
     if err != nil {
         fmt.Println(err)
         return

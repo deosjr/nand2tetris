@@ -20,10 +20,10 @@ function init
     symbol 4
     special 4               // special(lambda)
     cons
-    symbol 5
-    push label builtin.begin
-    builtin                 // builtin(begin)
-    cons
+    //symbol 5
+    //push label builtin.begin
+    //builtin                 // builtin(begin)
+    //cons
     symbol 6
     push label builtin.add
     builtin                 // builtin(add)
@@ -40,10 +40,10 @@ function init
     push label builtin.isnull
     builtin                 // builtin(null?)
     cons
-    symbol 10
-    push label builtin.apply
-    builtin                 // builtin(apply)
-    cons
+    //symbol 10
+    //push label builtin.apply
+    //builtin                 // builtin(apply)
+    //cons
     symbol 11
     push label builtin.write
     builtin                 // builtin(write)
@@ -60,8 +60,11 @@ function init
     push label builtin.cdr
     builtin                 // builtin(cdr)
     cons
-    push constant 8192      // 0x2000 = emptylist
+    symbol 15
+    push label builtin.eq
+    builtin                 // builtin(eq)
     cons
+    push constant 8192      // 0x2000 = emptylist
     cons
     cons
     cons

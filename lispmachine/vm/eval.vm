@@ -5,6 +5,7 @@ function eval
     push constant 0     // prepare local 0 = e
     push constant 0     // prepare local 1 = evaluated procedure
     push constant 0     // prepare local 2 = num args
+    push constant 0     // prepare local 3 = f.params
     push argument
     cdr
     car
@@ -84,7 +85,7 @@ label consloop
     push constant 0
     push local 2
     eq
-    if-goto call
+    if-goto apply
     cons
     push local 2
     push constant 1
@@ -92,14 +93,75 @@ label consloop
     pop local 2
     goto consloop
 // actually call the function stored in local 1
-label call
+label apply
     pop local 2
+    push constant 0     // set local 0 to 0
+    pop local 0         // prepare local 0 = numargs
     push local 1
+    is-builtin
+    if-goto callbuiltin
+// label userdefined
+    // remove mask
+    push local 1
+    push constant 8191  // 0x1fff
+    and
+    pop local 1
+    // zip f.params with args
+    push local 1
+    cdr
+    car                 // f.params
+    pop local 3
+label applyrec
+    // TODO: check if len(params) == len(args)
+    push local 3
+    is-emptylist
+    if-goto endapplyrec
+    push local 0
+    push constant 1
+    add
+    pop local 0         // numargs++
+    push local 3 
+    car
     push local 2
+    car
+    cons
+    push local 2
+    cdr
+    pop local 2
+    push local 3
+    cdr
+    pop local 3
+    goto applyrec
+label endapplyrec
+    // cons on top of f.env -> newenv
+    push local 1
+    car                 // f.env
+label applyconsloop
+    push constant 0
+    push local 0
+    eq
+    if-goto applyend
+    cons
+    push local 0
+    push constant 1
+    sub
+    pop local 0
+    goto applyconsloop
+label applyend
+    // call eval.eval of newenv and f.body
+    push local 1
+    cdr
+    cdr
+    car                 // f.body
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
-    call builtin.apply
+    call eval.eval
+    return
+label callbuiltin
+    push local 2
+    push local 1
+    call-builtin
     return
 label evalspecial
     push local 0

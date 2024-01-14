@@ -32,11 +32,12 @@ func Translate(filenames []string, compiledMain string) (string, error) {
     t := &vmTranslator{}
     out := preamble(filenames)
     // translating sys.vm first allows us to drop into sys.init at start
-    o, err := t.translateFiles("vm/sys.vm", "vm/builtin.vm")
+    o, err := t.translateFiles("vm/sys.vm")
     if err != nil {
         return "", err
     }
     out += o
+    out += builtins
     o, err = t.vm2asm([]string{"vm/main.vm"}, []string{compiledMain})
     if err != nil {
         return "", err
@@ -47,7 +48,6 @@ func Translate(filenames []string, compiledMain string) (string, error) {
         return "", err
     }
     out += o
-    out += builtins
     return out, nil
 }
 
@@ -1065,4 +1065,195 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     // goto RET
     @R15
     A=M
-    0;JMP`
+    0;JMP
+// BUILTIN FUNCTIONS
+// RULES: may use R5-R10 as local vars
+// may not call into any other function
+// TODO: at some point we can remove the syscall/sysreturn overhead as well?
+// stack abstraction seems only useful for recursive eval calls
+(BUILTINADD)
+    @ARG
+    A=M
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @ARG
+    A=M
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R5
+    D=D+M
+    @0x1fff
+    D=D&A
+    @0x4000
+    D=D|A
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @SYSRETURN
+    0;JMP
+(BUILTINSUB)
+    @ARG
+    A=M
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @ARG
+    A=M
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R5
+    D=M-D
+    @0x1fff
+    D=D&A
+    @0x4000
+    D=D|A
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @SYSRETURN
+    0;JMP
+(BUILTINEQ)
+    @ARG
+    A=M
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @ARG
+    A=M
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R5
+    D=M-D
+    M=0
+    @BUILTINEQFALSE
+    D;JNE
+    @R5
+    M=!M
+(BUILTINEQFALSE)
+    @R5
+    D=M
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @SYSRETURN
+    0;JMP
+(BUILTINGT)
+    @ARG
+    A=M
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @ARG
+    A=M
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R5
+    D=M-D
+    M=0
+    @BUILTINGTFALSE
+    D;JLE
+    @R5
+    M=!M
+(BUILTINGTFALSE)
+    @R5
+    D=M
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @SYSRETURN
+    0;JMP
+(BUILTINISNULL)
+    @ARG
+    A=M
+    A=M
+    MCAR
+    ISEMPTY
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @SYSRETURN
+    0;JMP
+(BUILTINCAR)
+    @ARG
+    A=M
+    A=M
+    MCAR
+    A=D
+    MCAR
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @SYSRETURN
+    0;JMP
+(BUILTINCDR)
+    @ARG
+    A=M
+    A=M
+    MCAR
+    A=D
+    MCDR
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @SYSRETURN
+    0;JMP
+(BUILTINCONS)
+    @ARG
+    A=M
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @FREE
+    A=M
+    SETCDR
+    @ARG
+    A=M
+    A=M
+    MCAR
+    @FREE
+    A=M
+    SETCAR
+    @FREE
+    D=M
+    M=D+1
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @SYSRETURN
+    0;JMP
+(BUILTINWRITE)
+    @ARG
+    A=M
+    A=M
+    MCAR
+    @0x6002
+    M=D
+    @SP
+    M=M+1
+    A=M-1
+    M=0
+    @SYSRETURN
+    0;JMP
+`   // note: this newline is important!
