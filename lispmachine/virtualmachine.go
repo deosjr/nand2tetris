@@ -1295,4 +1295,60 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     @R15
     A=M
     0;JMP
+(BUILTINASSQ)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5
+    M=D         // R5 = assoclist
+    @SP
+    A=M-1
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R6
+    M=D         // R6 = key
+(BUILTINASSQSTART)
+    @R5
+    A=M
+    MCAR
+    A=D
+    MCAR
+    @R6
+    EQLM
+    @BUILTINASSQFOUND
+    D;JNE
+    @R5
+    A=M
+    EMPTYCDR
+    @BUILTINASSQFAIL
+    D;JNE
+    @R5
+    A=M
+    MCDR
+    @R5
+    M=D
+    @BUILTINASSQSTART
+    0;JMP
+(BUILTINASSQFOUND)
+    @R5
+    A=M
+    MCAR
+    A=D
+    MCDR
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINASSQFAIL)
+    @SP
+    A=M-1
+    M=0
+    @R15
+    A=M
+    0;JMP
 `   // note: this newline is important!

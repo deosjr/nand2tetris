@@ -23,7 +23,7 @@ func main() {
     }
 */
 
-    asm, err := Translate([]string{"vm/eval.vm", "vm/assoc.vm"}, out)
+    asm, err := Translate([]string{"vm/eval.vm"}, out)
     if err != nil {
         fmt.Println(err)
         return

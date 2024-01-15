@@ -39,7 +39,9 @@ label evalself
     return
 label evalsymbol
     push argument
-    call assoc.assq
+    push label builtin.assq
+    builtin
+    call-builtin
     pop local 2
     push local 2
     push constant 0
