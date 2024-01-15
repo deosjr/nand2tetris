@@ -161,6 +161,10 @@ func (t *vmTranslator) translateLine(line string) error {
         return t.translateCar(split[1:])
     case "cdr":
         return t.translateCdr(split[1:])
+    case "cadr":
+        return t.translateCadr(split[1:])
+    case "caddr":
+        return t.translateCaddr(split[1:])
     case "is-procedure":
         return t.translateIsProcedure(split[1:])
     case "is-builtin":
@@ -637,7 +641,7 @@ func (t *vmTranslator) translateCons(split []string) error {
 // follows a pointer
 func (t *vmTranslator) translateCar(split []string) error {
     if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
-        return fmt.Errorf("syntax error: cons %v", split)
+        return fmt.Errorf("syntax error: car %v", split)
     }
     t.b.WriteString(strings.Join([]string{
         "\t@SP",
@@ -653,13 +657,51 @@ func (t *vmTranslator) translateCar(split []string) error {
 
 func (t *vmTranslator) translateCdr(split []string) error {
     if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
-        return fmt.Errorf("syntax error: cons %v", split)
+        return fmt.Errorf("syntax error: cdr %v", split)
     }
     t.b.WriteString(strings.Join([]string{
         "\t@SP",
         "A=M-1",
         "A=M",
         "MCDR",
+        "@SP",
+        "A=M-1",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateCadr(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: cadr %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        "A=M",
+        "MCDR",
+        "A=D",
+        "MCAR",
+        "@SP",
+        "A=M-1",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+func (t *vmTranslator) translateCaddr(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: caddr %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@SP",
+        "A=M-1",
+        "A=M",
+        "MCDR",
+        "A=D",
+        "MCDR",
+        "A=D",
+        "MCAR",
         "@SP",
         "A=M-1",
         "M=D\n",
@@ -786,18 +828,15 @@ func (t *vmTranslator) translateCallBuiltin(split []string) error {
     }
     returnlabel := t.genLabel()
     lines := strings.Join([]string{
-        "\t@SP",
-        "AM=M-1",
-        "D=M",
-        "@0x1fff",
-        "D=D&A",    // mask off first three bits (TODO, could check them first)
-        "@R13",
-        "M=D",
-        "@" + returnlabel,
+        "\t@" + returnlabel,
         "D=A",
         "@R15",
         "M=D",
-        "@SYSCALL",
+        "@SP",
+        "AM=M-1",
+        "D=M",
+        "@0x1fff",
+        "A=D&A",    // mask off first three bits (TODO, could check them first)
         "0;JMP",
     }, "\n\t")
     t.b.WriteString(fmt.Sprintf("\t%s\n(%s)\n", lines, returnlabel))
@@ -1069,17 +1108,17 @@ const builtins = `// BUILTIN SYS FUNCTIONS
 // BUILTIN FUNCTIONS
 // RULES: may use R5-R10 as local vars
 // may not call into any other function
-// TODO: at some point we can remove the syscall/sysreturn overhead as well?
-// stack abstraction seems only useful for recursive eval calls
+// SP-1 contains ARG, always a list
+// R15 contains the return address
 (BUILTINADD)
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCAR
     @R5     // use R5 as dump var
     M=D
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCDR
     A=D
@@ -1091,20 +1130,20 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     @0x4000
     D=D|A
     @SP
-    M=M+1
     A=M-1
     M=D
-    @SYSRETURN
+    @R15
+    A=M
     0;JMP
 (BUILTINSUB)
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCAR
     @R5     // use R5 as dump var
     M=D
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCDR
     A=D
@@ -1116,20 +1155,20 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     @0x4000
     D=D|A
     @SP
-    M=M+1
     A=M-1
     M=D
-    @SYSRETURN
+    @R15
+    A=M
     0;JMP
 (BUILTINEQ)
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCAR
     @R5     // use R5 as dump var
     M=D
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCDR
     A=D
@@ -1145,20 +1184,20 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     @R5
     D=M
     @SP
-    M=M+1
     A=M-1
     M=D
-    @SYSRETURN
+    @R15
+    A=M
     0;JMP
 (BUILTINGT)
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCAR
     @R5     // use R5 as dump var
     M=D
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCDR
     A=D
@@ -1174,52 +1213,52 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     @R5
     D=M
     @SP
-    M=M+1
     A=M-1
     M=D
-    @SYSRETURN
+    @R15
+    A=M
     0;JMP
 (BUILTINISNULL)
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCAR
     ISEMPTY
     @SP
-    M=M+1
     A=M-1
     M=D
-    @SYSRETURN
+    @R15
+    A=M
     0;JMP
 (BUILTINCAR)
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCAR
     A=D
     MCAR
     @SP
-    M=M+1
     A=M-1
     M=D
-    @SYSRETURN
+    @R15
+    A=M
     0;JMP
 (BUILTINCDR)
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCAR
     A=D
     MCDR
     @SP
-    M=M+1
     A=M-1
     M=D
-    @SYSRETURN
+    @R15
+    A=M
     0;JMP
 (BUILTINCONS)
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCDR
     A=D
@@ -1227,8 +1266,8 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     @FREE
     A=M
     SETCDR
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCAR
     @FREE
@@ -1238,22 +1277,22 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     D=M
     M=D+1
     @SP
-    M=M+1
     A=M-1
     M=D
-    @SYSRETURN
+    @R15
+    A=M
     0;JMP
 (BUILTINWRITE)
-    @ARG
-    A=M
+    @SP
+    A=M-1
     A=M
     MCAR
     @0x6002
     M=D
     @SP
-    M=M+1
     A=M-1
     M=0
-    @SYSRETURN
+    @R15
+    A=M
     0;JMP
 `   // note: this newline is important!

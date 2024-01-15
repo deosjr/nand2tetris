@@ -7,8 +7,7 @@ function eval
     push constant 0     // prepare local 2 = num args
     push constant 0     // prepare local 3 = f.params
     push argument
-    cdr
-    car
+    cadr
     pop local 0         // store e in lcl0
     push local 0
     is-procedure
@@ -108,8 +107,7 @@ label apply
     pop local 1
     // zip f.params with args
     push local 1
-    cdr
-    car                 // f.params
+    cadr                // f.params
     pop local 3
 label applyrec
     // TODO: check if len(params) == len(args)
@@ -150,9 +148,7 @@ label applyconsloop
 label applyend
     // call eval.eval of newenv and f.body
     push local 1
-    cdr
-    cdr
-    car                 // f.body
+    caddr               // f.body
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
@@ -210,8 +206,7 @@ label evalif
     push argument
     car                 // env on the stack
     push local 0
-    cdr
-    car                 // conseq
+    cadr                // conseq
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
@@ -222,9 +217,7 @@ label evalalt
     push argument
     car                 // env on the stack
     push local 0
-    cdr
-    cdr
-    car                 // alt
+    caddr               // alt
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
@@ -239,8 +232,7 @@ label evaldefine
     push argument
     car                 // env on the stack
     push local 0
-    cdr
-    car                 // exp
+    cadr                // exp
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
