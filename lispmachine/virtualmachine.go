@@ -1105,6 +1105,20 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     @R15
     A=M
     0;JMP
+(SYSSTACKOVERFLOW)
+    @0x0666
+    D=A
+    @0x6002
+    M=D
+    @SYSEND
+    0;JMP
+(SYSHEAPOVERFLOW)
+    @0x0667
+    D=A
+    @0x6002
+    M=D
+    @SYSEND
+    0;JMP
 // BUILTIN FUNCTIONS
 // RULES: may use R5-R10 as local vars
 // may not call into any other function

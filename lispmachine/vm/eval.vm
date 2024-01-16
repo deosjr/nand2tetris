@@ -6,6 +6,16 @@ function eval
     push constant 0     // prepare local 1 = evaluated procedure
     push constant 0     // prepare local 2 = num args
     push constant 0     // prepare local 3 = f.params
+    push constant 1
+    car                 // SP
+    push constant 2047  // 0x0800 - 1, end of stack
+    gt
+    if-goto sys.stackoverflow
+    push constant 4
+    car                 // FREE
+    push constant 16383 // 0x4000 - 1, end of heap
+    gt
+    if-goto sys.heapoverflow
     push argument
     cadr
     pop local 0         // store e in lcl0
