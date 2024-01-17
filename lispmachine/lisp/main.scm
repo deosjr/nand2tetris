@@ -3,4 +3,9 @@
       0
       (+ 1 (sum-to (- n 1))))))
 
-(sum-to 500)
+(define sum2 (lambda (n acc)
+  (if (= n 0)
+      acc
+      (sum2 (- n 1) (+ 1 acc)))))
+
+(sum2 150 0)

@@ -1119,6 +1119,27 @@ const builtins = `// BUILTIN SYS FUNCTIONS
     M=D
     @SYSEND
     0;JMP
+(SYSERRAPPLYNONPROC)
+    @0x0668
+    D=A
+    @0x6002
+    M=D
+    @SYSEND
+    0;JMP
+(SYSERRSYMBOLNOTFOUND)
+    @0x0669
+    D=A
+    @0x6002
+    M=D
+    @SYSEND
+    0;JMP
+(SYSERRUNKNOWNBUILTIN)
+    @0x0670
+    D=A
+    @0x6002
+    M=D
+    @SYSEND
+    0;JMP
 // BUILTIN FUNCTIONS
 // RULES: may use R5-R10 as local vars
 // may not call into any other function

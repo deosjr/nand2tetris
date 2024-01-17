@@ -1,4 +1,5 @@
 // (eval env e) -> evaluation of e in env, or NIL if error
+// only user of the stack vm abstraction!
 // NOTE env is an argument, not ENV.
 // TODO: if first argument is not an env assoc list (how?), use *ENV instead
 function eval
@@ -6,6 +7,7 @@ function eval
     push constant 0     // prepare local 1 = evaluated procedure
     push constant 0     // prepare local 2 = num args
     push constant 0     // prepare local 3 = f.params
+label evalstart
     push constant 1
     car                 // SP
     push constant 2047  // 0x0800 - 1, end of stack
@@ -16,6 +18,8 @@ function eval
     push constant 16383 // 0x4000 - 1, end of heap
     gt
     if-goto sys.heapoverflow
+    push constant 0
+    pop local 2         // reset numargs if needed
     push argument
     cadr
     pop local 0         // store e in lcl0
@@ -43,7 +47,7 @@ label evalpair
     is-procedure
     if-goto evalprocedure
     // attempt to apply non-procedure
-    goto sys.end
+    goto sys.errapplynonproc
 label evalself
     push local 0
     return
@@ -57,7 +61,7 @@ label evalsymbol
     push constant 0
     eq
     // symbol not found
-    if-goto sys.end
+    if-goto sys.errsymbolnotfound
     push local 2
     return
 label evalprocedure
@@ -164,8 +168,8 @@ label applyend
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
-    call eval.eval
-    return
+    pop argument
+    goto evalstart
 label callbuiltin
     push local 2
     push local 1
@@ -201,7 +205,7 @@ label evalspecial
     eq
     if-goto evallambda
     // unknown builtin, return err
-    goto sys.end
+    goto sys.errunknownbuiltin
 label evalif
     push argument
     car                 // env on the stack
@@ -222,8 +226,8 @@ label evalif
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
-    call eval.eval
-    return
+    pop argument
+    goto evalstart
 label evalalt
     // TODO: if no alt, return 'false'
     push argument
@@ -233,8 +237,8 @@ label evalalt
     push constant 8192  // 0x2000 = emptylist
     cons
     cons
-    call eval.eval
-    return
+    pop argument
+    goto evalstart
 label evaldefine
     // TODO: this just adds, doesnt check if already exists in env
     // meaning currently the assoc list could have duplicate keys
