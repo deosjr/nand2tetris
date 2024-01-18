@@ -38,8 +38,7 @@ label evalpair
     car         // env on the stack
     push local 0
     car
-    push constant 0  // NIL = emptylist
-    cons
+    cons-on-empty
     cons
     call eval.eval
     pop local 1
@@ -88,13 +87,12 @@ label evalargs
     car                 // env on the stack
     push local 0
     car
-    push constant 0  // NIL = emptylist
-    cons
+    cons-on-empty
     cons
     call eval.eval      // returns evalled arg, or NIL if error
     goto evalargs
 label evalfunc
-    push constant 0  // NIL = emptylist
+    push constant 0     // NIL = emptylist
 // cons numargs times
 label consloop
     push constant 0
@@ -165,8 +163,7 @@ label applyend
     // call eval.eval of newenv and f.body
     push local 1
     caddr               // f.body
-    push constant 0  // NIL = emptylist
-    cons
+    cons-on-empty
     cons
     pop argument
     goto evalstart
@@ -211,8 +208,7 @@ label evalif
     car                 // env on the stack
     push local 0
     car                 // test
-    push constant 0  // NIL = emptylist
-    cons
+    cons-on-empty
     cons
     call eval.eval
     push constant 0
@@ -223,8 +219,7 @@ label evalif
     car                 // env on the stack
     push local 0
     cadr                // conseq
-    push constant 0  // NIL = emptylist
-    cons
+    cons-on-empty
     cons
     pop argument
     goto evalstart
@@ -234,8 +229,7 @@ label evalalt
     car                 // env on the stack
     push local 0
     caddr               // alt
-    push constant 0  // NIL = emptylist
-    cons
+    cons-on-empty
     cons
     pop argument
     goto evalstart
@@ -249,8 +243,7 @@ label evaldefine
     car                 // env on the stack
     push local 0
     cadr                // exp
-    push constant 0  // NIL = emptylist
-    cons
+    cons-on-empty
     cons
     call eval.eval
     cons                // (symbol . (eval exp)) = entry

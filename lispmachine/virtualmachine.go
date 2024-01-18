@@ -157,6 +157,8 @@ func (t *vmTranslator) translateLine(line string) error {
     // lisp 
     case "cons":
         return t.translateCons(split[1:])
+    case "cons-on-empty":
+        return t.translateConsOnEmpty(split[1:])
     case "car":
         return t.translateCar(split[1:])
     case "cdr":
@@ -619,6 +621,33 @@ func (t *vmTranslator) translateCons(split []string) error {
         "\t@SP",
         "AM=M-1",
         "D=M",
+        "@FREE",
+        "A=M",
+        "SETCDR",
+        "@SP",
+        "A=M-1",
+        "D=M",
+        "@FREE",
+        "A=M",
+        "SETCAR",
+        "@FREE",
+        "D=M",
+        "M=D+1",
+        "@SP",
+        "A=M-1",
+        "M=D\n",
+    }, "\n\t"))
+    return nil
+}
+
+// optimisation: we dont want to push emptylist each time
+func (t *vmTranslator) translateConsOnEmpty(split []string) error {
+    if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
+        return fmt.Errorf("syntax error: cons-on-empty %v", split)
+    }
+    t.b.WriteString(strings.Join([]string{
+        "\t@0x0",
+        "D=A",
         "@FREE",
         "A=M",
         "SETCDR",
