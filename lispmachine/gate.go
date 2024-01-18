@@ -72,6 +72,14 @@ func Or8Way(in [8]bit) bit {
     return out
 }
 
+func And16Way(in [16]bit) bit {
+    out := in[0]
+    for i:=1; i<16; i++ {
+        out = And(out, in[i])
+    }
+    return out
+}
+
 func Mux4Way16(a, b, c, d [16]bit, sel [2]bit) [16]bit {
     return Mux16(Mux16(a, b, sel[0]), Mux16(c, d, sel[0]), sel[1])
 }

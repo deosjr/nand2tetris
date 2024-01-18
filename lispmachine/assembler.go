@@ -329,7 +329,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
     // firstpass
     statements := []ast.Stmt{}
     labels := map[string]uint16{
-        "NIL":      0x0000,
+        "NIL":      0x0000, // encodes emptylist. TODO: distinguish from <void>
         "SP":       0x0001,
         "ENV":      0x0002,
         "ARG":      0x0003,
@@ -435,7 +435,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                 case "SETCDR":
                     program = append(program, 0b1010111111000000)
                 case "EQLA":
-                    program = append(program, 0b0)
+                    program = append(program, 0b0) // TODO?
                 case "EQLM":
                     program = append(program, 0b1000010111010000)
                 // TODO: MCAR should set typeError when called on non-pair?
@@ -455,8 +455,10 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                     program = append(program, 0b1000001111010000)
                 case "ISEMPTY":
                     program = append(program, 0b1000001001010000)
+                case "ISPAIR":
+                    program = append(program, 0b0) // TODO?
                 case "EMPTYCDR":
-                    program = append(program, 0b1000000001010000)
+                    program = append(program, 0b1000100000010000)
                 default:
                     posFrom := fset.Position(bl.ValuePos)
                     return nil, fmt.Errorf("%s: invalid instr: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])
