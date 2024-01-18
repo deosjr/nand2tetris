@@ -1,0 +1,247 @@
+// BUILTIN SYS FUNCTIONS
+// BUILTIN FUNCTIONS
+// RULES: may use R5-R10 as local vars
+// may not call into any other function
+// SP-1 contains ARG, always a list
+// R15 contains the return address
+(BUILTINADD)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @SP
+    A=M-1
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R5
+    D=D+M
+    @0x1fff
+    D=D&A
+    @0x4000
+    D=D|A
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSUB)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @SP
+    A=M-1
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R5
+    D=M-D
+    @0x1fff
+    D=D&A
+    @0x4000
+    D=D|A
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINEQ)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @SP
+    A=M-1
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R5
+    D=M-D
+    M=0
+    @BUILTINEQFALSE
+    D;JNE
+    @R5
+    M=!M
+(BUILTINEQFALSE)
+    @R5
+    D=M
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINGT)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @SP
+    A=M-1
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R5
+    D=M-D
+    M=0
+    @BUILTINGTFALSE
+    D;JLE
+    @R5
+    M=!M
+(BUILTINGTFALSE)
+    @R5
+    D=M
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINISNULL)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    ISEMPTY
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINCAR)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    A=D
+    MCAR
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINCDR)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    A=D
+    MCDR
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINCONS)
+    @SP
+    A=M-1
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @FREE
+    A=M
+    SETCDR
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @FREE
+    A=M
+    SETCAR
+    @FREE
+    D=M
+    M=D+1
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINWRITE)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @0x6002
+    M=D
+    @SP
+    A=M-1
+    M=0
+    @R15
+    A=M
+    0;JMP
+(BUILTINASSQ)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5
+    M=D         // R5 = assoclist
+    @SP
+    A=M-1
+    A=M
+    MCDR
+    A=D
+    MCAR
+    @R6
+    M=D         // R6 = key
+(BUILTINASSQSTART)
+    @R5
+    A=M
+    MCAR
+    A=D
+    MCAR
+    @R6
+    EQLM
+    @BUILTINASSQFOUND
+    D;JNE
+    @R5
+    A=M
+    EMPTYCDR
+    @BUILTINASSQFAIL
+    D;JNE
+    @R5
+    A=M
+    MCDR
+    @R5
+    M=D
+    @BUILTINASSQSTART
+    0;JMP
+(BUILTINASSQFOUND)
+    @R5
+    A=M
+    MCAR
+    A=D
+    MCDR
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINASSQFAIL)
+    @SP
+    A=M-1
+    M=0
+    @R15
+    A=M
+    0;JMP

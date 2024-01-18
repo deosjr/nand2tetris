@@ -54,6 +54,8 @@ func run(computer *LispMachine, debugger Debugger) {
     computer.SendReset(false)
     fmt.Println("booting...")
 
+    ticks := 0
+
     if debugger != nil {
         debugger.BeforeLoop()
     }
@@ -63,6 +65,7 @@ func run(computer *LispMachine, debugger Debugger) {
             debugger.BeforeTick(computer)
         }
         computer.ClockTick()
+        ticks++
         if debugger != nil {
             debugger.AfterTick(computer)
         }
@@ -77,6 +80,7 @@ func run(computer *LispMachine, debugger Debugger) {
         pprev = prev
         prev = computer.cpu.PC()
     }
+    fmt.Println("ticks:", ticks)
 }
 
 type Debugger interface {

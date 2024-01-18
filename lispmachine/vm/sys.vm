@@ -64,8 +64,7 @@ function init
     push label builtin.eq
     builtin                 // builtin(eq)
     cons
-    push constant 8192      // 0x2000 = emptylist
-    cons
+    cons-on-empty
     cons
     cons
     cons
