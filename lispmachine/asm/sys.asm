@@ -28,6 +28,13 @@
     D=D-A
     @ARG
     M=D
+    // ENV=SP-5  // reposition ENV
+    @SP
+    D=M
+    @5
+    D=D-A
+    @ENV
+    M=D
     // goto f      // transfer control
     @R13    // FUNC
     A=M
@@ -42,16 +49,16 @@
     D=M
     @R15    // RET
     M=D
-    // *ARG = pop()
+    // *ENV = pop()
     @SP
     AM=M-1
     D=M
-    @ARG
+    @ENV
     A=M
     M=D
-    // SP = ARG+1 = FRAME
+    // SP = ARG = FRAME
     @R14
-    D=M
+    D=M-1
     @SP
     M=D
     // ENV = *(FRAME+2)

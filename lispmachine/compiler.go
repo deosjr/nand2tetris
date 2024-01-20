@@ -42,9 +42,9 @@ func compile(filenames ...string) (string, error) {
                 return "", err
             }
             s += out
-            s += "\tpush constant 8192\n"   // 0x2000 = emptylist
-            s += "\tcons\n"
-            s += "\tcons\n"
+            //s += "\tpush constant 8192\n"   // 0x2000 = emptylist
+            //s += "\tcons\n"
+            //s += "\tcons\n"
             s += "\tcall eval.eval\n"
             s += "\twrite\n"
         }

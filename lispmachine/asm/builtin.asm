@@ -3,6 +3,7 @@
 // RULES: may use R5-R10 as local vars
 // may not call into any other function
 // SP-1 contains ARG, always a list
+// call-by-ref: dont ever change contents of ARG
 // R15 contains the return address
 (BUILTINADD)
     @SP

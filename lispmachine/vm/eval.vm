@@ -3,7 +3,7 @@
 // NOTE env is an argument, not ENV.
 // TODO: if first argument is not an env assoc list (how?), use *ENV instead
 function eval
-    push constant 0     // prepare local 0 = e
+    push constant 0     // prepare local 0 = e  // TODO: no longer needed?
     push constant 0     // prepare local 1 = evaluated procedure
     push constant 0     // prepare local 2 = num args
     push constant 0     // prepare local 3 = f.params
@@ -21,25 +21,19 @@ label evalstart
     push constant 0
     pop local 2         // reset numargs if needed
     push argument
-    cadr
-    pop local 0         // store e in lcl0
-    push local 0
     is-procedure
     if-goto evalself
-    push local 0
+    push argument
     is-symbol
     if-goto evalsymbol
-    push local 0
+    push argument
     is-primitive
     if-goto evalself
     // guaranteed to be a pair!
 label evalpair
+    push environment
     push argument
-    car         // env on the stack
-    push local 0
     car
-    cons-on-empty
-    cons
     call eval.eval
     pop local 1
     push local 1        // evalled procedure
@@ -48,10 +42,13 @@ label evalpair
     // attempt to apply non-procedure
     goto sys.errapplynonproc
 label evalself
-    push local 0
+    push argument
     return
 label evalsymbol
+    push environment
     push argument
+    cons-on-empty
+    cons
     push label builtin.assq
     builtin
     call-builtin
@@ -60,6 +57,7 @@ label evalsymbol
     push constant 0
     eq
     // symbol not found
+    // TODO: broken!
     if-goto sys.errsymbolnotfound
     push local 2
     return
@@ -71,7 +69,7 @@ label evalargs
     // we will need to build ( evaluatedargs ... )
     // on the stack, then call the evaluated func with those args
     // this is an implementation of (map eval ...)
-    push local 0
+    push argument
     cdr
     // if emptylist, we ran out of args
     is-emptylist
@@ -80,19 +78,16 @@ label evalargs
     push constant 1
     add
     pop local 2         // numargs++
-    push local 0
-    cdr
-    pop local 0
     push argument
-    car                 // env on the stack
-    push local 0
+    cdr
+    pop argument
+    push environment
+    push argument
     car
-    cons-on-empty
-    cons
     call eval.eval      // returns evalled arg, or NIL if error
     goto evalargs
 label evalfunc
-    push constant 0     // NIL = emptylist
+    push constant 0     // NIL = emptylist  // TODO: move to label apply?
 // cons numargs times
 label consloop
     push constant 0
@@ -134,7 +129,7 @@ label applyrec
     pop local 0         // numargs++
     push local 3 
     car
-    push local 2
+    push local 2 
     car
     cons
     push local 2
@@ -160,11 +155,10 @@ label applyconsloop
     pop local 0
     goto applyconsloop
 label applyend
+    pop environment
     // call eval.eval of newenv and f.body
     push local 1
     caddr               // f.body
-    cons-on-empty
-    cons
     pop argument
     goto evalstart
 label callbuiltin
@@ -173,9 +167,9 @@ label callbuiltin
     call-builtin
     return
 label evalspecial
-    push local 0
+    push argument
     cdr
-    pop local 0         // at this point, we no longer care about car of e
+    pop argument        // at this point, we no longer care about car of e
     // remove mask
     push local 1
     push constant 8191  // 0x1fff
@@ -204,47 +198,33 @@ label evalspecial
     // unknown builtin, return err
     goto sys.errunknownbuiltin
 label evalif
+    push environment
     push argument
-    car                 // env on the stack
-    push local 0
     car                 // test
-    cons-on-empty
-    cons
     call eval.eval
     push constant 0
     equal
     if-goto evalalt
 // label evalconseq
     push argument
-    car                 // env on the stack
-    push local 0
     cadr                // conseq
-    cons-on-empty
-    cons
     pop argument
     goto evalstart
 label evalalt
     // TODO: if no alt, return 'false'
     push argument
-    car                 // env on the stack
-    push local 0
     caddr               // alt
-    cons-on-empty
-    cons
     pop argument
     goto evalstart
 label evaldefine
     // TODO: this just adds, doesnt check if already exists in env
     // meaning currently the assoc list could have duplicate keys
-    push local 0
+    push argument
     car                 // symbol
     // TODO: if not symbol, error!
+    push environment
     push argument
-    car                 // env on the stack
-    push local 0
     cadr                // exp
-    cons-on-empty
-    cons
     call eval.eval
     cons                // (symbol . (eval exp)) = entry
     // we need to modify the env pointer, because ENV will be restored
@@ -264,7 +244,7 @@ label evaldefine
     push constant 0
     return
 label evalquote
-    push local 0
+    push argument
     car
     return
 label evalset
@@ -274,7 +254,7 @@ label evallambda
     // assumption: params is a list of symbols
     // TODO: typecheck param arg and check length of args=2
     push environment
-    push local 0
+    push argument
     cons
     userdefined
     return

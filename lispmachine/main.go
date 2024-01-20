@@ -9,7 +9,8 @@ import (
 var debug = false
 
 func main() {
-    out, err := compile("lisp/list.scm", "lisp/main.scm")
+    //out, err := compile("lisp/list.scm", "lisp/main.scm")
+    out, err := compile("lisp/main.scm")
     if err != nil {
         fmt.Println(err)
         return
@@ -105,7 +106,7 @@ func (sd *standardDebugger) BeforeTick(c *LispMachine) {
 
 func (sd *standardDebugger) AfterTick(c *LispMachine) {
     //fmt.Printf(" %04x %04x %04x\n", c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.OutCarM())
-    //fmt.Printf("%03d: %04x %04x %04x %04x %04x", c.cpu.pc.Out(), c.cpu.instr, c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.inCarM, c.cpu.inCdrM)
+    fmt.Printf("%03d: %04x %04x %04x %04x %04x\n", c.cpu.pc.Out(), c.cpu.instr, c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.inCarM, c.cpu.inCdrM)
     //fmt.Printf(" %04x %04x %04x %04x %04x", c.data_mem.ramCar.mem[13], c.data_mem.ramCar.mem[14], c.data_mem.ramCar.mem[15], c.data_mem.ramCar.mem[1], c.data_mem.ramCar.mem[3])
     //fmt.Printf(" [%04x %04x %04x %04x %04x", c.data_mem.ramCar.mem[256], c.data_mem.ramCar.mem[257], c.data_mem.ramCar.mem[258], c.data_mem.ramCar.mem[259], c.data_mem.ramCar.mem[260])
     //fmt.Printf(" %04x %04x %04x %04x %04x]", c.data_mem.ramCar.mem[261], c.data_mem.ramCar.mem[262], c.data_mem.ramCar.mem[263], c.data_mem.ramCar.mem[264], c.data_mem.ramCar.mem[265])

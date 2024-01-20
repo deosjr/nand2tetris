@@ -363,6 +363,7 @@ func (t *vmTranslator) translatePush(split []string) error {
     case "environment":
         t.b.WriteString(strings.Join([]string{
             "\t@ENV",
+             "A=M",
              "D=M\n",
         }, "\n\t"))
     case "r":
@@ -433,6 +434,7 @@ func (t *vmTranslator) translatePop(split []string) error {
     case "environment":
         t.b.WriteString(strings.Join([]string{
             "\t@ENV",
+            "A=M",
             "M=D\n",
         }, "\n\t"))
     case "static":
