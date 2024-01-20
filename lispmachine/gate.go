@@ -72,6 +72,14 @@ func Or8Way(in [8]bit) bit {
     return out
 }
 
+func Or16Way(in [16]bit) bit {
+    out := in[0]
+    for i:=1; i<16; i++ {
+        out = Or(out, in[i])
+    }
+    return out
+}
+
 func And16Way(in [16]bit) bit {
     out := in[0]
     for i:=1; i<16; i++ {

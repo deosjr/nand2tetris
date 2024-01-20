@@ -323,9 +323,13 @@ func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f, g bit) (car, 
         out := Mux16(false16, true16, inCarM[0])
         return out, out, true
     //case 0b: // ISPAIR
+    case 0b0110000: // ISEMPTY
+        carIsEmpty := Not(Or16Way(inCarM))
+        out := Mux16(false16, true16, carIsEmpty)
+        return out, out, true
     case 0b0100000: // EMPTYCDR
     // EMPTYCDR: sets D to boolean true or false based on whether cdr of M is emptylist
-        cdrIsEmpty := And16Way(And16(false16, inCdrM))
+        cdrIsEmpty := Not(Or16Way(inCdrM))
         out := Mux16(false16, true16, cdrIsEmpty)
         return out, out, true
     }

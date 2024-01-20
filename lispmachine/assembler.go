@@ -453,10 +453,10 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                     program = append(program, 0b1000001101010000)
                 case "ISSPECIAL":
                     program = append(program, 0b1000001111010000)
-                case "ISEMPTY":
-                    program = append(program, 0b1000001001010000)
                 case "ISPAIR":
                     program = append(program, 0b0) // TODO?
+                case "ISEMPTY":
+                    program = append(program, 0b1000110000010000)
                 case "EMPTYCDR":
                     program = append(program, 0b1000100000010000)
                 default:

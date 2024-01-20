@@ -42,9 +42,6 @@ func compile(filenames ...string) (string, error) {
                 return "", err
             }
             s += out
-            //s += "\tpush constant 8192\n"   // 0x2000 = emptylist
-            //s += "\tcons\n"
-            //s += "\tcons\n"
             s += "\tcall eval.eval\n"
             s += "\twrite\n"
         }
@@ -87,7 +84,7 @@ func compileSExp(sexp lisp.SExpression) (string, error) {
         }
         s += out
     }
-    s += "\tpush constant 8192\n"   // 0x2000 = emptylist
+    s += "\tpush constant 0\n"   // 0x0 = emptylist
     for range list {
         s += "\tcons\n"
     }

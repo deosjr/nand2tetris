@@ -219,7 +219,7 @@
     A=M
     EMPTYCDR
     @BUILTINASSQFAIL
-    D;JNE
+    !D;JEQ
     @R5
     A=M
     MCDR
