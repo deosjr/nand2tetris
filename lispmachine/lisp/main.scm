@@ -8,4 +8,6 @@
       acc
       (sum2 (- n 1) (+ 1 acc)))))
 
+#| 480k ticks unoptimised|#
+#| 430k ticks with eval taking 2 args |#
 (sum2 50 0)

@@ -1,56 +1,111 @@
 package main
 
-import "testing"
+import (
+    "reflect"
+    "strconv"
+    "testing"
+)
+
+type testCapturer struct {
+    out []uint16
+}
+
+func (tc *testCapturer) Write(p []byte) (int, error) {
+    x, err := strconv.ParseInt(string(p)[:4], 16, 16)
+    if err != nil {
+        return 0, err
+    }
+    tc.out = append(tc.out, uint16(x))
+    return len(p), nil
+}
+
+type testDebugger struct {
+    t *testing.T
+    i int
+    index int
+}
+
+func (*testDebugger) BeforeLoop() {}
+func (td *testDebugger) BeforeTick(c *LispMachine) {
+    td.i++
+}
+func (td *testDebugger) AfterTick(c *LispMachine) {
+    if td.i > 10000 {
+        td.t.Fatalf("%d): took too long", td.index)
+    }
+}
 
 func TestLispMachine(t *testing.T) {
     for i, tt := range []struct{
-        program []uint16
-        wantOutCarM uint16
-        wantOutCdrM uint16
-        wantWriteCarM bool
-        wantWriteCdrM bool
-        wantAddressM uint16
-        wantPC uint16
-        n int
+        in string
+        want []uint16
     }{
         {
-            program: []uint16{0x0, 0x0},
-            n: 2,
-            wantOutCarM: 0,
-            wantWriteCarM: false,
-            wantAddressM: 0,
-            wantPC: 2,
+            in: "5",
+            want: []uint16{0x4005},
         },
         {
-            // load 5, move A to D, load 0, move D to M
-            program: []uint16{0x5, 0xEC10, 0x0, 0xE308},
-            n: 4,
-            wantOutCarM: 5,
-            wantWriteCarM: true,
-            wantAddressM: 0,
-            wantPC: 4,
+            in: "x",
+            want: []uint16{0x0669}, // symbol not found
+        },
+        {
+            in: "(+ 1 2)",
+            want: []uint16{0x4003},
+        },
+        {
+            in: "(- 5 3)",
+            want: []uint16{0x4002},
+        },
+        {
+            in: "(define x 42) x",
+            want: []uint16{0x0, 0x402a}, // define returns NIL
+        },
+        {
+            in: "(quote lambda)",
+            want: []uint16{0x6004},     // symbol 4 = lambda, as per hardcoded symbol table
+        },
+        {
+            in: "(if (> 3 2) 1 fail)",
+            want: []uint16{0x4001},
+        },
+        {
+            in: "(define identity (lambda (x) x)) (identity 42)",
+            want: []uint16{0x0, 0x402a}, // define returns NIL
         },
     }{
+        out, err := compileFromString(tt.in)
+        if err != nil {
+            t.Fatal(err)
+        }
+    
+        //asm, err := Translate([]string{"vm/eval.vm"}, out)
+        asm, err := Translate([]string{}, out)
+        if err != nil {
+            t.Fatal(err)
+        }
+    
+        program, err := assembleFromString(asm)
+        if err != nil {
+            t.Fatal(err)
+        }
+    
         cpu := NewLispCPU()
         computer := NewLispMachine(cpu)
-        computer.LoadProgram(NewROM32K(tt.program))
-        computer.SendReset(true)
-        computer.ClockTick()
-        computer.SendReset(false)
-        for i:=0; i<tt.n; i++ {
-            computer.ClockTick()
-        }
-        if cpu.OutCarM() != tt.wantOutCarM {
-            t.Errorf("%d) got %d but wantOutCarM %d", i, cpu.OutCarM(), tt.wantOutCarM)
-        }
-        if cpu.WriteCarM() != tt.wantWriteCarM {
-            t.Errorf("%d) got %t but wantWriteCarM %t", i, cpu.WriteCarM(), tt.wantWriteCarM)
-        }
-        if cpu.AddressM() != tt.wantAddressM {
-            t.Errorf("%d) got %d but wantAddressM %d", i, cpu.AddressM(), tt.wantAddressM)
-        }
-        if cpu.PC() != tt.wantPC {
-            t.Errorf("%d) got %d but wantPC %d", i, cpu.PC(), tt.wantPC)
+        computer.LoadProgram(NewROM32K(program))
+        tc := &testCapturer{}
+        computer.data_mem.writer.LoadOutputWriter(tc)
+    
+        td := &testDebugger{t:t, index:i}
+        run(computer, td)
+
+        if !reflect.DeepEqual(tc.out, tt.want) {
+            for _, v := range tt.want {
+                t.Logf("0x%04x", v)
+            }
+            for _, v := range tc.out {
+                t.Logf("0x%04x", v)
+            }
+            t.Errorf("%d): want %v got %v", i, tt.want, tc.out)
         }
     }
 }

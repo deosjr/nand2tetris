@@ -51,6 +51,27 @@ func compile(filenames ...string) (string, error) {
     return s, nil
 }
 
+func compileFromString(in string) (string, error) {
+    s := "function main\n"
+    sexps, err := lisp.Multiparse(in)
+    if err != nil {
+        return "", err
+    }
+    for _, sexp := range sexps {
+        s += "\tpush environment\n"
+        out, err := compileSExp(sexp)
+        if err != nil {
+            return "", err
+        }
+        s += out
+        s += "\tcall eval.eval\n"
+        s += "\twrite\n"
+    }
+    s += "\tpush constant 0\n"
+    s += "\treturn\n"
+    return s, nil
+}
+
 func compileSExp(sexp lisp.SExpression) (string, error) {
     if sexp.IsPrimitive() {
         n := int(sexp.AsNumber())

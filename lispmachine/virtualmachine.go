@@ -42,6 +42,11 @@ func Translate(filenames []string, compiledMain string) (string, error) {
         return "", err
     }
     out += string(data)
+    data, err = os.ReadFile("asm/eval.asm")
+    if err != nil {
+        return "", err
+    }
+    out += string(data)
     data, err = os.ReadFile("asm/builtin.asm")
     if err != nil {
         return "", err

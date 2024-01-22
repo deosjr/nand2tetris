@@ -242,7 +242,7 @@
 (BUILTINASSQFAIL)
     @SP
     A=M-1
-    M=0
-    @R15
+    M=0         // TODO: return error instead of NIL
+    @R15        // can't set symbol to emptylist now!
     A=M
     0;JMP
