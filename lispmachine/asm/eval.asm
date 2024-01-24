@@ -166,200 +166,100 @@
     ISSPECIAL
     @EVALSPECIAL
     !D;JEQ
+	@ARG
+	A=M
+	A=M
+    EMPTYCDR
+	@EVALZEROARGFUNC
+	!D;JEQ
 (EVALARGS)
-	@ARG
-	A=M
-	D=M
+    @FREE
+    D=M
+    @SP
+    M=M+1
+    A=M-1
+    M=D             // push FREE: head of list of evalled args
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @FREE
+    M=M+1           // push FREE again then incr
+(EVALARGLOOP)
+    @ARG
+    A=M
+    A=M
+    MCDR
+    @ARG
+    A=M
+    M=D             // @ARG = (CDR ARG)
+    @ENV
+    A=M
+    D=M
 	@SP
 	M=M+1
 	A=M-1
 	M=D
+    @ARG
+    A=M
+    A=M
+    MCAR            // call eval of next arg
 	@SP
-	A=M-1
-	A=M
-	MCDR
-	@SP
+	M=M+1
 	A=M-1
 	M=D
-	@SP
-	A=M-1
-	ISEMPTY
-	M=D
+    @EVALEVAL
+    D=A
+    @R13
+    M=D
+    @EVALARGLOOPRET
+    D=A
+    @R15
+    M=D
+    @SYSCALL
+    0;JMP
+(EVALARGLOOPRET)
 	@SP
 	AM=M-1
-	D=M
-	@EVALFUNC
+	D=M             // result of eval
+	@SP
+	AM=M-1
+	A=M             // allocated cons cell
+    SETCAR
+    D=A
+    @R14
+    M=D             // store address in R14
+	@ARG
+	A=M
+	A=M
+    EMPTYCDR
+	@EVALENDARGLOOP
 	!D;JEQ
-	@6
-	D=A
-	@ARG
-	A=D+M
-	D=M
+    @FREE
+    D=M
+    @R14
+    A=M
+    SETCDR          // setcdr to next available cell
 	@SP
 	M=M+1
 	A=M-1
 	M=D
-	@SP
-	M=M+1
-	A=M-1
-	M=1
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	M=D+M
-	@ARG
-	D=M
-	@6
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
-	@ARG
-	A=M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCDR
-	@SP
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@ARG
-	A=M
-	M=D
-	@ENV
-	A=M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@ARG
-	A=M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCAR
-	@SP
-	A=M-1
-	M=D
-	@EVALEVAL
-	D=A
-	@R13
-	M=D
-	@XXAAAAAJ
-	D=A
-	@R15
-	M=D
-	@SYSCALL
-	0;JMP
-(XXAAAAAJ)
-	@EVALARGS
-	0;JMP
-(EVALFUNC)
+    @FREE
+    M=M+1           // preallocate cons cell for next loop iteration
+    @EVALARGLOOP
+    0;JMP
+(EVALZEROARGFUNC)
 	@SP
 	M=M+1
 	A=M-1
 	M=0
-(EVALCONSLOOP)
-	@SP
-	M=M+1
-	A=M-1
-	M=0
-	@6
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	D=M-D
-	M=0
-	@XXAAAABA
-	D;JNE
-	@SP
-	A=M-1
-	M=!M
-(XXAAAABA)
-	@SP
-	AM=M-1
-	D=M
-	@EVALAPPLY
-	!D;JEQ
-	@SP
-	AM=M-1
-	D=M
-	@FREE
-	A=M
-	SETCDR
-	@SP
-	A=M-1
-	D=M
-	@FREE
-	A=M
-	SETCAR
-	@FREE
-	D=M
-	M=D+1
-	@SP
-	A=M-1
-	M=D
-	@6
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	M=M+1
-	A=M-1
-	M=1
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	M=M-D
-	@ARG
-	D=M
-	@6
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
-	@EVALCONSLOOP
-	0;JMP
+    @EVALAPPLY
+    0;JMP
+(EVALENDARGLOOP)
+    @R14
+    A=M
+    D=0
+    SETCDR          // fallthrough to apply
 (EVALAPPLY)
 	@ARG
 	D=M

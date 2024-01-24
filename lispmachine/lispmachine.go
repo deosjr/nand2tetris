@@ -364,6 +364,8 @@ func (b *LispCPU) OutCdrM() uint16 {
 func (b *LispCPU) WriteCarM() bool {
     isC, _, _, _, dest, _ := b.decode()
     return bool(And(isC, dest[2]))
+    //isC, useAlu, b2, _, dest, _ := b.decode()
+    //return bool(And(dest[2], Or(And(isC, useAlu), And(And(isC, Not(useAlu)), Not(b2)))))
 }
 
 func (b *LispCPU) WriteCdrM() bool {
