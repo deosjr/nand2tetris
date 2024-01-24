@@ -15,7 +15,8 @@ func main() {
         return
     }
 
-    asm, err := Translate([]string{"vm/eval.vm"}, out)
+    //asm, err := Translate([]string{"vm/eval.vm"}, out)
+    asm, err := Translate([]string{}, out)
     if err != nil {
         fmt.Println(err)
         return
