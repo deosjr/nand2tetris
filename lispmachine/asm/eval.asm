@@ -2,10 +2,7 @@
 // only user of the stack vm abstraction!
 (EVALEVAL)
     // prepare 4 local variables, initialised to 0
-	@SP
-	M=M+1
-	A=M-1
-	M=0
+    // TODO: we definitely don't need 4. Perhaps only 1?
 	@SP
 	M=M+1
 	A=M-1
@@ -415,195 +412,28 @@
 	D=M
 	@ARG
 	A=M
-	M=D
+	M=D             // @ARG = (cdr ARG)
 	@5
 	D=A
 	@ARG
 	A=D+M
 	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@8191
-	D=A
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	M=D&M
-	@ARG
-	D=M
-	@5
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
-	@5
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	M=M+1
-	A=M-1
-	M=0
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	D=M-D
-	M=0
-	@XXAAAABD
-	D;JNE
-	@SP
-	A=M-1
-	M=!M
-(XXAAAABD)
-	@SP
-	AM=M-1
-	D=M
-	@EVALIF
-	!D;JEQ
-	@5
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	M=M+1
-	A=M-1
-	M=1
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	D=M-D
-	M=0
-	@XXAAAABE
-	D;JNE
-	@SP
-	A=M-1
-	M=!M
-(XXAAAABE)
-	@SP
-	AM=M-1
-	D=M
-	@EVALDEFINE
-	!D;JEQ
-	@5
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@2
-	D=A
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	D=M-D
-	M=0
-	@XXAAAABF
-	D;JNE
-	@SP
-	A=M-1
-	M=!M
-(XXAAAABF)
-	@SP
-	AM=M-1
-	D=M
-	@EVALQUOTE
-	!D;JEQ
-	@5
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@3
-	D=A
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	D=M-D
-	M=0
-	@XXAAAABG
-	D;JNE
-	@SP
-	A=M-1
-	M=!M
-(XXAAAABG)
-	@SP
-	AM=M-1
-	D=M
-	@EVALSET
-	!D;JEQ
-	@5
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@4
-	D=A
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	D=M-D
-	M=0
-	@XXAAAABH
-	D;JNE
-	@SP
-	A=M-1
-	M=!M
-(XXAAAABH)
-	@SP
-	AM=M-1
-	D=M
-	@EVALLAMBDA
-	!D;JEQ
+    @0x1fff
+    D=D&A
+    @EVALIF
+    D;JEQ
+    D=D-1
+    @EVALDEFINE
+    D;JEQ
+    D=D-1
+    @EVALQUOTE
+    D;JEQ
+    D=D-1
+    @EVALSET
+    D;JEQ
+    D=D-1
+    @EVALLAMBDA
+    D;JEQ
 	@SYSERRUNKNOWNBUILTIN
 	0;JMP
 (EVALIF)
@@ -616,96 +446,57 @@
 	M=D
 	@ARG
 	A=M
-	D=M
+    A=M
+    MCAR
 	@SP
 	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCAR
-	@SP
 	A=M-1
 	M=D
 	@EVALEVAL
 	D=A
 	@R13
 	M=D
-	@XXAAAABI
+	@EVALIFRET
 	D=A
 	@R15
 	M=D
 	@SYSCALL
 	0;JMP
-(XXAAAABI)
-	@SP
-	M=M+1
-	A=M-1
-	M=0
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	EQLM
-	M=D
+(EVALIFRET)
 	@SP
 	AM=M-1
 	D=M
 	@EVALALT
-	!D;JEQ
+	D;JEQ
 	@ARG
 	A=M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCDR
-	A=D
-	MCAR
-	@SP
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
+    A=M
+    MCDR
+    A=D
+    MCAR
 	@ARG
 	A=M
 	M=D
 	@EVALSTART
 	0;JMP
 (EVALALT)
+    // TODO: if no alt, return 'false'
 	@ARG
 	A=M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCDR
-	A=D
-	MCDR
-	A=D
-	MCAR
-	@SP
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
+    A=M
+    MCDR
+    A=D
+    MCDR
+    A=D
+    MCAR
 	@ARG
 	A=M
 	M=D
 	@EVALSTART
 	0;JMP
 (EVALDEFINE)
+    // TODO: this just adds, doesnt check if already exists in env
+    // meaning currently the assoc list could have duplicate keys
 	@ARG
 	A=M
 	D=M
@@ -887,7 +678,12 @@
 	@SYSRETURN
 	0;JMP
 (EVALSET)
+    // TODO
 (EVALLAMBDA)
+    // (lambda (params ...) body)
+    // assumption: params is a list of symbols
+    // TODO: typecheck param arg and check length of args=2
+    // TODO: invalid parameter list error if duplicate symbols
 	@ENV
 	A=M
 	D=M

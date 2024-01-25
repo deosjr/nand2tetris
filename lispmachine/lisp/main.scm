@@ -10,4 +10,5 @@
 
 #| 480k ticks unoptimised|#
 #| 430k ticks with eval taking 2 args |#
+#| 220k ish on firstpass handcrafting asm |#
 (sum2 50 0)
