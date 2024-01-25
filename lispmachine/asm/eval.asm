@@ -261,34 +261,11 @@
     D=0
     SETCDR          // fallthrough to apply
 (EVALAPPLY)
-	@ARG
-	D=M
-	@6
-	D=D+A
-	@R14
-	M=D
 	@SP
 	AM=M-1
 	D=M
-	@R14
-	A=M
-	M=D
-	@SP
-	M=M+1
-	A=M-1
-	M=0
-	@ARG
-	D=M
-	@4
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
+    @R6
+    M=D             // R6 holds evalled args
 	@5
 	D=A
 	@ARG
@@ -307,389 +284,116 @@
 	D=M
 	@EVALCALLBUILTIN
 	!D;JEQ
+//(EVAL USER DEFINED FUNC)
 	@5
 	D=A
 	@ARG
 	A=D+M
 	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@8191
-	D=A
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	M=D&M
-	@ARG
-	D=M
-	@5
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
-	@5
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCDR
-	A=D
-	MCAR
-	@SP
-	A=M-1
-	M=D
-	@ARG
-	D=M
-	@7
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
+	@0x1fff
+	D=D&A
+    @R5
+	AM=D            // R5 = userdefined unmasked
+    MCDR
+    A=D
+    MCAR
+    @R7
+    M=D             // R7 = f.params
+    @R5
+    A=M
+    MCAR
+    @SP
+    M=M+1
+    A=M-1
+    M=D             // push f.env = x
 (EVALAPPLYREC)
-	@7
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	ISEMPTY
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@EVALENDAPPLYREC
-	!D;JEQ
-	@4
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	M=M+1
-	A=M-1
-	M=1
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	M=D+M
-	@ARG
-	D=M
-	@4
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
-	@7
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCAR
-	@SP
-	A=M-1
-	M=D
-	@6
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCAR
-	@SP
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@FREE
-	A=M
-	SETCDR
-	@SP
-	A=M-1
-	D=M
-	@FREE
-	A=M
-	SETCAR
-	@FREE
-	D=M
-	M=D+1
-	@SP
-	A=M-1
-	M=D
-	@6
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCDR
-	@SP
-	A=M-1
-	M=D
-	@ARG
-	D=M
-	@6
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
-	@7
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCDR
-	@SP
-	A=M-1
-	M=D
-	@ARG
-	D=M
-	@7
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
-	@EVALAPPLYREC
-	0;JMP
-(EVALENDAPPLYREC)
-	@5
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCAR
-	@SP
-	A=M-1
-	M=D
-(EVALAPPLYCONSLOOP)
-	@SP
-	M=M+1
-	A=M-1
-	M=0
-	@4
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	D=M-D
-	M=0
-	@XXAAAABB
-	D;JNE
-	@SP
-	A=M-1
-	M=!M
-(XXAAAABB)
-	@SP
-	AM=M-1
-	D=M
-	@EVALAPPLYEND
-	!D;JEQ
-	@SP
-	AM=M-1
-	D=M
-	@FREE
-	A=M
-	SETCDR
-	@SP
-	A=M-1
-	D=M
-	@FREE
-	A=M
-	SETCAR
-	@FREE
-	D=M
-	M=D+1
-	@SP
-	A=M-1
-	M=D
-	@4
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	M=M+1
-	A=M-1
-	M=1
-	@SP
-	AM=M-1
-	D=M
-	A=A-1
-	M=M-D
-	@ARG
-	D=M
-	@4
-	D=D+A
-	@R14
-	M=D
-	@SP
-	AM=M-1
-	D=M
-	@R14
-	A=M
-	M=D
-	@EVALAPPLYCONSLOOP
-	0;JMP
+    // TODO: check if len(params) == len(args)
+    // NOTE: order actually doesn't matter here!
+    // so we cons in reverse on top of f.env
+    @R7
+    ISEMPTY
+    @EVALAPPLYEND
+    !D;JEQ
+    @R6
+    A=M
+    MCAR
+    @FREE
+    A=M
+    SETCDR
+    @R7
+    A=M
+    MCAR
+    @FREE
+    A=M
+    SETCAR          // (cons (car R7) (car R6)) = y
+    @FREE
+    M=M+1
+    @SP
+    AM=M-1
+    D=M
+    @FREE
+    A=M
+    SETCDR
+    @FREE
+    D=M-1
+    A=M
+    SETCAR          // (cons y x) = z
+    @FREE
+    D=M
+    M=M+1
+    @SP
+    M=M+1
+    A=M-1
+    M=D             // put z on stack as new env
+    @R6
+    A=M
+    MCDR
+    @R6
+    M=D             // R6 = (cdr R6)
+    @R7
+    A=M
+    MCDR        
+    @R7
+    M=D             // R7 = (cdr R7)
+    @EVALAPPLYREC
+    0;JMP
 (EVALAPPLYEND)
 	@SP
 	AM=M-1
 	D=M
 	@ENV
 	A=M
-	M=D
-	@5
-	D=A
-	@ARG
-	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	A=M
-	MCDR
-	A=D
-	MCDR
-	A=D
-	MCAR
-	@SP
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
+	M=D             // ENV = oldenv + arg bindings
+    @R5
+    A=M
+    MCDR
+    A=D
+    MCDR
+    A=D
+    MCAR            // f.body
 	@ARG
 	A=M
-	M=D
+	M=D             // ARG = f.body
 	@EVALSTART
 	0;JMP
 (EVALCALLBUILTIN)
-	@6
-	D=A
-	@ARG
-	A=D+M
+    @R6
 	D=M
 	@SP
 	M=M+1
 	A=M-1
+	M=D
+	@SYSRETURN
+	D=A
+	@R15
 	M=D
 	@5
 	D=A
 	@ARG
 	A=D+M
 	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-		@XXAAAABC
-	D=A
-	@R15
-	M=D
-	@SP
-	AM=M-1
-	D=M
 	@0x1fff
 	A=D&A
-	0;JMP
-(XXAAAABC)
-	@SYSRETURN
 	0;JMP
 (EVALSPECIAL)
 	@ARG

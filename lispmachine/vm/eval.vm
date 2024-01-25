@@ -119,6 +119,7 @@ label apply
     pop local 3
 label applyrec
     // TODO: check if len(params) == len(args)
+    // NOTE: order actually doesn't matter here!
     push local 3
     is-emptylist
     if-goto endapplyrec
@@ -252,6 +253,7 @@ label evallambda
     // (lambda (params ...) body)
     // assumption: params is a list of symbols
     // TODO: typecheck param arg and check length of args=2
+    // TODO: invalid parameter list error if duplicate symbols
     push environment
     push argument
     cons
