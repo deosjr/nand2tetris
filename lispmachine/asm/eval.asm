@@ -1,21 +1,13 @@
 // (eval env e) -> evaluation of e in env, or NIL if error
 // only user of the stack vm abstraction!
 (EVALEVAL)
-    // prepare 4 local variables, initialised to 0
-    // TODO: we definitely don't need 4. Perhaps only 1?
-	@SP
-	M=M+1
-	A=M-1
-	M=0
-	@SP
-	M=M+1
-	A=M-1
-	M=0
+    // prepare 1 local variable, initialised to 0
 	@SP
 	M=M+1
 	A=M-1
 	M=0
 (EVALSTART)
+    // TODO: unsafe version that doesnt check overflow? saves instructions!
     @SP
     D=M
     @0x07ff         // end of stack
@@ -28,11 +20,6 @@
     D=D-A
     @SYSHEAPOVERFLOW
     D;JGE           // if @FREE - 0x3fff >= 0 -> heap overflow
-    @ARG
-    D=M
-    @6              // ARG+4 = start of local stack
-    A=D+A           // so this is local 2
-    M=0             // reset numargs to 0
     @ARG
     A=M
     ISPROC
@@ -82,11 +69,16 @@
     ISPROC
     @SYSERRAPPLYNONPROC
     !D;JNE
-    // else, local 1 = evalled proc
+    // else, local 0 = evalled proc
     // and goto evalprocedure
+    @SP
+    A=M-1
+    ISSPECIAL
+    @EVALSPECIAL
+    !D;JEQ
     @ARG
     D=M
-    @5
+    @4
     D=D+A
     @R14
     M=D
@@ -95,7 +87,7 @@
     D=M
     @R14
     A=M
-    M=D             // local 1 = evalled proc
+    M=D             // local 0 = evalled proc
     @EVALPROCEDURE
     0;JMP
 (EVALSELF)
@@ -155,17 +147,10 @@
 	@SYSRETURN
 	0;JMP
 (EVALPROCEDURE)
-    // TODO can be moved to EVALPAIR, maybe no need to use local 1?
-    @5
-    D=A
-    @ARG
-    A=D+M
-    ISSPECIAL
-    @EVALSPECIAL
-    !D;JEQ
 	@ARG
 	A=M
-	A=M
+    MCAR
+	A=D
     EMPTYCDR
 	@EVALZEROARGFUNC
 	!D;JEQ
@@ -263,7 +248,7 @@
 	D=M
     @R6
     M=D             // R6 holds evalled args
-	@5
+	@4
 	D=A
 	@ARG
 	A=D+M
@@ -282,7 +267,7 @@
 	@EVALCALLBUILTIN
 	!D;JEQ
 //(EVAL USER DEFINED FUNC)
-	@5
+	@4
 	D=A
 	@ARG
 	A=D+M
@@ -384,7 +369,7 @@
 	D=A
 	@R15
 	M=D
-	@5
+	@4
 	D=A
 	@ARG
 	A=D+M
@@ -413,11 +398,9 @@
 	@ARG
 	A=M
 	M=D             // @ARG = (cdr ARG)
-	@5
-	D=A
-	@ARG
-	A=D+M
-	D=M
+    @SP
+    A=M-1
+	D=M             // evalled proc is still on the stack
     @0x1fff
     D=D&A
     @EVALIF
@@ -538,13 +521,13 @@
 	D=A
 	@R13
 	M=D
-	@XXAAAABJ
+	@EVALDEFINERET
 	D=A
 	@R15
 	M=D
 	@SYSCALL
 	0;JMP
-(XXAAAABJ)
+(EVALDEFINERET)
 	@SP
 	AM=M-1
 	D=M

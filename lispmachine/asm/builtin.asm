@@ -206,6 +206,9 @@
     @R6
     M=D         // R6 = key
 (BUILTINASSQSTART)
+    // ASSQ is _the_ hot loop of the entire program
+    // changing MCAR;A=D to A=M saves many many instructions!
+    // maybe ACAR should be an instruction as well?
     @R5
     A=M
     MCAR

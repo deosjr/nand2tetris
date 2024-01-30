@@ -5,7 +5,7 @@ import (
     "time"
 )
 
-var debug = false
+var debug = true
 
 func main() {
     //out, err := compile("lisp/list.scm", "lisp/main.scm")
@@ -36,9 +36,30 @@ func main() {
 
     var debugger Debugger
     if debug {
-        debugger = &standardDebugger{}
+        //debugger = &standardDebugger{}
+        debugger = &analysisDebugger{}
     }
     run(computer, debugger)
+
+    rom := debugger.(*analysisDebugger).rom
+
+    type romRange struct {
+        from, to, n int
+    }
+    var ranges []romRange
+    current := romRange{n:rom[0]}
+    for i, v := range rom {
+        if v != current.n {
+            current.to = i-1
+            ranges = append(ranges, current)
+            current = romRange{from:i, n:v}
+        }
+    }
+    current.to = len(rom)-1
+    ranges = append(ranges, current)
+    for _, r := range ranges {
+        fmt.Println(r.from, r.to, r.n)
+    }
 }
 
 func run(computer *LispMachine, debugger Debugger) {
@@ -108,6 +129,17 @@ func (sd *standardDebugger) AfterTick(c *LispMachine) {
     // TODO: wait for keyboard press to make step-through debugger
     //fmt.Println()
 }
+
+type analysisDebugger struct {
+    rom [32768]int
+}
+
+func (*analysisDebugger) BeforeLoop() {}
+func (ad *analysisDebugger) BeforeTick(c *LispMachine) {
+    pc := c.cpu.PC()
+    ad.rom[pc] = ad.rom[pc] + 1
+}
+func (*analysisDebugger) AfterTick(c *LispMachine) {}
 
 type charPrinter struct{}
 
