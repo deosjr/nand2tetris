@@ -376,26 +376,13 @@
 (EVALSPECIAL)
 	@ARG
 	A=M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
 	A=M
 	MCDR
-	@SP
-	A=M-1
-	M=D
-	@SP
-	AM=M-1
-	D=M
 	@ARG
 	A=M
 	M=D             // @ARG = (cdr ARG)
     @SP
-    A=M-1
+    AM=M-1
 	D=M             // evalled proc is still on the stack
     @0x1fff
     D=D&A
