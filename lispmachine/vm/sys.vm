@@ -20,10 +20,9 @@ function init
     symbol 4
     special 4               // special(lambda)
     cons
-    //symbol 5
-    //push label builtin.begin
-    //builtin                 // builtin(begin)
-    //cons
+    symbol 5
+    special 5               // builtin(begin)
+    cons
     symbol 6
     push label builtin.add
     builtin                 // builtin(add)
@@ -65,6 +64,7 @@ function init
     builtin                 // builtin(eq)
     cons
     cons-on-empty
+    cons
     cons
     cons
     cons

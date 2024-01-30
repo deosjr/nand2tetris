@@ -72,6 +72,10 @@ func TestLispMachine(t *testing.T) {
             in: "(define identity (lambda (x) x)) (identity 42)",
             want: []uint16{0x0, 0x402a}, // define returns NIL
         },
+        {
+            in: "(begin (+ 1 2) (+ 3 4))",
+            want: []uint16{0x4007},
+        },
     }{
         out, err := compileFromString(tt.in)
         if err != nil {

@@ -413,6 +413,9 @@
     D=D-1
     @EVALLAMBDA
     D;JEQ
+    D=D-1
+    @EVALBEGIN
+    D;JEQ
 	@SYSERRUNKNOWNBUILTIN
 	0;JMP
 (EVALIF)
@@ -700,3 +703,57 @@
 	M=D|M
 	@SYSRETURN
 	0;JMP
+(EVALBEGIN)
+	@ARG
+	A=M
+    A=M
+    EMPTYCDR
+    @EVALBEGINEND
+    !D;JEQ
+	@ENV
+	A=M
+	D=M
+	@SP
+	M=M+1
+	A=M-1
+	M=D
+	@ARG
+	A=M
+    A=M
+    MCAR
+	@SP
+	M=M+1
+	A=M-1
+	M=D
+	@EVALEVAL
+	D=A
+	@R13
+	M=D
+	@EVALBEGINRET
+	D=A
+	@R15
+	M=D
+	@SYSCALL
+	0;JMP
+(EVALBEGINRET)
+    @SP
+    M=M-1           // ignore output
+	@ARG
+	A=M
+	A=M
+	MCDR
+	@ARG
+	A=M
+	M=D             // @ARG = (cdr ARG)
+    @EVALBEGIN
+    0;JMP
+(EVALBEGINEND)
+    @ARG
+    A=M
+    A=M
+    MCAR
+    @ARG
+    A=M
+    M=D
+    @EVALSTART
+    0;JMP
