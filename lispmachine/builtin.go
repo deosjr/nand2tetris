@@ -169,28 +169,16 @@ func NewROM32K(program []uint16) *ROM32K {
     }
 }
 
-func splitaddr(address uint16) (bit1 int, last14 uint16) {
-    // split b.address into bit0, bit1, last 14bits
-    if address >= 32768 { // 2**15
-        address -= 32768
-    }
-    if address >= 16384 { // 2**14 
-        bit1 = 1 // otherwise it remains 0
-        address -= 16384
-    }
-    last14 = address
-    return
-}
-
 func (b *ROM32K) SendAddress(addr uint16) {
     b.address = addr
-    _, addrs := splitaddr(b.address)
-    b.rams[0].SendAddress(addrs)
-    b.rams[1].SendAddress(addrs)
+    last14 := addr & 0x3fff
+    b.rams[0].SendAddress(last14)
+    b.rams[1].SendAddress(last14)
 }
 
 func (b *ROM32K) Out() uint16 {
-    bit1, _ := splitaddr(b.address)
+    bit1 := 0
+    if b.address & 0x4000 > 0 { bit1 = 1 }
     return b.rams[bit1].Out()
 }
 
@@ -228,18 +216,18 @@ func (m *Memory) SendIn(in uint16) {
 // TODO: is there a bug here where load remains high on screen
 // when ram.SendLoad is called?
 func (m *Memory) SendLoad(load bool) {
-    bit1, address := splitaddr(m.address)
-    if bit1 == 0 {
+    if m.address & 0x4000 == 0 {    // checking bit1
         m.ram.SendLoad(load)
         return
     }
     // NOTE first two bits have been masked to 0 here already
     // ALSO NOTE bit0 is ignored so 2**15+1 is mapped to MEM[1]
-    if address < 8192 { // 2**13 or 0x2000
+    last14 := m.address & 0x3fff
+    if last14 < 0x2000 { // 2**13 or 0x2000
         m.screen.SendLoad(load)
         return
     }
-    switch address {
+    switch last14 {
     case 8192:
         return // load to keyboard is ignored
     case 8193:
@@ -255,17 +243,17 @@ func (m *Memory) SendLoad(load bool) {
 
 func (m *Memory) SendAddress(address uint16) {
     m.address = address
-    _, addr := splitaddr(address)
-    m.ram.SendAddress(addr)
-    m.screen.SendAddress(addr)
+    last14 := address & 0x3fff
+    m.ram.SendAddress(last14)
+    m.screen.SendAddress(last14)
 }
 
 func (m *Memory) Out() uint16 {
-    bit1, address := splitaddr(m.address)
-    if bit1 == 0 {
+    if m.address & 0x4000 == 0 {      // check bit1
         return m.ram.Out()
     }
-    if address < 8192 { // 2**13 or 0x2000
+    address := m.address & 0x3fff
+    if address < 0x2000 { // 2**13 or 0x2000
         return m.screen.Out()
     }
     switch address {

@@ -380,7 +380,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
             return nil, fmt.Errorf("%s: syntax error: %s", posFrom.String(), contents[s.From-1:s.To+1])
         }
     }
-    fmt.Println(labels)
+    //fmt.Println(labels)
     // secondpass
     program := []uint16{}
     vars := map[string]uint16{}

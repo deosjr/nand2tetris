@@ -121,8 +121,7 @@ func (m *LispMemory) SendLoad(loadCar, loadCdr bool) {
 
 // NOTE: peripherals are called twice atm!
 func (m *LispMemory) sendLoad(ram *BuiltinRAM16K, load, sendToPeripherals bool) {
-    bit1, address := splitaddr(m.address)
-    if bit1 == 0 {
+    if m.address & 0x4000 == 0 {    // checking bit1
         ram.SendLoad(load)
         return
     }
@@ -131,11 +130,12 @@ func (m *LispMemory) sendLoad(ram *BuiltinRAM16K, load, sendToPeripherals bool) 
     }
     // NOTE first two bits have been masked to 0 here already
     // ALSO NOTE bit0 is ignored so 2**15+1 is mapped to MEM[1]
-    if address < 8192 { // 2**13 or 0x2000
+    last14 := m.address & 0x3fff
+    if last14 < 0x2000 { // 2**13 or 0x2000
         m.screen.SendLoad(load)
         return
     }
-    switch address {
+    switch last14 {
     case 8192:
         return // load to keyboard is ignored
     case 8193:
@@ -151,23 +151,23 @@ func (m *LispMemory) sendLoad(ram *BuiltinRAM16K, load, sendToPeripherals bool) 
 
 func (m *LispMemory) SendAddress(address uint16) {
     m.address = address
-    _, addr := splitaddr(address)
-    m.ramCar.SendAddress(addr)
-    m.ramCdr.SendAddress(addr)
-    m.screen.SendAddress(addr)
+    last14 := address & 0x3fff
+    m.ramCar.SendAddress(last14)
+    m.ramCdr.SendAddress(last14)
+    m.screen.SendAddress(last14)
 }
 
 // we always return pairs, but only use paired 16K ram, not for peripherals.
 // for now we just duplicate their output if needed
 func (m *LispMemory) Out() (uint16, uint16) {
-    bit1, address := splitaddr(m.address)
-    if bit1 == 0 {
+    if m.address & 0x4000 == 0 {    // checking bit1
         return m.ramCar.Out(), m.ramCdr.Out()
     }
-    if address < 8192 { // 2**13 or 0x2000
+    last14 := m.address & 0x3fff
+    if last14 < 0x2000 { // 2**13 or 0x2000
         return m.screen.Out(), m.screen.Out()
     }
-    switch address {
+    switch last14 {
     case 8192:
         return m.keyboard.Out(), m.keyboard.Out()
     case 8193:

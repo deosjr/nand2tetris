@@ -2,10 +2,10 @@ package main
 
 import (
     "fmt"
-    "time"
+    //"time"
 )
 
-var debug = true
+var debug = false
 
 func main() {
     //out, err := compile("lisp/list.scm", "lisp/main.scm")
@@ -41,24 +41,26 @@ func main() {
     }
     run(computer, debugger)
 
-    rom := debugger.(*analysisDebugger).rom
+    if debug {
+        rom := debugger.(*analysisDebugger).rom
 
-    type romRange struct {
-        from, to, n int
-    }
-    var ranges []romRange
-    current := romRange{n:rom[0]}
-    for i, v := range rom {
-        if v != current.n {
-            current.to = i-1
-            ranges = append(ranges, current)
-            current = romRange{from:i, n:v}
+        type romRange struct {
+            from, to, n int
         }
-    }
-    current.to = len(rom)-1
-    ranges = append(ranges, current)
-    for _, r := range ranges {
-        fmt.Println(r.from, r.to, r.n)
+        var ranges []romRange
+        current := romRange{n:rom[0]}
+        for i, v := range rom {
+            if v != current.n {
+                current.to = i-1
+                ranges = append(ranges, current)
+                current = romRange{from:i, n:v}
+            }
+        }
+        current.to = len(rom)-1
+        ranges = append(ranges, current)
+        for _, r := range ranges {
+            fmt.Println(r.from, r.to, r.n)
+        }
     }
 }
 
@@ -85,7 +87,7 @@ func run(computer *LispMachine, debugger Debugger) {
         }
         // NOTE: without this sleep, output printing can lag behind program ending!
         //time.Sleep(10*time.Nanosecond)
-        time.Sleep(10000*time.Nanosecond)
+        //time.Sleep(10000*time.Nanosecond)
         //time.Sleep(10*time.Millisecond)
         // NOTE: this halts running the computer after finding a tight loop
         if pprev == computer.cpu.PC() {
