@@ -149,8 +149,7 @@
 (EVALPROCEDURE)
 	@ARG
 	A=M
-    MCAR
-	A=D
+    ACAR
     EMPTYCDR
 	@EVALZEROARGFUNC
 	!D;JEQ
@@ -276,8 +275,7 @@
 	D=D&A
     @R5
 	AM=D            // R5 = userdefined unmasked
-    MCDR
-    A=D
+    ACDR
     MCAR
     @R7
     M=D             // R7 = f.params
@@ -348,10 +346,8 @@
 	M=D             // ENV = oldenv + arg bindings
     @R5
     A=M
-    MCDR
-    A=D
-    MCDR
-    A=D
+    ACDR
+    ACDR
     MCAR            // f.body
 	@ARG
 	A=M
@@ -454,8 +450,7 @@
 	@ARG
 	A=M
     A=M
-    MCDR
-    A=D
+    ACDR
     MCAR
 	@ARG
 	A=M
@@ -467,10 +462,8 @@
 	@ARG
 	A=M
     A=M
-    MCDR
-    A=D
-    MCDR
-    A=D
+    ACDR
+    ACDR
     MCAR
 	@ARG
 	A=M
@@ -511,8 +504,7 @@
 	@SP
 	A=M-1
 	A=M
-	MCDR
-	A=D
+	ACDR
 	MCAR
 	@SP
 	A=M-1

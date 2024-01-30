@@ -306,9 +306,11 @@ func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f, g bit) (car, 
     case 0b0111111: // SETCDR
         return regD, regD, true
     // so CONS is a vm instruction that uses SETCAR/SETCDR for now
+    // TODO: rename MCDR to DCDR because it writes to D
+    // ACDR: set A to the cdr of register indexed by A
     // MCDR: set D to the cdr of register indexed by A
     // NOTE: MCDR needs dest set to D
-    case 0b0011111: // MCDR
+    case 0b0011111: // ACDR/MCDR
         return inCdrM, inCdrM, true
     // EQL: used to check equality of lisp types. simple nested AND, 0xffff if true otherwise 0x0000
     // split into two actual instructions: EQLA and EQLM, both write to D

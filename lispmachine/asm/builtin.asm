@@ -15,8 +15,7 @@
     @SP
     A=M-1
     A=M
-    MCDR
-    A=D
+    ACDR
     MCAR
     @R5
     D=D+M
@@ -40,8 +39,7 @@
     @SP
     A=M-1
     A=M
-    MCDR
-    A=D
+    ACDR
     MCAR
     @R5
     D=M-D
@@ -65,8 +63,7 @@
     @SP
     A=M-1
     A=M
-    MCDR
-    A=D
+    ACDR
     MCAR
     @R5
     D=M-D
@@ -94,8 +91,7 @@
     @SP
     A=M-1
     A=M
-    MCDR
-    A=D
+    ACDR
     MCAR
     @R5
     D=M-D
@@ -129,8 +125,7 @@
     @SP
     A=M-1
     A=M
-    MCAR
-    A=D
+    ACAR
     MCAR
     @SP
     A=M-1
@@ -142,8 +137,7 @@
     @SP
     A=M-1
     A=M
-    MCAR
-    A=D
+    ACAR
     MCDR
     @SP
     A=M-1
@@ -155,8 +149,7 @@
     @SP
     A=M-1
     A=M
-    MCDR
-    A=D
+    ACDR
     MCAR
     @FREE
     A=M
@@ -200,19 +193,15 @@
     @SP
     A=M-1
     A=M
-    MCDR
-    A=D
+    ACDR
     MCAR
     @R6
     M=D         // R6 = key
 (BUILTINASSQSTART)
     // ASSQ is _the_ hot loop of the entire program
-    // changing MCAR;A=D to A=M saves many many instructions!
-    // maybe ACAR should be an instruction as well?
     @R5
     A=M
-    MCAR
-    A=D
+    ACAR
     MCAR
     @R6
     EQLM
@@ -233,8 +222,7 @@
 (BUILTINASSQFOUND)
     @R5
     A=M
-    MCAR
-    A=D
+    ACAR
     MCDR
     @SP
     A=M-1
