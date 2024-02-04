@@ -331,9 +331,9 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
     labels := map[string]uint16{
         "NIL":      0x0000, // encodes emptylist. TODO: distinguish from <void>
         "SP":       0x0001,
-        "ENV":      0x0002,
-        "ARG":      0x0003,
-        "FREE":     0x0004,
+        "FREE":     0x0002,
+        "ENV":      0x0003,
+        "ARG":      0x0004,
         "R0":       0x0000,
         "R1":       0x0001,
         "R2":       0x0002,

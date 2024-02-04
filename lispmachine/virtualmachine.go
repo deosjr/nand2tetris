@@ -47,6 +47,11 @@ func Translate(filenames []string, compiledMain string) (string, error) {
         return "", err
     }
     out += string(data)
+    data, err = os.ReadFile("asm/gc.asm")
+    if err != nil {
+        return "", err
+    }
+    out += string(data)
     data, err = os.ReadFile("asm/builtin.asm")
     if err != nil {
         return "", err
@@ -1059,7 +1064,7 @@ func (t *vmTranslator) genLabel() string {
 
 func preamble(filenames []string) string {
     return fmt.Sprintf(`// VM translation of %s
-@256    // TODO: we can probably start stack way earlier
+@0x0010    // start stack at R16
 D=A
 @SP
 M=D

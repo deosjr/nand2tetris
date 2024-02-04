@@ -14,12 +14,23 @@
     D=D-A
     @SYSSTACKOVERFLOW
     D;JGE           // if @SP - 0x07ff >= 0 -> stack overflow
+    @EVALGCRET
+    D=A
+    @R15
+    M=D
     @FREE
     D=M
-    @0x3fff         // end of heap
+    @0x1fff
+    D=D-A
+    @GCSTART        // TODO: we should check before each alloc, because we dont know how much we outgrew heap now!
+    D;JGE           // if @FREE - 0x1fff >= 0 -> start garbage collection
+(EVALGCRET)
+    @FREE
+    D=M
+    @0x1fff         // end of heap (we have until 0x3fff but we use only half)
     D=D-A
     @SYSHEAPOVERFLOW
-    D;JGE           // if @FREE - 0x3fff >= 0 -> heap overflow
+    D;JGE           // if after GC we still outgrew the heap, we have an overflow
     @ARG
     A=M
     ISPROC
