@@ -132,11 +132,167 @@
     @GCDUPLICATE
     0;JMP
 (GCSORTHEAP)
-// (2)  (bubble/quick)sort the secondary heap in-place
-    // TODO
+// (2)  quicksort the secondary heap in-place
+    @0x2010     // bottom of secondary heap
+    D=A
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @R7
+    D=M-1       // top of secondary heap
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+(GCQUICKSORT)
+    // if @SP == R5, we are done and goto next step (3)
+    // assumes SP never goes below R5, only grows!
+    @R5
+    D=M
+    @SP
+    D=D-M
+    @GCCOPY
+    D;JEQ
+    // takes two arguments from heap: lo and hi
+    // assumes each element is unique, which is guaranteed by duplicate check
+    // reuses R6 (low), R7 (high) and R10 (pivot)
+    // R8 is left, R9 is right
+    @SP
+    AM=M-1
+    D=M
+    @R7
+    M=D
+    @R9
+    M=D-1
+    @SP
+    AM=M-1
+    D=M
+    @R6
+    M=D
+    @R8
+    M=D
+    @R7
+    D=M-D
+    @GCQUICKSORT
+    D;JLE       // if low >= high, list is small enough to be sorted automatically
+    @R7
+    A=M
+    D=M
+    @R10
+    M=D         // pivot
+(GCSORTLOOP)
+    @R9
+    D=M
+    @R8
+    D=D-M
+    @GCENDLOOP  // while l <= r do, i.e.
+    D;JLT       // if r < l then jump to end
+(GCLEFTLOOP)
+    @R8
+    D=M
+    @R9
+    D=M-D
+    @GCRIGHTLOOP // while l <= r AND *l <= pivot
+    D;JLT        // if l > r then jump
+    @R8
+    A=M
+    D=M
+    @R10
+    D=D-M
+    @GCRIGHTLOOP
+    D;JGT       // if *l > pivot then jump
+    @R8
+    M=M+1       // left++
+    @GCLEFTLOOP
+    0;JMP
+(GCRIGHTLOOP)
+    @R9
+    D=M
+    @R8
+    D=D-M
+    @GCWHILESWAP    // while r >= l AND *r >= pivot
+    D;JLT           // if r < l then jump
+    @R9
+    A=M
+    D=M
+    @R10
+    D=M-D
+    @GCWHILESWAP
+    D;JGT       // if *r < pivot then jump
+    @R9
+    M=M-1       // right--
+    @GCRIGHTLOOP
+    0;JMP
+(GCWHILESWAP)
+    // if l < r then swap
+    @R8
+    D=M
+    @R9
+    D=D-M
+    @GCSORTLOOP     // if l < r then swap
+    D;JGE           // if l - r >= 0 then jump
+    @R8
+    A=M
+    D=M
+    @R11
+    M=D             // R11 is temp
+    @R9
+    A=M
+    D=M
+    @R8
+    A=M
+    M=D
+    @R11
+    D=M
+    @R9
+    A=M
+    M=D             // swap *R8 and *R9
+    @GCSORTLOOP
+    0;JMP
+(GCENDLOOP)
+    @R8
+    A=M
+    D=M
+    @R7
+    A=M
+    M=D
+    @R10
+    D=M
+    @R8
+    A=M
+    M=D     // swap *l and pivot
+    @R6
+    D=M
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @R8
+    D=M-1
+    @SP
+    M=M+1
+    A=M-1
+    M=D     // quicksort(low, l-1)
+    @R8
+    D=M+1
+    @SP
+    M=M+1
+    A=M-1
+    M=D
+    @R7
+    D=M
+    @SP
+    M=M+1
+    A=M-1
+    M=D     // quicksort(l+1, high)
+    @GCQUICKSORT
+    0;JMP
+(GCCOPY)
 // (3)  copy each live cons cell onto bottom of the heap
 // since we sorted first, we will only copy over dead cells or cells that have already been moved
     // TODO
+(GCUPDATE)
 // (4)  update all pointers in stack and primary heap, both car and cdr
     // TODO
 // (5) return
