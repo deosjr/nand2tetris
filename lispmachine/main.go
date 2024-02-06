@@ -41,9 +41,18 @@ func main() {
     }
     run(computer, debugger)
 
-    //for _, v := range computer.data_mem.ramCar.mem[0x2010:0x2050] {
-        //fmt.Println(v)
-    //}
+/*
+    for i:=0x0; i < 0x300; i++ {
+        v := computer.data_mem.ramCar.mem[i]
+        fmt.Printf("%04x %04x\n", i, v)
+    }
+
+    for i:=0x0800; i < 0x0832; i++ {
+        car := computer.data_mem.ramCar.mem[i]
+        cdr := computer.data_mem.ramCdr.mem[i]
+        fmt.Printf("%04x %04x %04x\n", i, car, cdr)
+    }
+*/
 
     if debug {
         rom := debugger.(*analysisDebugger).rom

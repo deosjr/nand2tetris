@@ -4,6 +4,7 @@
 // then a buffer for overrun of size 16 (? would be nice to have a guarantee)
 // so second half of heap is 0x2010 until 0x3fff, or secondary heap
 // This GC implementation is a modified Cheney's algorithm
+// TODO: userdefined functions are also pointers!
 (GCSTART)
     @SP
     D=M
@@ -324,7 +325,7 @@
     @R12
     D=M
     @R7
-    M=D
+    M=D+1
 (GCUPDATESTACKLOOP)
     @R6
     D=M
@@ -357,31 +358,114 @@
     0;JMP
 (GCSTACKRET)
     @R10
-    D=M+1
-    @GCUPDATESTACKLOOP
-    D;JEQ       // jump if R10=-1, weve already updated this pointer
-    @R10
     D=M
     @0x1810     // 0x2010 - 0x800, mapping secondary onto primary stack by index
     D=D-A       // D is new pointer value!
     @R6
     A=M-1
     M=D         // overwrite stack pointer value
-    @R10
-    A=M
-    M=0         // delete from secondary heap
     @GCUPDATESTACKLOOP
     0;JMP
 (GCUPDATEHEAP)
+    @R7
+    D=M
+    @0x1810
+    D=D-A
+    @R5
+    M=D
+    @0x0800
+    D=A
+    @R6
+    M=D
 (GCUPDATEHEAPLOOP)
+    @R6
+    D=M
+    @R5
+    D=D-M
+    @GCRETURN
+    D;JGE       // if R6 >= R5 we are done
+    @R6
+    M=M+1
+    A=M-1
+    MCDR
+    @R12
+    M=D         // R12 = CDR
+    @R6
+    A=M-1
+    MCAR
+    @R11
+    M=D         // R11 = CAR
+(GCUPDATECDR)
+    @R12
+    D=M
+    @0x0800
+    D=D-A
+    @GCUPDATECAR
+    D;JLT
+    @0x3800     // 0x4000 - 0x0800 that has already been subtracted
+    D=D-A
+    @GCUPDATECAR
+    D;JGE
+    @R12
+    D=M
+    @R8
+    M=D
+    @GCCDRRET
+    D=A
+    @R14
+    M=D
+    @GCFINDINHEAP
+    0;JMP
+(GCCDRRET)
+    @R10
+    D=M
+    @0x1810     // 0x2010 - 0x800, mapping secondary onto primary stack by index
+    D=D-A       // D is new pointer value!
+    @R6
+    A=M-1
+    SETCDR      // overwrite cdr value in primary heap
+(GCUPDATECAR)
+    @R11
+    D=M
+    @0x0800
+    D=D-A
+    @GCUPDATEHEAPLOOP
+    D;JLT
+    @0x3800     // 0x4000 - 0x0800 that has already been subtracted
+    D=D-A
+    @GCUPDATEHEAPLOOP
+    D;JGE
+    @R11
+    D=M
+    @R8
+    M=D
+    @GCCARRET
+    D=A
+    @R14
+    M=D
+    @GCFINDINHEAP
+    0;JMP
+(GCCARRET)
+    @R10
+    D=M
+    @0x1810     // 0x2010 - 0x800, mapping secondary onto primary stack by index
+    D=D-A       // D is new pointer value!
+    @R6
+    A=M-1
+    SETCAR      // overwrite car value in primary heap
+    @GCUPDATEHEAPLOOP
+    0;JMP
+(GCRETURN)
 // (5) return
-    // TODO TEST: for now terminate program after GC run
-    //@R15
-    //A=M
-    @SYSEND
+    @R5
+    D=M
+    @FREE
+    M=D
+    @R15
+    A=M
     0;JMP
 (GCFINDINHEAP)
-    // R7 = top of secondary heap
+    // R7 = top of secondary heap + 1
     // R8 = value to find
     // R9 = temp pointer
     // R10 = return value
