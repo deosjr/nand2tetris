@@ -47,24 +47,17 @@
     M=D         // copy over because duplicate check is also jumped to from (1c)
 // (1b) only copy over if we haven't seen pointer yet
 (GCDUPLICATE)
-    @0x200F     // start of secondary heap - 1
+    @GCDUPRET
     D=A
-    @R9
+    @R14
     M=D
-(GCDUPLICATELOOP)
-    @R9
-    AM=M+1
-    D=M         // next value in secondary heap
-    @R8
-    D=D-M
+    @GCFINDINHEAP
+    0;JMP
+(GCDUPRET)
+    @R10
+    D=M+1
     @GCSTACKWALK
-    D;JEQ       // if *R9 = R8, we have found a duplicate and continue walking
-    @R7         // end of used secondary heap
-    D=M
-    @R9
-    D=D-M
-    @GCDUPLICATELOOP
-    D;JGT       // if R7 - R9 > 0, we still have secondary heap to inspect
+    D;JNE // jump if not R10=-1
     @R8
     D=M
     @R7
@@ -324,10 +317,105 @@
     0;JMP
 (GCUPDATE)
 // (4)  update all pointers in stack and primary heap, both car and cdr
-    // TODO
+    @0x0010
+    D=A
+    @R6
+    M=D
+    @R12
+    D=M
+    @R7
+    M=D
+(GCUPDATESTACKLOOP)
+    @R6
+    D=M
+    @R5
+    D=D-M
+    @GCUPDATEHEAP
+    D;JGE       // if R6 >= R5 we are done
+    @R6
+    M=M+1
+    A=M-1
+    D=M
+    @0x0800
+    D=D-A
+    @GCUPDATESTACKLOOP
+    D;JLT
+    @0x3800     // 0x4000 - 0x0800 that has already been subtracted
+    D=D-A
+    @GCUPDATESTACKLOOP
+    D;JGE
+    @R6
+    A=M-1
+    D=M
+    @R8
+    M=D
+    @GCSTACKRET
+    D=A
+    @R14
+    M=D
+    @GCFINDINHEAP
+    0;JMP
+(GCSTACKRET)
+    @R10
+    D=M+1
+    @GCUPDATESTACKLOOP
+    D;JEQ       // jump if R10=-1, weve already updated this pointer
+    @R10
+    D=M
+    @0x1810     // 0x2010 - 0x800, mapping secondary onto primary stack by index
+    D=D-A       // D is new pointer value!
+    @R6
+    A=M-1
+    M=D         // overwrite stack pointer value
+    @R10
+    A=M
+    M=0         // delete from secondary heap
+    @GCUPDATESTACKLOOP
+    0;JMP
+(GCUPDATEHEAP)
+(GCUPDATEHEAPLOOP)
 // (5) return
     // TODO TEST: for now terminate program after GC run
     //@R15
     //A=M
     @SYSEND
+    0;JMP
+(GCFINDINHEAP)
+    // R7 = top of secondary heap
+    // R8 = value to find
+    // R9 = temp pointer
+    // R10 = return value
+    // R14 = return address
+    // returns address (in secondary heap) if found or -1 if not found
+    @0x200F     // start of secondary heap - 1
+    D=A
+    @R9
+    M=D
+(GCFINDLOOP)
+    @R9
+    AM=M+1
+    D=M         // next value in secondary heap
+    @R8
+    D=D-M
+    @GCFOUND
+    D;JEQ       // if *R9 = R8, we have found a match!
+    @R7         // end of used secondary heap
+    D=M
+    @R9
+    D=D-M
+    @GCFINDLOOP
+    D;JGT       // if R7 - R9 > 0, we still have secondary heap to inspect
+(GCNOTFOUND)
+    @R10
+    M=-1
+    @R14
+    A=M
+    0;JMP
+(GCFOUND)
+    @R9
+    D=M
+    @R10
+    M=D
+    @R14
+    A=M
     0;JMP
