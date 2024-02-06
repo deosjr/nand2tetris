@@ -141,6 +141,8 @@
     M=D
     @R7
     D=M-1       // top of secondary heap
+    @R12        // R12 stores top of secondary heap
+    M=D
     @SP
     M=M+1
     A=M-1
@@ -291,7 +293,35 @@
 (GCCOPY)
 // (3)  copy each live cons cell onto bottom of the heap
 // since we sorted first, we will only copy over dead cells or cells that have already been moved
-    // TODO
+    @0x200F     // bottom of secondary heap - 1
+    D=A
+    @R6
+    M=D
+(GCCOPYLOOP)
+    @R6
+    D=M
+    @R12        // stores top of secondary heap
+    D=M-D
+    @GCUPDATE
+    D;JEQ       // if R6 == R12 we have copied the entire secondary heap, goto (4)
+    @R6
+    DM=M+1
+    @0x1810     // 0x2010 - 0x800, mapping secondary onto primary stack by index
+    D=D-A
+    @R7
+    M=D
+    @R6
+    A=M
+    MCDR
+    @R7
+    SETCDR
+    @R6
+    A=M
+    MCAR
+    @R7
+    SETCAR
+    @GCCOPYLOOP
+    0;JMP
 (GCUPDATE)
 // (4)  update all pointers in stack and primary heap, both car and cdr
     // TODO
