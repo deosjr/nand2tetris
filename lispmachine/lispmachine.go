@@ -291,7 +291,7 @@ func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f, g bit) (car, 
     if prefix == 0b000 {    // check type prefix against e/f/g
         x := inCdrM
         if d { x = inCarM } // d bit determines whether we check car or cdr of address
-    // ISSYMP: sets D to boolean true or boolean false based on typecheck of M
+    // ISSYM: sets D to boolean true or boolean false based on typecheck of M
     // all of the typeinfo variants exist, so ISEXPR and ISATOM and so forth
     // all of them check type of pointers; to check type of cell in memory, more is needed
         eql := And(Not(Xor(e, x[0])), And(Not(Xor(f, x[1])), Not(Xor(g, x[2]))))

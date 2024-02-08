@@ -4,7 +4,6 @@
 // then a buffer for overrun of size 16 (? would be nice to have a guarantee)
 // so second half of heap is 0x2010 until 0x3fff, or secondary heap
 // This GC implementation is a modified Cheney's algorithm
-// TODO: userdefined functions are also pointers!
 (GCSTART)
     @SP
     D=M
@@ -20,8 +19,8 @@
     M=D         // R7 = pointer in secondary heap
 // (1a) traverse stack, copy live pointers to secondary heap
 (GCTRAVERSE)
-    // a live pointer is a pair that's not NIL
-    // but even easier, it is a pointer into the heap
+    // a live pointer is a pair that's not NIL or a userdefined func
+    // but even easier, it is a pointer into the heap (or usrdef)
     // so any value between 0x0800 and 0x3fff (arguably only in primary heap)
     @R6
     D=M
@@ -33,6 +32,12 @@
     M=M+1
     A=M-1
     D=M
+    ISUSRDEF
+    @GCPOINTERFOUND
+    !D;JEQ
+    @R6
+    A=M-1
+    D=M
     @0x0800
     D=D-A
     @GCTRAVERSE
@@ -41,6 +46,7 @@
     D=D-A
     @GCTRAVERSE
     D;JGE
+(GCPOINTERFOUND)
     @R6
     A=M-1
     D=M
@@ -48,6 +54,12 @@
     M=D         // copy over because duplicate check is also jumped to from (1c)
 // (1b) only copy over if we haven't seen pointer yet
 (GCDUPLICATE)
+    @R8
+    D=M
+    @0x7fff
+    D=D&A       // set first bit to 0, making pointer out of usrdef
+    @R8
+    M=D
     @GCDUPRET
     D=A
     @R14
@@ -70,9 +82,14 @@
 // storing part on working stack needs O(log n) space, same as quicksort does
 // we're done once we have consumed the stack back to R5
 (GCCDRWALK)
+    @R8         // put car on stack if it is a live pointer
+    A=M
+    ISUSRDEF
+    @GCCARFOUND
+    !D;JEQ
     @R8
     A=M
-    MCAR        // put car on stack if is a live pointer
+    MCAR
     @0x0800
     D=D-A
     @GCCDR
@@ -81,6 +98,7 @@
     D=D-A
     @GCCDR
     D;JGE
+(GCCARFOUND)
     @R8
     A=M
     MCAR
@@ -89,9 +107,14 @@
     A=M-1
     M=D
 (GCCDR)
+    @R8         // goto GCSTACKWALK if cdr is not a live pointer, otherwise recurse
+    A=M
+    USRDEFCDR
+    @GCCDRFOUND
+    !D;JEQ
     @R8
     A=M
-    MCDR        // goto GCSTACKWALK if cdr is not a live pointer, otherwise recurse
+    MCDR
     @0x0800
     D=D-A
     @GCSTACKWALK
@@ -100,6 +123,7 @@
     D=D-A
     @GCSTACKWALK
     D;JGE
+(GCCDRFOUND)
     @R8
     A=M
     MCDR
@@ -306,13 +330,17 @@
     M=D
     @R6
     A=M
+    A=M
     MCDR
     @R7
+    A=M
     SETCDR
     @R6
     A=M
+    A=M
     MCAR
     @R7
+    A=M
     SETCAR
     @GCCOPYLOOP
     0;JMP
@@ -336,6 +364,13 @@
     @R6
     M=M+1
     A=M-1
+    ISUSRDEF
+    @R13
+    M=D         // R13 stores whether this was a userdefined func
+    @GCSTACKPOINTERFOUND
+    !D;JEQ
+    @R6
+    A=M-1
     D=M
     @0x0800
     D=D-A
@@ -345,9 +380,12 @@
     D=D-A
     @GCUPDATESTACKLOOP
     D;JGE
+(GCSTACKPOINTERFOUND)
     @R6
     A=M-1
     D=M
+    @0x7fff
+    D=D&A
     @R8
     M=D
     @GCSTACKRET
@@ -357,8 +395,12 @@
     @GCFINDINHEAP
     0;JMP
 (GCSTACKRET)
+    @0x7fff     // if @R13=0xffff, this was a userdefined func, therefore add high bit back
+    D=A+1       // 0x8000, i.e. highest bit set
+    @R13
+    D=D&M       // 0x8000 if @R6 pointed at usrdef, 0x0 otherwise
     @R10
-    D=M
+    D=D|M       // *R10, + high bit set if this was a usrdef
     @0x1810     // 0x2010 - 0x800, mapping secondary onto primary stack by index
     D=D-A       // D is new pointer value!
     @R6
@@ -387,17 +429,14 @@
     @R6
     M=M+1
     A=M-1
-    MCDR
-    @R12
-    M=D         // R12 = CDR
+    USRDEFCDR
+    @R13
+    M=D
+    @GCCDRPOINTERFOUND
+    !D;JEQ
     @R6
     A=M-1
-    MCAR
-    @R11
-    M=D         // R11 = CAR
-(GCUPDATECDR)
-    @R12
-    D=M
+    MCDR
     @0x0800
     D=D-A
     @GCUPDATECAR
@@ -406,8 +445,12 @@
     D=D-A
     @GCUPDATECAR
     D;JGE
-    @R12
-    D=M
+(GCCDRPOINTERFOUND)
+    @R6
+    A=M-1
+    MCDR
+    @0x7fff
+    D=D&A
     @R8
     M=D
     @GCCDRRET
@@ -417,16 +460,28 @@
     @GCFINDINHEAP
     0;JMP
 (GCCDRRET)
+    @0x7fff
+    D=A+1
+    @R13
+    D=D&M
     @R10
-    D=M
+    D=D|M
     @0x1810     // 0x2010 - 0x800, mapping secondary onto primary stack by index
     D=D-A       // D is new pointer value!
     @R6
     A=M-1
     SETCDR      // overwrite cdr value in primary heap
 (GCUPDATECAR)
-    @R11
-    D=M
+    @R6
+    A=M-1
+    ISUSRDEF
+    @R13
+    M=D
+    @GCCARPOINTERFOUND
+    !D;JEQ
+    @R6
+    A=M-1
+    MCAR
     @0x0800
     D=D-A
     @GCUPDATEHEAPLOOP
@@ -435,8 +490,12 @@
     D=D-A
     @GCUPDATEHEAPLOOP
     D;JGE
-    @R11
-    D=M
+(GCCARPOINTERFOUND)
+    @R6
+    A=M-1
+    MCAR
+    @0x7fff
+    D=D&A
     @R8
     M=D
     @GCCARRET
@@ -446,8 +505,12 @@
     @GCFINDINHEAP
     0;JMP
 (GCCARRET)
+    @0x7fff
+    D=A+1
+    @R13
+    D=D&M
     @R10
-    D=M
+    D=D|M
     @0x1810     // 0x2010 - 0x800, mapping secondary onto primary stack by index
     D=D-A       // D is new pointer value!
     @R6

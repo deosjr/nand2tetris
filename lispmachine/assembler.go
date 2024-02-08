@@ -91,7 +91,7 @@ func parseLine(block *ast.BlockStmt, line string, offset int) {
     line = strings.TrimSpace(split[0])
     // lispinstructions
     switch line {
-    case "SETCAR", "SETCDR", "EQLA", "EQLM", "ACAR", "ACDR", "MCAR", "MCDR", "ISSYMB", "ISPRIM", "ISPROC", "ISBUILTIN", "ISSPECIAL", "ISEMPTY", "EMPTYCDR":
+    case "SETCAR", "SETCDR", "EQLA", "EQLM", "ACAR", "ACDR", "MCAR", "MCDR", "ISSYMB", "ISPRIM", "ISPROC", "ISBUILTIN", "ISSPECIAL", "ISUSRDEF", "ISEMPTY", "EMPTYCDR", "USRDEFCDR":
         block.List = append(block.List, &ast.ExprStmt{X: &ast.BasicLit{Kind: token.IMAG, Value:line, ValuePos:pos}})
         return
     }
@@ -458,12 +458,16 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                     program = append(program, 0b1000001101010000)
                 case "ISSPECIAL":
                     program = append(program, 0b1000001111010000)
+                case "ISUSRDEF":
+                    program = append(program, 0b1000001100010000)
                 case "ISPAIR":
                     program = append(program, 0b0) // TODO?
                 case "ISEMPTY":
                     program = append(program, 0b1000110000010000)
                 case "EMPTYCDR":
                     program = append(program, 0b1000100000010000)
+                case "USRDEFCDR":
+                    program = append(program, 0b1000000100010000)
                 default:
                     posFrom := fset.Position(bl.ValuePos)
                     return nil, fmt.Errorf("%s: invalid instr: %s", posFrom.String(), contents[bl.ValuePos:bl.ValuePos+token.Pos(len(bl.Value))])

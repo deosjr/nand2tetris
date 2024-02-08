@@ -633,7 +633,7 @@ func (t *vmTranslator) translateWrite(split []string) error {
 
 // assumes 2 values pushed two stack: first CAR and then CDR
 // consumes both, writes a new cons cell, then returns pointer to stack
-// SETCDR goes first, because it overwrites CAR as well!
+// SETCDR goes first, because it overwrites CAR as well! -> does it?
 func (t *vmTranslator) translateCons(split []string) error {
     if len(split) > 0 && !strings.HasPrefix(split[0], "//") {
         return fmt.Errorf("syntax error: cons %v", split)
