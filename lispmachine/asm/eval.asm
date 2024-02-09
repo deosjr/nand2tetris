@@ -94,7 +94,7 @@
     @R14
     M=D
     @SP
-    A=M-1
+    AM=M-1
     D=M
     @R14
     A=M
