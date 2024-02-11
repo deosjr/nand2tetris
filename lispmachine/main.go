@@ -2,14 +2,15 @@ package main
 
 import (
     "fmt"
+    "strconv"
     //"time"
 )
 
 var debug = false
 
 func main() {
-    out, err := compile("lisp/list.scm", "lisp/main.scm")
-    //out, err := compile("lisp/main.scm")
+    //out, err := compile("lisp/list.scm", "lisp/main.scm")
+    out, err := compile("lisp/main.scm")
     if err != nil {
         fmt.Println(err)
         return
@@ -32,6 +33,7 @@ func main() {
     computer := NewLispMachine(cpu)
     fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
+    computer.data_mem.reader.LoadInputTape("asm/lispv1.asm")
     computer.data_mem.writer.LoadOutputWriter(charPrinter{})
 
     var debugger Debugger
@@ -110,7 +112,7 @@ func run(computer *LispMachine, debugger Debugger) {
         pprev = prev
         prev = computer.cpu.PC()
     }
-    fmt.Println("ticks:", ticks)
+    fmt.Println("\nticks:", ticks)
 }
 
 type Debugger interface {
@@ -168,14 +170,14 @@ func (*analysisDebugger) AfterTick(c *LispMachine) {}
 type charPrinter struct{}
 
 func (cp charPrinter) Write(p []byte) (int, error) {
-    fmt.Println(string(p))
-    /*
+    //fmt.Println(string(p))
     // some big assumptions here on how tapeWriter writes
+    // we'll assume ascii chars as primitives on tapeoutput
     x, err := strconv.ParseInt(string(p)[:4], 16, 16)
     if err != nil {
         return 0, err
     }
+    x = x - 0x4000
     fmt.Printf("%c", x)
-    */
     return len(p), nil
 }

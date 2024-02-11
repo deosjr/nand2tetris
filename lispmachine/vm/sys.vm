@@ -39,10 +39,10 @@ function init
     push label builtin.isnull
     builtin                 // builtin(null?)
     cons
-    //symbol 10
-    //push label builtin.apply
-    //builtin                 // builtin(apply)
-    //cons
+    symbol 10
+    push label builtin.read
+    builtin                 // builtin(read)
+    cons
     symbol 11
     push label builtin.write
     builtin                 // builtin(write)

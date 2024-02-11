@@ -170,6 +170,15 @@
     @R15
     A=M
     0;JMP
+(BUILTINREAD)
+    @0x6001
+    DM=M
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
 (BUILTINWRITE)
     @SP
     A=M-1

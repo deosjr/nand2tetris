@@ -20,7 +20,7 @@ var symbolTable = map[string]int{
     "-": 7,
     ">": 8,
     "null?": 9,
-    "apply": 10,
+    "read": 10,
     "write": 11,
     "cons": 12,
     "car": 13,

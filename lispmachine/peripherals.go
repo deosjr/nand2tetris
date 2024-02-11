@@ -355,18 +355,19 @@ func (tr *tapeReader) ClockTick() {
         return
     }
     // Here's where we abstract heavily over how this would work exactly
+    // We'll assume chars are nice and prefixed with primitive type tag
     if tr.reg.Out() == 0 {
         if !tr.scanner.Scan() {
-            tr.reg.SendIn(0x1C) // ascii File Separator control character
+            tr.reg.SendIn(0x401C) // ascii File Separator control character
             tr.reg.ClockTick()
             tr.eof <- true
             return
         }
         char := tr.scanner.Text()[0]
         if char == '\n' {
-            char = 0x80 // newlines are ENTER ascii values
+            char = 0x0A // newlines are ENTER ascii values
         }
-        tr.reg.SendIn(uint16(char))
+        tr.reg.SendIn(uint16(char) + 0x4000)
     }
     tr.reg.ClockTick()
 }
