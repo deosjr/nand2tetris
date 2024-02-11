@@ -75,21 +75,24 @@ func compileFromString(in string) (string, error) {
 func compileSExp(sexp lisp.SExpression) (string, error) {
     if sexp.IsPrimitive() {
         n := int(sexp.AsNumber())
-        if n < 0 || n >= 16384 {
+        if n < 0 || n >= 0x4000 {
             return "", fmt.Errorf("invalid primitive %d", n)
         }
-        n += 16384
+        n += 0x4000
         return fmt.Sprintf("\tpush constant %d\n", n), nil
     }
     if sexp.IsSymbol() {
         sym := string(sexp.AsSymbol())
+        if len(sym) > 2 && sym[0] == '#' && sym[1] == '\\' {
+            return compileChar(sym[2:])
+        }
         n := len(symbolTable)
         if i, ok := symbolTable[sym]; ok {
             n = i
         } else {
             symbolTable[sym] = n
         }
-        n += 24576
+        n += 0x6000
         return fmt.Sprintf("\tpush constant %d\n", n), nil
     }
     // guaranteed to be pair!
@@ -110,4 +113,23 @@ func compileSExp(sexp lisp.SExpression) (string, error) {
         s += "\tcons\n"
     }
     return s, nil
+}
+
+// a symbol such as #\a represents a character in scheme
+// we will compile them to their ascii value and represent as primitive
+func compileChar(s string) (string, error) {
+    n := 0
+    switch s {
+    case "newline":
+        n = 0x0A
+    case "space":
+        n = 0x20
+    default:
+        if len(s) != 1 {
+            return "", fmt.Errorf("unknown char #\\%s", s)
+        }
+        n = int(s[0])
+    }
+    n += 0x4000
+    return fmt.Sprintf("\tpush constant %d\n", n), nil
 }

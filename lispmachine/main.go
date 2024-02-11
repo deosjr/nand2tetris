@@ -8,8 +8,8 @@ import (
 var debug = false
 
 func main() {
-    //out, err := compile("lisp/list.scm", "lisp/main.scm")
-    out, err := compile("lisp/main.scm")
+    out, err := compile("lisp/list.scm", "lisp/main.scm")
+    //out, err := compile("lisp/main.scm")
     if err != nil {
         fmt.Println(err)
         return

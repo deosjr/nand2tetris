@@ -1,6 +1,3 @@
-(define garbage (lambda ()
-    (begin
-        (cons 1 1)
-        (garbage))))
+#|(map write (quote (#\H #\e #\l #\l #\o #\space #\W #\o #\r #\l #\d #\!))) |#
 
-(garbage)
+(map (lambda (x) (write (+ x 1))) (quote (1 2 3)))

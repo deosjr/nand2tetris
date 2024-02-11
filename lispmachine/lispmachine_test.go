@@ -76,13 +76,17 @@ func TestLispMachine(t *testing.T) {
             in: "(begin (+ 1 2) (+ 3 4))",
             want: []uint16{0x4007},
         },
+        {
+            // TODO: this breaks because assq uses NIL to signal failure
+            in: "(define x (quote ())) x",
+            want: []uint16{0x0, 0x0},
+        },
     }{
         out, err := compileFromString(tt.in)
         if err != nil {
             t.Fatal(err)
         }
     
-        //asm, err := Translate([]string{"vm/eval.vm"}, out)
         asm, err := Translate([]string{}, out)
         if err != nil {
             t.Fatal(err)
