@@ -182,6 +182,18 @@
     @R15
     A=M
     0;JMP
+(BUILTINPEEKCHAR)
+    // peek-char reads next char from input port but doesnt consume
+    @0x6001
+    D=M
+    @0x4000
+    D=D|A
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
 (BUILTINDISPLAY)
     // display writes to output port raw
     @SP

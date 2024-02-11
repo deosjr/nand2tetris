@@ -27,6 +27,7 @@ var symbolTable = map[string]int{
     "cdr": 14,
     "=": 15,
     "write-char": 16,
+    "peek-char": 17,
 }
 
 func compile(filenames ...string) (string, error) {

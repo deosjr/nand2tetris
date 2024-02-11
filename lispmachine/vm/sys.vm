@@ -67,7 +67,12 @@ function init
     push label builtin.writechar
     builtin                 // builtin(write-char)
     cons
+    symbol 17
+    push label builtin.peekchar
+    builtin                 // builtin(peek-char)
+    cons
     cons-on-empty
+    cons
     cons
     cons
     cons
