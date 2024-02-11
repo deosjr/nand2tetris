@@ -83,6 +83,7 @@ function init
     cons
     cons
     cons
+    cons
     //pop environment
     //push environment
     push constant 0         // each func HAS to take one arg!
