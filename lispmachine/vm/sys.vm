@@ -40,12 +40,12 @@ function init
     builtin                 // builtin(null?)
     cons
     symbol 10
-    push label builtin.read
-    builtin                 // builtin(read)
+    push label builtin.readchar
+    builtin                 // builtin(read-char)
     cons
     symbol 11
-    push label builtin.write
-    builtin                 // builtin(write)
+    push label builtin.display
+    builtin                 // builtin(display)
     cons
     symbol 12
     push label builtin.cons
@@ -63,7 +63,12 @@ function init
     push label builtin.eq
     builtin                 // builtin(eq)
     cons
+    symbol 16
+    push label builtin.writechar
+    builtin                 // builtin(write-char)
+    cons
     cons-on-empty
+    cons
     cons
     cons
     cons

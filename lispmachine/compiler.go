@@ -20,12 +20,13 @@ var symbolTable = map[string]int{
     "-": 7,
     ">": 8,
     "null?": 9,
-    "read": 10,
-    "write": 11,
+    "read-char": 10,
+    "display": 11,
     "cons": 12,
     "car": 13,
     "cdr": 14,
     "=": 15,
+    "write-char": 16,
 }
 
 func compile(filenames ...string) (string, error) {

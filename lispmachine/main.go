@@ -172,12 +172,10 @@ type charPrinter struct{}
 func (cp charPrinter) Write(p []byte) (int, error) {
     //fmt.Println(string(p))
     // some big assumptions here on how tapeWriter writes
-    // we'll assume ascii chars as primitives on tapeoutput
     x, err := strconv.ParseInt(string(p)[:4], 16, 16)
     if err != nil {
         return 0, err
     }
-    x = x - 0x4000
     fmt.Printf("%c", x)
     return len(p), nil
 }

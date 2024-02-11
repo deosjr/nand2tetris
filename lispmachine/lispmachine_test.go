@@ -77,7 +77,6 @@ func TestLispMachine(t *testing.T) {
             want: []uint16{0x4007},
         },
         {
-            // TODO: this breaks because assq uses NIL to signal failure
             in: "(define x (quote ())) x",
             want: []uint16{0x0, 0x0},
         },

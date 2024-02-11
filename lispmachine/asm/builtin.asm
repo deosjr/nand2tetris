@@ -170,20 +170,40 @@
     @R15
     A=M
     0;JMP
-(BUILTINREAD)
+(BUILTINREADCHAR)
+    // read-char reads next char from input port
     @0x6001
     DM=M
+    @0x4000
+    D=D|A
     @SP
     A=M-1
     M=D
     @R15
     A=M
     0;JMP
-(BUILTINWRITE)
+(BUILTINDISPLAY)
+    // display writes to output port raw
     @SP
     A=M-1
     A=M
     MCAR
+    @0x6002
+    M=D
+    @SP
+    A=M-1
+    M=0
+    @R15
+    A=M
+    0;JMP
+(BUILTINWRITECHAR)
+    // write-char writes char to output port
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @0x1fff
+    D=D&A
     @0x6002
     M=D
     @SP
