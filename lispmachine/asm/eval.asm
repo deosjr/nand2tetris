@@ -152,9 +152,9 @@
 (EVALASSQRET)
     @SP
     A=M-1
-    D=M
+    D=M+1
     @SYSERRSYMBOLNOTFOUND
-    D;JEQ           // if assq returns NIL, that means not found
+    D;JEQ           // if assq returns -1, that means not found
 	@SYSRETURN
 	0;JMP
 (EVALPROCEDURE)
