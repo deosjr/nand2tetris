@@ -36,24 +36,24 @@ func main() {
 
     var debugger Debugger
     if debug {
-        //debugger = &standardDebugger{}
-        debugger = &analysisDebugger{}
+        debugger = &standardDebugger{}
+        //debugger = &analysisDebugger{}
     }
     run(computer, debugger)
 
 /*
-    for i:=0x0; i < 0x10; i++ {
+    for i:=0x10; i < 0x7ff; i++ {
         v := computer.data_mem.ramCar.mem[i]
         fmt.Printf("%04x %04x\n", i, v)
     }
+*/
 
-    for i:=0x0800; i < 0x0840; i++ {
+/*
+    for i:=0x800; i < 0x840; i++ {
         car := computer.data_mem.ramCar.mem[i]
         cdr := computer.data_mem.ramCdr.mem[i]
         fmt.Printf("%04x %04x %04x\n", i, car, cdr)
     }
-*/
-
     if debug {
         rom := debugger.(*analysisDebugger).rom
 
@@ -75,6 +75,7 @@ func main() {
             fmt.Println(r.from, r.to, r.n)
         }
     }
+*/
 }
 
 func run(computer *LispMachine, debugger Debugger) {
@@ -120,6 +121,7 @@ type Debugger interface {
 
 type standardDebugger struct {
     i int
+    sp uint16
 }
 
 func (*standardDebugger) BeforeLoop() {
@@ -133,13 +135,20 @@ func (sd *standardDebugger) BeforeTick(c *LispMachine) {
 }
 
 func (sd *standardDebugger) AfterTick(c *LispMachine) {
+    sp := c.data_mem.ramCar.mem[1]
+    if sp == sd.sp { return }
+    sd.sp = sp
+    v := c.data_mem.ramCar.mem[sd.sp-1]
+    if v == 0x8825 {
+        fmt.Println(c.cpu.pc.Out())
+    }
     //fmt.Printf(" %04x %04x %04x\n", c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.OutCarM())
-    fmt.Printf("%03d: %04x %04x %04x %04x %04x\n", c.cpu.pc.Out(), c.cpu.instr, c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.inCarM, c.cpu.inCdrM)
+    //fmt.Printf("%03d: %04x %04x %04x %04x %04x\n", c.cpu.pc.Out(), c.cpu.instr, c.cpu.a.Out(), c.cpu.d.Out(), c.cpu.inCarM, c.cpu.inCdrM)
     //fmt.Printf(" %04x %04x %04x %04x %04x", c.data_mem.ramCar.mem[13], c.data_mem.ramCar.mem[14], c.data_mem.ramCar.mem[15], c.data_mem.ramCar.mem[1], c.data_mem.ramCar.mem[3])
     //fmt.Printf(" [%04x %04x %04x %04x %04x", c.data_mem.ramCar.mem[256], c.data_mem.ramCar.mem[257], c.data_mem.ramCar.mem[258], c.data_mem.ramCar.mem[259], c.data_mem.ramCar.mem[260])
     //fmt.Printf(" %04x %04x %04x %04x %04x]", c.data_mem.ramCar.mem[261], c.data_mem.ramCar.mem[262], c.data_mem.ramCar.mem[263], c.data_mem.ramCar.mem[264], c.data_mem.ramCar.mem[265])
-    fmt.Printf(" [SP:%04x ENV:%04x ARG:%04x FREE:%04x", c.data_mem.ramCar.mem[1], c.data_mem.ramCar.mem[2], c.data_mem.ramCar.mem[3], c.data_mem.ramCar.mem[4])
-    fmt.Println()
+    //fmt.Printf(" [SP:%04x ENV:%04x ARG:%04x FREE:%04x", c.data_mem.ramCar.mem[1], c.data_mem.ramCar.mem[2], c.data_mem.ramCar.mem[3], c.data_mem.ramCar.mem[4])
+    //fmt.Println()
     //fmt.Printf(" %04x %04x\n", c.data_mem.ramCar.mem[0], c.data_mem.ramCdr.mem[0])
     // TODO: wait for keyboard press to make step-through debugger
     //fmt.Println()

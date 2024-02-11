@@ -520,6 +520,26 @@
     0;JMP
 (GCRETURN)
 // (5) return
+// TODO: clearing secondary heap shouldnt be necessary
+// there's a bug somewhere that causes us to read from previous GC run!
+    @0x2010
+    D=A
+    @R6
+    M=D
+(GCCLEARSECONDARY)
+    @R7
+    D=M
+    @R6
+    D=D-M
+    @GCCLEARED
+    D;JEQ
+    @R6
+    M=M+1
+    A=M-1
+    M=0
+    @GCCLEARSECONDARY
+    0;JMP
+(GCCLEARED)
     @R5
     D=M
     @FREE
@@ -547,11 +567,11 @@
     @GCFOUND
     D;JEQ       // if *R9 = R8, we have found a match!
     @R7         // end of used secondary heap
-    D=M
+    D=M+1
     @R9
     D=D-M
     @GCFINDLOOP
-    D;JGT       // if R7 - R9 > 0, we still have secondary heap to inspect
+    D;JGT       // if R7+1 - R9 > 0, we still have secondary heap to inspect
 (GCNOTFOUND)
     @R10
     M=-1
