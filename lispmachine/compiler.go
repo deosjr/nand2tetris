@@ -28,6 +28,9 @@ var symbolTable = map[string]int{
     "=": 15,
     "write-char": 16,
     "peek-char": 17,
+    "error": 18,
+    "or": 19,
+    "and": 20,
 }
 
 func compile(filenames ...string) (string, error) {
@@ -126,6 +129,8 @@ func compileChar(s string) (string, error) {
         n = 0x0A
     case "space":
         n = 0x20
+    case "eof":
+        n = 0x1C
     default:
         if len(s) != 1 {
             return "", fmt.Errorf("unknown char #\\%s", s)

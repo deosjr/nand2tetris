@@ -109,6 +109,46 @@
     @R15
     A=M
     0;JMP
+(BUILTINAND)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @SP
+    A=M-1
+    A=M
+    ACDR
+    MCAR
+    @R5
+    D=D&M
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINOR)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @SP
+    A=M-1
+    A=M
+    ACDR
+    MCAR
+    @R5
+    D=D|M
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
 (BUILTINISNULL)
     @SP
     A=M-1
@@ -223,6 +263,19 @@
     M=0
     @R15
     A=M
+    0;JMP
+(BUILTINERROR)
+    // for now, error prints code and terminates program
+    // meaning this is more like builtin.fatal!
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @0x1fff
+    D=D&A
+    @0x6002
+    M=D
+    @SYSEND
     0;JMP
 (BUILTINASSQ)
     @SP

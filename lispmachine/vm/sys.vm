@@ -71,7 +71,22 @@ function init
     push label builtin.peekchar
     builtin                 // builtin(peek-char)
     cons
+    symbol 18
+    push label builtin.error
+    builtin                 // builtin(error)
+    cons
+    symbol 19
+    push label builtin.or
+    builtin                 // builtin(or)
+    cons
+    symbol 20
+    push label builtin.and
+    builtin                 // builtin(and)
+    cons
     cons-on-empty
+    cons
+    cons
+    cons
     cons
     cons
     cons
