@@ -278,3 +278,58 @@
     @R15        // can't set symbol to -1 now!
     A=M
     0;JMP
+// duplicate of ASSQ, but returns cons cell index
+// instead of cdr of cons cell found, for use in set!
+// TODO: merge into builtin.ASSQ ?
+(BUILTINASSX)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5
+    M=D         // R5 = assoclist
+    @SP
+    A=M-1
+    A=M
+    ACDR
+    MCAR
+    @R6
+    M=D         // R6 = key
+(BUILTINASSQSTARTX)
+    @R5
+    A=M
+    ACAR
+    MCAR
+    @R6
+    EQLM
+    @BUILTINASSQFOUNDX
+    D;JNE
+    @R5
+    A=M
+    EMPTYCDR
+    @BUILTINASSQFAILX
+    !D;JEQ
+    @R5
+    A=M
+    MCDR
+    @R5
+    M=D
+    @BUILTINASSQSTARTX
+    0;JMP
+(BUILTINASSQFOUNDX)
+    @R5
+    A=M
+    MCAR
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINASSQFAILX)
+    @SP
+    A=M-1
+    M=-1        // TODO: return error instead of -1
+    @R15
+    A=M
+    0;JMP

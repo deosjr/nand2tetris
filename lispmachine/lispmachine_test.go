@@ -80,6 +80,10 @@ func TestLispMachine(t *testing.T) {
             in: "(define x (quote ())) x",
             want: []uint16{0x0, 0x0},
         },
+        {
+            in: "(define x 4) (set! x 5) x",
+            want: []uint16{0x0, 0x0, 0x4005},
+        },
     }{
         out, err := compileFromString(tt.in)
         if err != nil {

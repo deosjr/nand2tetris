@@ -654,7 +654,97 @@
 	@SYSRETURN
 	0;JMP
 (EVALSET)
-    // TODO
+    // find symbol in env
+    // just like evalsymbol but using (car ARG)
+	D=0
+	@FREE
+	A=M
+	SETCDR
+	@ARG
+    A=M
+	A=M
+    MCAR
+	@FREE
+	A=M
+	SETCAR
+    // FREE+1 = ( env . FREE )
+	@FREE
+	D=M
+	AM=D+1
+	SETCDR
+    @ENV
+    A=M
+    D=M
+	@FREE
+	A=M
+	SETCAR
+	@FREE
+	D=M
+	M=D+1
+	@SP
+    M=M+1
+	A=M-1
+	M=D         // put on stack as arg
+    @EVALSETRET
+    D=A
+    @R15
+    M=D
+    @BUILTINASSX
+    0;JMP
+(EVALSETRET)
+    @SP
+    A=M-1
+    D=M+1
+    @SYSERRSYMBOLNOTFOUND       // todo different error msg
+    D;JEQ           // if assx returns -1, that means not found
+    // NOTE: return from assx is still on stack
+    // now eval expression in (cadr ARG)
+	@ENV
+	A=M
+	D=M
+	@SP
+	M=M+1
+	A=M-1
+	M=D
+	@ARG
+	A=M
+	D=M
+	@SP
+	M=M+1
+	A=M-1
+	M=D
+	@SP
+	A=M-1
+	A=M
+	ACDR
+	MCAR
+	@SP
+	A=M-1
+	M=D
+	@EVALEVAL
+	D=A
+	@R13
+	M=D
+	@EVALSETEVALRET
+	D=A
+	@R15
+	M=D
+	@SYSCALL
+	0;JMP
+(EVALSETEVALRET)
+	@SP
+	AM=M-1
+	D=M
+    @SP
+    A=M-1
+    A=M             // index of cons cell where symbol was found as car
+    SETCDR          // overwrite value
+	@SP
+	M=M+1
+	A=M-1
+	M=0
+	@SYSRETURN
+	0;JMP
 (EVALLAMBDA)
     // (lambda (params ...) body)
     // assumption: params is a list of symbols
