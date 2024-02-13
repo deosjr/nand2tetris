@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 // start by copying some builtins over from the nand2tetris builtin definitions
 
 // instruction table change:
@@ -144,7 +146,7 @@ func (m *LispMemory) sendLoad(ram *BuiltinRAM16K, load, sendToPeripherals bool) 
         m.writer.SendLoad(load)
     default:
         if load {
-            panic("access memory beyond 0x6002")
+            panic(fmt.Sprintf("access memory beyond 0x6002: %d", m.address))
         }
     }
 }

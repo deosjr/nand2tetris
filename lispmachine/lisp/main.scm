@@ -1,12 +1,19 @@
 #| TODO: trie with value insert index |#
-(define symbol-table (quote (
-    (#\i #\f)
-    (#\d #\e #\f #\i #\n #\e)
-    (#\q #\u #\o #\t #\e)
-    (#\s #\e #\t #\!)
-    (#\l #\a #\m #\b #\d #\a)
-    (#\b #\e #\g #\i #\n)
-)))
+(define symbol-table (quote ()))
+(define symbol-table-size 0)
+
+(define add-symbol (lambda (symbol)
+    (begin
+      (set! symbol-table (cons (cons symbol symbol-table-size) symbol-table))
+      (set! symbol-table-size (+ symbol-table-size 1))
+    )))
+
+(add-symbol (quote (#\i #\f)))
+(add-symbol (quote (#\d #\e #\f #\i #\n #\e)))
+(add-symbol (quote (#\q #\u #\o #\t #\e)))
+(add-symbol (quote (#\s #\e #\t #\!)))
+(add-symbol (quote (#\l #\a #\m #\b #\d #\a)))
+(add-symbol (quote (#\b #\e #\g #\i #\n)))
 
 (define read-token (lambda ()
     (begin 
@@ -18,7 +25,7 @@
     #| (let ((peeked (peek-char))) .. |#
     ((lambda (peeked)
        #| eq? doesnt exist, only = |#
-       (if (= peeked #\space)
+       (if (or (= peeked #\space) (= peeked #\newline))
          #| todo: if without alt! |#
          (begin (read-char) (consume-whitespace)) 0
     )) (peek-char))))
@@ -27,7 +34,7 @@
 (define read-until-token (lambda (stack)
     #| (let ((peeked (peek-char))) .. |#
     ((lambda (peeked)
-       (if (or (= peeked #\eof) (= peeked #\space))
+       (if (or (or (= peeked #\eof) (= peeked #\space)) (= peeked #\newline))
          (reverse stack)
          #| todo: parse escaped bracket chars |#
          (if (or (= peeked 40) (= peeked 41))
@@ -37,15 +44,59 @@
            (read-until-token (cons (read-char) stack))
     ))) (peek-char))))
 
+(define char-isdigit? (lambda (c)
+  (and (> c 47) (> 58 c))))
+
+(define char->digit (lambda (c)
+  (if (char-isdigit? c) (- c 48) #f)))
+
+(define make-list (lambda (stack)
+                      stack
+                      ))
+
+(define make-atom (lambda (token)
+  (if (char-isdigit? (car token))
+    (make-primitive token 0)
+    (make-symbol token))))
+
+(define make-primitive (lambda (token acc)
+    ((lambda (c t)
+      (if (null? token)
+        acc
+      (if (char-isdigit? c)
+        (make-primitive t (+ (* 10 acc) (char->digit c)))
+        (error 42) #| todo: parsenum error |#
+      ))) (car token) (cdr token))))
+#|
+(define make-symbol (lambda (token)
+                    ))
+|#
+
+(define read-file (lambda () (begin
+  (define read-file-rec (lambda (stack)
+    ((lambda (token)
+       (if (null? token)
+         #\eof
+         #| (let ((len (length token))) .. |#
+         ((lambda (len)
+            #| token == '(' |#
+            (if (and (= 1 len) (= (car token) 40))
+              (read-file-rec (cons 40 stack))
+            #| token == ')' |#
+            (if (and (= 1 len) (= (car token) 41))
+              (read-file-rec (make-list stack))
+            #| else |#
+              (read-file-rec (cons (make-atom token) stack))
+         ))) (length token))
+     )) (read-token))))
+  (read-file-rec (quote ())))))
+
 (define newline (lambda () (write-char #\newline)))
 
-(begin
-  (map write-char (read-token))
-  (newline)
-  (map write-char (read-token))
-  (newline)
-  (map write-char (read-token))
-  (newline)
-  (map write-char (read-token))
-  (newline)
-)
+(define * (lambda (x y)
+    (if (= x 1)
+      y
+      (+ y (* (- x 1) y)))))
+
+(write-char (make-atom (quote (#\1 #\2 #\2))))
+(write-char (make-atom (quote (#\1 #\2 #\2))))

@@ -31,6 +31,7 @@ var symbolTable = map[string]int{
     "error": 18,
     "or": 19,
     "and": 20,
+    "not": 21,
 }
 
 func compile(filenames ...string) (string, error) {
@@ -88,6 +89,9 @@ func compileSExp(sexp lisp.SExpression) (string, error) {
     }
     if sexp.IsSymbol() {
         sym := string(sexp.AsSymbol())
+        if sym == "#f" {
+            return "\tpush constant 0\n", nil
+        }
         if len(sym) > 2 && sym[0] == '#' && sym[1] == '\\' {
             return compileChar(sym[2:])
         }

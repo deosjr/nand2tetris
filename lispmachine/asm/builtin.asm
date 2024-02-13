@@ -149,6 +149,17 @@
     @R15
     A=M
     0;JMP
+(BUILTINNOT)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @SP
+    A=M-1
+    M=!D
+    @R15
+    A=M
+    0;JMP
 (BUILTINISNULL)
     @SP
     A=M-1

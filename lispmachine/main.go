@@ -33,7 +33,7 @@ func main() {
     computer := NewLispMachine(cpu)
     fmt.Println("loading ROM")
     computer.LoadProgram(NewROM32K(program))
-    computer.data_mem.reader.LoadInputTape("lisp/list.scm")
+    computer.data_mem.reader.LoadInputTape("lisp/test.scm")
     computer.data_mem.writer.LoadOutputWriter(charPrinter{})
 
     var debugger Debugger

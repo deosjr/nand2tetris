@@ -83,7 +83,12 @@ function init
     push label builtin.and
     builtin                 // builtin(and)
     cons
+    symbol 21
+    push label builtin.not
+    builtin                 // builtin(not)
+    cons
     cons-on-empty
+    cons
     cons
     cons
     cons
