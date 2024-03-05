@@ -399,21 +399,16 @@
     D=D&A
     @EVALIF
     D;JEQ
-    D=D-1
     @EVALDEFINE
-    D;JEQ
-    D=D-1
+    D=D-1;JEQ
     @EVALQUOTE
-    D;JEQ
-    D=D-1
+    D=D-1;JEQ
     @EVALSET
-    D;JEQ
-    D=D-1
+    D=D-1;JEQ
     @EVALLAMBDA
-    D;JEQ
-    D=D-1
+    D=D-1;JEQ
     @EVALBEGIN
-    D;JEQ
+    D=D-1;JEQ
 	@SYSERRUNKNOWNBUILTIN
 	0;JMP
 (EVALIF)
