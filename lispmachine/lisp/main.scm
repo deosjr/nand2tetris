@@ -48,7 +48,7 @@
   (and (> c 47) (> 58 c))))
 
 (define char->digit (lambda (c)
-  (if (char-isdigit? c) (- c 48) #f)))
+  (if (char-isdigit? c) (- c 48) (quote #f))))
 
 (define make-list (lambda (stack)
                       stack
@@ -67,10 +67,9 @@
         (make-primitive t (+ (* 10 acc) (char->digit c)))
         (error 42) #| todo: parsenum error |#
       ))) (car token) (cdr token))))
-#|
-(define make-symbol (lambda (token)
+
+(define make-symbol (lambda (token) 42
                     ))
-|#
 
 (define read-file (lambda () (begin
   (define read-file-rec (lambda (stack)
@@ -98,5 +97,16 @@
       y
       (+ y (* (- x 1) y)))))
 
+(define string-eq? (lambda (x y)
+    (if (null? x) (null? y)
+      (if (null? y) (quote #f) #| why does #f not work here? |#
+        (if (= (car x) (car y))
+          (string-eq? (cdr x) (cdr y))
+          (quote #f))))))
+
 (write-char (make-atom (quote (#\1 #\2 #\2))))
+(newline)
 (write-char (make-atom (quote (#\1 #\2 #\2))))
+(newline)
+
+(if (string-eq? (quote (#\a #\b #\c)) (quote (#\a #\x #\c))) (write-char #\T) (write-char #\F) )
