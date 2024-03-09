@@ -15,6 +15,15 @@
 (add-symbol (quote (#\l #\a #\m #\b #\d #\a)))
 (add-symbol (quote (#\b #\e #\g #\i #\n)))
 
+(define get-symbol (lambda (symbol) (begin
+    (define get (lambda (symbol table)
+        (if (null? table) (quote #f)
+          (if (string-eq? (car (car table)) symbol)
+            (cdr (car table))
+            (get symbol (cdr table))
+        ))))
+    (get symbol symbol-table))))
+
 (define read-token (lambda ()
     (begin 
       (consume-whitespace)
@@ -68,8 +77,14 @@
         (error 42) #| todo: parsenum error |#
       ))) (car token) (cdr token))))
 
-(define make-symbol (lambda (token) 42
-                    ))
+(define make-symbol (lambda (token)
+    #| (let ((got (get-symbol token))) .. |#
+    ((lambda (got)
+       (if got got
+         (begin
+           (add-symbol token)
+           (- symbol-table-size 1))))
+                    (get-symbol token))))
 
 (define read-file (lambda () (begin
   (define read-file-rec (lambda (stack)
@@ -104,9 +119,5 @@
           (string-eq? (cdr x) (cdr y))
           (quote #f))))))
 
-(write-char (make-atom (quote (#\1 #\2 #\2))))
-(newline)
-(write-char (make-atom (quote (#\1 #\2 #\2))))
-(newline)
-
-(if (string-eq? (quote (#\a #\b #\c)) (quote (#\a #\x #\c))) (write-char #\T) (write-char #\F) )
+(make-symbol (quote (#\x)))
+(if (get-symbol (quote (#\x))) (write-char #\S) (write-char #\F))
