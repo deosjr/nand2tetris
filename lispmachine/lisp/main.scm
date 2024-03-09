@@ -59,9 +59,17 @@
 (define char->digit (lambda (c)
   (if (char-isdigit? c) (- c 48) (quote #f))))
 
-(define make-list (lambda (stack)
-                      stack
-                      ))
+#| returns modified stack |#
+(define make-list (lambda (stack) (begin
+  (define list-rec (lambda (acc stack)
+    (if (null? stack)
+      (error 45) #| todo: parselist error |#
+      ((lambda (p)
+         (if (= p 40)
+           (cons acc stack)
+           (list-rec (cons p acc) (cdr stack))
+      )) (car stack)))))
+  (list-rec (quote ()) stack))))
 
 (define make-atom (lambda (token)
   (if (char-isdigit? (car token))
@@ -119,5 +127,4 @@
           (string-eq? (cdr x) (cdr y))
           (quote #f))))))
 
-(make-symbol (quote (#\x)))
-(if (get-symbol (quote (#\x))) (write-char #\S) (write-char #\F))
+(read-file)
