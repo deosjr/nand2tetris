@@ -7,29 +7,33 @@ func Nand(a, b bit) bit {
 
 // rest is not primitive, derives from Nand
 func Not(in bit) bit {
-    return Nand(in, in)
+    return !in//Nand(in, in)
 }
 
 func And(a, b bit) bit {
-    return Not(Nand(a, b))
+    return a&&b//Not(Nand(a, b))
 }
 
 func Or(a, b bit) bit {
-    return Nand(Not(a), Not(b))
+    return a||b//Nand(Not(a), Not(b))
 }
 
 func Xor(a, b bit) bit {
+    return (!a && b) || (a && !b)
     // without this declaration we would have to calculate nandab twice
-    nandab := Nand(a, b)
-    return Nand(Nand(a, nandab), Nand(b, nandab))
+    //nandab := Nand(a, b)
+    //return Nand(Nand(a, nandab), Nand(b, nandab))
 }
 
 func Mux(a, b, sel bit) bit {
-    return Or(And(a, Not(sel)), And(b, sel))
+    if sel { return b }
+    return a
+    //return Or(And(a, Not(sel)), And(b, sel))
 }
 
 func DMux(in, sel bit) (bit, bit) {
-    return And(in, Not(sel)), And(in, sel)
+    return in && !sel, in && sel
+    //return And(in, Not(sel)), And(in, sel)
 }
 
 // [16]bit is uint16, probably faster
@@ -58,10 +62,14 @@ func Or16(a, b [16]bit) (out [16]bit) {
 }
 
 func Mux16(a, b [16]bit, sel bit) (out [16]bit) {
+    if sel { return b }
+    return a
+/*
     for i:=0; i<16; i++ {
         out[i] = Mux(a[i], b[i], sel)
     }
     return out
+*/
 }
 
 func Or8Way(in [8]bit) bit {
@@ -75,7 +83,8 @@ func Or8Way(in [8]bit) bit {
 func Or16Way(in [16]bit) bit {
     out := in[0]
     for i:=1; i<16; i++ {
-        out = Or(out, in[i])
+        //out = Or(out, in[i])
+        out = out || in[i]
     }
     return out
 }

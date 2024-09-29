@@ -237,14 +237,22 @@ func (cpu *LispCPU) decode() (bit, bit, bit, [7]bit, [3]bit, [3]bit) {
 // TODO: typecheck some of this to only happen on primitives?
 func (b *LispCPU) evalALU() (outCar, outCdr uint16, zr, ng bit) {
     _, useALU, _, c, _, _ := b.decode()
+    /*
     x := toBit16(b.d.Out())
     y := Mux16(toBit16(b.a.Out()), toBit16(b.inCarM), c[0])
     var o [16]bit
     o, zr, ng = Alu(x, y, c[1], c[2], c[3], c[4], c[5], c[6])
+    */
+    var x, y, o uint16
+    x = b.d.Out()
+    if c[0] { y = b.inCarM } else { y = b.a.Out() }
+    o, zr, ng = AluInt16(x, y, c[1], c[2], c[3], c[4], c[5], c[6])
     car, cdr, _ := lispALU(toBit16(b.a.Out()), toBit16(b.d.Out()), toBit16(b.inCarM), toBit16(b.inCdrM), c[0], c[1], c[2], c[3], c[4], c[5], c[6])
     // We only allow ALU operations on car, so cdr always comes from lispALU
     // This means we have to be extra careful when to set WriteCdrM or we write garbage
-    outCar = fromBit16(Mux16(car, o, useALU))
+    //outCar = fromBit16(Mux16(car, o, useALU))
+    outCar = fromBit16(car)
+    if useALU { outCar = o }
     outCdr = fromBit16(cdr)
     return outCar, outCdr, zr, ng
 }
@@ -389,10 +397,11 @@ func (b *LispCPU) ClockTick() {
     outCarM, outCdrM, isZero, isNeg := b.evalALU()
     b.outCarM = outCarM
     b.outCdrM = outCdrM
-    isPos := And(Not(isNeg), Not(isZero))
+    isPos := !isNeg && !isZero
     outA := b.a.Out()
     isC, useAlu, _,  _, dest, jump := b.decode()
 
+    /*
     // NOTE: currently if alu is bypassed, jump is not reliable and shouldnt ever be used
     jgt := And(And(Not(jump[0]), And(Not(jump[1]), jump[2])), isPos)
     jeq := And(And(Not(jump[0]), And(jump[1], Not(jump[2]))), isZero)
@@ -402,6 +411,15 @@ func (b *LispCPU) ClockTick() {
     jle := And(And(jump[0], And(jump[1], Not(jump[2]))), Or(isZero, isNeg))
     jmp := And(jump[0], And(jump[1], jump[2]))
     shouldJump := bool(And(And(isC, useAlu), Or(jgt, Or(jeq, Or(jge, Or(jlt, Or(jne, Or(jle, jmp))))))))
+    */
+    jgt := (!jump[0] && (!jump[1] && jump[2])) && isPos
+    jeq := (!jump[0] && (jump[1] && !jump[2])) && isZero
+    jge := (!jump[0] && (jump[1] && jump[2])) && (isZero || isPos)
+    jlt := (jump[0] && (!jump[1] && !jump[2])) && isNeg
+    jne := (jump[0] && (!jump[1] && jump[2])) && !isZero
+    jle := (jump[0] && (jump[1] && !jump[2])) && (isZero || isNeg)
+    jmp := jump[0] && jump[1] && jump[2]
+    shouldJump := bool(isC && useAlu && (jgt || jeq || jge || jlt || jne || jle || jmp))
 
     b.pc.SendIn(outA)
     // we either jump or incr pc, never both
@@ -409,8 +427,15 @@ func (b *LispCPU) ClockTick() {
     b.pc.SendLoad(shouldJump)
     b.pc.ClockTick()
     // tick PC before A since it depends on it
-    b.a.SendIn(fromBit16(Mux16(toBit16(b.instr), toBit16(outCarM), isC)))
-    b.a.SendLoad(bool(Or(Not(isC), And(isC, dest[0]))))
+    //b.a.SendIn(fromBit16(Mux16(toBit16(b.instr), toBit16(outCarM), isC)))
+    if isC {
+        b.a.SendIn(outCarM)
+    } else {
+        b.a.SendIn(b.instr)
+    }
+
+    //b.a.SendLoad(bool(Or(Not(isC), And(isC, dest[0]))))
+    b.a.SendLoad(bool(!isC || (isC && dest[0])))
     b.d.SendIn(outCarM)
     b.d.SendLoad(bool(And(isC, dest[1])))
     b.a.ClockTick()

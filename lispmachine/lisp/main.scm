@@ -85,6 +85,7 @@
         (error 42) #| todo: parsenum error |#
       ))) (car token) (cdr token))))
 
+#| TODO: still a number under the hood atm |#
 (define make-symbol (lambda (token)
     #| (let ((got (get-symbol token))) .. |#
     ((lambda (got)
@@ -96,6 +97,7 @@
 
 (define read-file (lambda () (begin
   (define read-file-rec (lambda (stack)
+    #| (let ((token (read-token))) .. |#
     ((lambda (token)
        (if (null? token)
          #\eof

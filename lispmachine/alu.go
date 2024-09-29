@@ -1,5 +1,9 @@
 package main
 
+import (
+    "math/bits"
+)
+
 func HalfAdder(a, b bit) (carry, sum bit) {
     return And(a,b), Xor(a, b)
 }
@@ -35,6 +39,19 @@ func Alu(x, y [16]bit, zx, nx, zy, ny, f, no bit) (out [16]bit, zr, ng bit) {
     out16 := [8]bit{out[8],out[9],out[10],out[11],out[12],out[13],out[14],out[15]}
     zr = Not(Or(Or8Way(out8), Or8Way(out16)))
     ng = out[0]
+    return
+}
+
+func AluInt16(x, y uint16, zx, nx, zy, ny, f, no bit) (out uint16, zr, ng bit) {
+    var zxo, nxo, zyo, nyo, fo uint16
+    if zx { zxo = 0 } else { zxo = x }
+    if nx { nxo = zxo ^ 0xffff } else { nxo = zxo }
+    if zy { zyo = 0 } else { zyo = y }
+    if ny { nyo = zyo ^ 0xffff } else { nyo = zyo }
+    if f { fo = nxo + nyo } else { fo = nxo & nyo }
+    if no { out = fo ^ 0xffff } else { out = fo }
+    zr = bits.OnesCount16(out) == 0
+    ng = out & 0x8000 == 0x8000
     return
 }
 

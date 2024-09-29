@@ -177,5 +177,6 @@ func (cp charPrinter) Write(p []byte) (int, error) {
         return 0, err
     }
     fmt.Printf("%c", x)
+    //fmt.Println(string(x-0x4000))
     return len(p), nil
 }
