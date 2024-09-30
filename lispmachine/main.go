@@ -170,13 +170,16 @@ func (*analysisDebugger) AfterTick(c *LispMachine) {}
 type charPrinter struct{}
 
 func (cp charPrinter) Write(p []byte) (int, error) {
-    //fmt.Println(string(p))
+    // ignore writes from 'define' and empty returns
+    if string(p) == "0000\n" { return 1, nil }
+    fmt.Print(string(p))
+    //return len(p), nil
     // some big assumptions here on how tapeWriter writes
     x, err := strconv.ParseInt(string(p)[:4], 16, 16)
     if err != nil {
         return 0, err
     }
     fmt.Printf("%c", x)
-    //fmt.Println(string(x-0x4000))
+    //fmt.Print(string(x-0x4000))
     return len(p), nil
 }

@@ -21,7 +21,7 @@ function init
     special 4               // special(lambda)
     cons
     symbol 5
-    special 5               // builtin(begin)
+    special 5               // special(begin)
     cons
     symbol 6
     push label builtin.add

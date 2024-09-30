@@ -100,7 +100,8 @@
     #| (let ((token (read-token))) .. |#
     ((lambda (token)
        (if (null? token)
-         #\eof
+         #| assume only one expression being parsed atm |#
+         (car stack)
          #| (let ((len (length token))) .. |#
          ((lambda (len)
             #| token == '(' |#
@@ -129,4 +130,17 @@
           (string-eq? (cdr x) (cdr y))
           (quote #f))))))
 
-(read-file)
+(define out (read-file))
+
+#| TODO: if is-pair |#
+(define debugprint (lambda (x)
+    (if (null? (cdr x))
+      (display x)
+      #| why does #\( not work? |#
+      (begin (write-char 40) (debugprint (car x)) (write-char #\.) (debugprint (cdr x)) (write-char 41)) 
+    )))
+
+#| todo: (eval out) => 3 |#
+(display out) (newline)
+(debugprint out)
+
