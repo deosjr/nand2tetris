@@ -275,6 +275,21 @@
     @R15
     A=M
     0;JMP
+(BUILTINMAKESYMBOL)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @0x1fff
+    D=D&A
+    @0x6000
+    D=D|A
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
 (BUILTINERROR)
     // for now, error prints code and terminates program
     // meaning this is more like builtin.fatal!

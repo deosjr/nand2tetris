@@ -14,6 +14,8 @@
 (add-symbol (quote (#\s #\e #\t #\!)))
 (add-symbol (quote (#\l #\a #\m #\b #\d #\a)))
 (add-symbol (quote (#\b #\e #\g #\i #\n)))
+(add-symbol (quote (#\e #\v #\a #\l)))
+(add-symbol (quote (#\+)))
 
 (define get-symbol (lambda (symbol) (begin
     (define get (lambda (symbol table)
@@ -85,11 +87,10 @@
         (error 42) #| todo: parsenum error |#
       ))) (car token) (cdr token))))
 
-#| TODO: still a number under the hood atm |#
 (define make-symbol (lambda (token)
     #| (let ((got (get-symbol token))) .. |#
     ((lambda (got)
-       (if got got
+       (if got (num->symbol got)
          (begin
            (add-symbol token)
            (- symbol-table-size 1))))
@@ -140,7 +141,6 @@
       (begin (write-char 40) (debugprint (car x)) (write-char #\.) (debugprint (cdr x)) (write-char 41)) 
     )))
 
-#| todo: (eval out) => 3 |#
 (display out) (newline)
 (debugprint out)
-
+(eval out)

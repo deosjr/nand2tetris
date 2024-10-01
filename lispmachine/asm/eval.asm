@@ -409,6 +409,8 @@
     D=D-1;JEQ
     @EVALBEGIN
     D=D-1;JEQ
+    @EVALRUNTIMEEVAL
+    D=D-1;JEQ
 	@SYSERRUNKNOWNBUILTIN
 	0;JMP
 (EVALIF)
@@ -840,3 +842,40 @@
     M=D
     @EVALSTART
     0;JMP
+// eval as a special symbol
+// eval could be a builtin, but then builtins would have to use a callstack
+(EVALRUNTIMEEVAL)
+	@ENV
+	A=M
+	D=M
+	@SP
+	M=M+1
+	A=M-1
+	M=D
+	@ARG
+	A=M
+    A=M
+    MCAR
+	@SP
+	M=M+1
+	A=M-1
+	M=D
+	@EVALEVAL
+	D=A
+	@R13
+	M=D
+	@EVALRUNTIMERET
+	D=A
+	@R15
+	M=D
+	@SYSCALL
+	0;JMP
+(EVALRUNTIMERET)
+	@SP
+	AM=M-1
+	D=M
+	@ARG
+	A=M
+	M=D
+	@EVALSTART
+	0;JMP

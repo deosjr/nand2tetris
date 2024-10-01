@@ -24,70 +24,79 @@ function init
     special 5               // special(begin)
     cons
     symbol 6
+    special 6               // special(eval)
+    cons
+    symbol 7
     push label builtin.add
     builtin                 // builtin(add)
     cons
-    symbol 7
+    symbol 8
     push label builtin.sub
     builtin                 // builtin(sub)
     cons
-    symbol 8
+    symbol 9
     push label builtin.gt
     builtin                 // builtin(gt)
     cons
-    symbol 9
+    symbol 10
     push label builtin.isnull
     builtin                 // builtin(null?)
     cons
-    symbol 10
+    symbol 11
     push label builtin.readchar
     builtin                 // builtin(read-char)
     cons
-    symbol 11
+    symbol 12
     push label builtin.display
     builtin                 // builtin(display)
     cons
-    symbol 12
+    symbol 13
     push label builtin.cons
     builtin                 // builtin(cons)
     cons
-    symbol 13
+    symbol 14
     push label builtin.car
     builtin                 // builtin(car)
     cons
-    symbol 14
+    symbol 15
     push label builtin.cdr
     builtin                 // builtin(cdr)
     cons
-    symbol 15
+    symbol 16
     push label builtin.eq
     builtin                 // builtin(eq)
     cons
-    symbol 16
+    symbol 17
     push label builtin.writechar
     builtin                 // builtin(write-char)
     cons
-    symbol 17
+    symbol 18
     push label builtin.peekchar
     builtin                 // builtin(peek-char)
     cons
-    symbol 18
+    symbol 19
     push label builtin.error
     builtin                 // builtin(error)
     cons
-    symbol 19
+    symbol 20
     push label builtin.or
     builtin                 // builtin(or)
     cons
-    symbol 20
+    symbol 21
     push label builtin.and
     builtin                 // builtin(and)
     cons
-    symbol 21
+    symbol 22
     push label builtin.not
     builtin                 // builtin(not)
     cons
+    symbol 23
+    push label builtin.makesymbol
+    builtin                 // builtin(make-symbol)
+    cons
     cons-on-empty
+    cons
+    cons
     cons
     cons
     cons
