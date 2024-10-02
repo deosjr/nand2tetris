@@ -34,6 +34,7 @@ var symbolTable = map[string]int{
     "and": 21,
     "not": 22,
     "num->symbol": 23,
+    "<<": 24,
 }
 
 func compile(filenames ...string) (string, error) {

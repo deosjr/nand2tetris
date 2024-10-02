@@ -160,6 +160,226 @@
     @R15
     A=M
     0;JMP
+(BUILTINLEFTSHIFT)
+    @SP
+    A=M-1
+    A=M
+    ACDR
+    MCAR
+    @0x1fff
+    D=D&A   // todo: make sure its a number?
+    D=D-1   // << 0 is not supported
+    @BUILTINSHLI
+    D;JEQ
+    @BUILTINSHLII
+    D=D-1;JEQ
+    @BUILTINSHLIII
+    D=D-1;JEQ
+    @BUILTINSHLIV
+    D=D-1;JEQ
+    @BUILTINSHLV
+    D=D-1;JEQ
+    @BUILTINSHLVI
+    D=D-1;JEQ
+    @BUILTINSHLVII
+    D=D-1;JEQ
+    @BUILTINSHLVIII
+    D=D-1;JEQ
+    @BUILTINSHLIX
+    D=D-1;JEQ
+    @BUILTINSHLX
+    D=D-1;JEQ
+    @BUILTINSHLXI
+    D=D-1;JEQ
+    @BUILTINSHLXII
+    D=D-1;JEQ
+    @BUILTINSHLXIII
+    D=D-1;JEQ
+    @BUILTINSHLXIV
+    D=D-1;JEQ
+    @BUILTINSHLXV
+    D=D-1;JEQ
+    // todo: or error!
+(BUILTINSHLI)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<1
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLII)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<2
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLIII)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<3
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLIV)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<4
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLV)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<5
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLVI)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<6
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLVII)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<7
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLVIII)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<8
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLIX)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<9
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLX)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<10
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLXI)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<11
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLXII)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<12
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLXIII)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<13
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLXIV)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<14
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
+(BUILTINSHLXV)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    D=D<<15
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
 (BUILTINISNULL)
     @SP
     A=M-1

@@ -94,7 +94,12 @@ function init
     push label builtin.makesymbol
     builtin                 // builtin(make-symbol)
     cons
+    symbol 24
+    push label builtin.leftshift
+    builtin                 // builtin(leftshift)
+    cons
     cons-on-empty
+    cons
     cons
     cons
     cons

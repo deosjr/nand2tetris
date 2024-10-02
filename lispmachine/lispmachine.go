@@ -227,7 +227,8 @@ func (cpu *LispCPU) decode() (bit, bit, bit, [7]bit, [3]bit, [3]bit) {
     b := toBit16(cpu.instr)
     isC := b[0]    // isA if false
     useAlu := b[1] // if false, bypass ALU and use lisp machine instructions
-    // b[2] is still free! lets use it as 'write to mcdr' for now
+    // if useAlu, b[2]=0 means 'this is a leftshift operation'
+    // if not, b[2]=1 means 'write to cdrM'
     comp := [7]bit{b[3], b[4], b[5], b[6], b[7], b[8], b[9]}
     dest := [3]bit{b[10], b[11], b[12]}
     jump := [3]bit{b[13], b[14], b[15]}
@@ -236,7 +237,7 @@ func (cpu *LispCPU) decode() (bit, bit, bit, [7]bit, [3]bit, [3]bit) {
 
 // TODO: typecheck some of this to only happen on primitives?
 func (b *LispCPU) evalALU() (outCar, outCdr uint16, zr, ng bit) {
-    _, useALU, _, c, _, _ := b.decode()
+    _, useALU, bit2, c, _, _ := b.decode()
     /*
     x := toBit16(b.d.Out())
     y := Mux16(toBit16(b.a.Out()), toBit16(b.inCarM), c[0])
@@ -247,12 +248,20 @@ func (b *LispCPU) evalALU() (outCar, outCdr uint16, zr, ng bit) {
     x = b.d.Out()
     if c[0] { y = b.inCarM } else { y = b.a.Out() }
     o, zr, ng = AluInt16(x, y, c[1], c[2], c[3], c[4], c[5], c[6])
+    //shiftOut := Shift(Mux16(y, x, c[1]), [4]bit{c[2], c[3], c[4], c[5]})
     car, cdr, _ := lispALU(toBit16(b.a.Out()), toBit16(b.d.Out()), toBit16(b.inCarM), toBit16(b.inCdrM), c[0], c[1], c[2], c[3], c[4], c[5], c[6])
     // We only allow ALU operations on car, so cdr always comes from lispALU
     // This means we have to be extra careful when to set WriteCdrM or we write garbage
     //outCar = fromBit16(Mux16(car, o, useALU))
+    //outCar = fromBit16(Mux16(shiftOut, outCar, bit2))
     outCar = fromBit16(car)
-    if useALU { outCar = o }
+    if useALU {
+        if bit2 {
+            outCar = o
+        } else {
+            outCar = fromBit16(Shift(Mux16(toBit16(y), toBit16(x), c[1]), [4]bit{c[2], c[3], c[4], c[5]}))
+        }
+    }
     outCdr = fromBit16(cdr)
     return outCar, outCdr, zr, ng
 }
@@ -380,6 +389,7 @@ func (b *LispCPU) WriteCarM() bool {
     //return bool(And(dest[2], Or(And(isC, useAlu), And(And(isC, Not(useAlu)), Not(b2)))))
 }
 
+// only write to M cdr from a lisp instruction and if bit 2 is set
 func (b *LispCPU) WriteCdrM() bool {
     isC, useAlu, b2, _, _, _ := b.decode()
     return bool(And(And(isC, Not(useAlu)), b2))

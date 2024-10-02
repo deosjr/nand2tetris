@@ -119,22 +119,6 @@
 
 (define newline (lambda () (write-char #\newline)))
 
-(define * (lambda (x y)
-    (if (= x 1)
-      y
-      (+ y (* (- x 1) y)))))
-
-(define / (lambda (x y)
-    (if (> y x) 0
-      ((lambda (twoq)
-        (if (> y (- x (* y twoq)))
-          twoq
-          (+ 1 twoq)
-       )) (* 2 (/ x (* 2 y))))
-    )))
-
-(define % (lambda (x n) (- x (* n (/ x n)))))
-
 (define string-eq? (lambda (x y)
     (if (null? x) (null? y)
       (if (null? y) (quote #f) #| why does #f not work here? |#
@@ -173,4 +157,4 @@
 (write-str (quote (#\e #\v #\a #\l #\: #\tab)))
 (write-num (eval out))
 (newline)
-(write-num 123)
+(write-num 12)
