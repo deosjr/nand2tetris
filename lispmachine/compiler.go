@@ -135,6 +135,8 @@ func compileChar(s string) (string, error) {
         n = 0x0A
     case "space":
         n = 0x20
+    case "tab":
+        n = 0x09
     case "eof":
         n = 0x1C
     default:

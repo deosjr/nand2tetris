@@ -124,6 +124,17 @@
       y
       (+ y (* (- x 1) y)))))
 
+(define / (lambda (x y)
+    (if (> y x) 0
+      ((lambda (twoq)
+        (if (> y (- x (* y twoq)))
+          twoq
+          (+ 1 twoq)
+       )) (* 2 (/ x (* 2 y))))
+    )))
+
+(define % (lambda (x n) (- x (* n (/ x n)))))
+
 (define string-eq? (lambda (x y)
     (if (null? x) (null? y)
       (if (null? y) (quote #f) #| why does #f not work here? |#
@@ -141,6 +152,25 @@
       (begin (write-char 40) (debugprint (car x)) (write-char #\.) (debugprint (cdr x)) (write-char 41)) 
     )))
 
-(display out) (newline)
+#| needs support at builtin level for hexdump |#
+(define write-hex (lambda (x) x))
+
+(define write-num (lambda (num) (begin
+    (define write-rec (lambda (x stack)
+        (if (> 10 x)
+            (begin (map write-char (cons (+ x 48) stack)) (quote #f))
+            (write-rec (/ x 10) (cons (+ (% x 10) 48) stack))
+    )))
+    (write-rec num (quote ())))))
+
+(define write-str (lambda (str) (begin
+    (map write-char str)
+    (quote #f))))
+
+(write-str (quote (#\d #\e #\b #\u #\g #\: #\tab)))
 (debugprint out)
-(eval out)
+(newline)
+(write-str (quote (#\e #\v #\a #\l #\: #\tab)))
+(write-num (eval out))
+(newline)
+(write-num 123)

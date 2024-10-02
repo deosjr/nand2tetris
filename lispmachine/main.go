@@ -171,8 +171,8 @@ type charPrinter struct{}
 
 func (cp charPrinter) Write(p []byte) (int, error) {
     // ignore writes from 'define' and empty returns
-    if string(p) == "0000\n" { return 1, nil }
-    fmt.Print(string(p))
+    //if string(p) == "0000\n" { return 1, nil }
+    //fmt.Print(string(p))
     //return len(p), nil
     // some big assumptions here on how tapeWriter writes
     x, err := strconv.ParseInt(string(p)[:4], 16, 16)
