@@ -1,3 +1,17 @@
+#|
+(define * (lambda (x y) (begin
+    (define sum 0)
+    (define sx x)
+    (define mul-loop (lambda (i)
+        (if (= i 13) sum
+        (begin
+        (if (bit y i)
+          (set! sum (+ sum sx)) 0)
+        (set! sx (+ sx sx))
+        (mul-loop (+ i 1))
+        ))))
+    (mul-loop 0))))
+|#
 (define * (lambda (x y)
     (if (= x 1)
       y
@@ -9,7 +23,19 @@
         (if (> y (- x (* y twoq)))
           twoq
           (+ 1 twoq)
-       )) (<< (/ x (<< y 1)) 1))
+       )) (times2 (/ x (times2 y))))
     )))
 
 (define % (lambda (x n) (- x (* n (/ x n)))))
+
+#| << is unsafe, so we need to put the number type prefix back! |#
+(define times2 (lambda (x)
+    (+ x x)))
+
+#| 0x0001 = 0x4000 << 2|#
+(define onebit (<< 0 2))
+
+(define bit (lambda (v index)
+    (if (= index 0)
+      (& v onebit)
+      (& (<< v (- 16 index)) onebit))))

@@ -160,6 +160,26 @@
     @R15
     A=M
     0;JMP
+(BUILTINBITWISEAND)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5     // use R5 as dump var
+    M=D
+    @SP
+    A=M-1
+    A=M
+    ACDR
+    MCAR
+    @R5
+    D=D&M
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
 (BUILTINLEFTSHIFT)
     @SP
     A=M-1

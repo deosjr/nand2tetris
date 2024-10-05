@@ -98,7 +98,12 @@ function init
     push label builtin.leftshift
     builtin                 // builtin(leftshift)
     cons
+    symbol 25
+    push label builtin.bitwiseand
+    builtin                 // builtin(bitwiseand)
+    cons
     cons-on-empty
+    cons
     cons
     cons
     cons

@@ -157,4 +157,6 @@
 (write-str (quote (#\e #\v #\a #\l #\: #\tab)))
 (write-num (eval out))
 (newline)
-(write-num 12)
+(write-num 123)
+(newine)
+(if (bit 0 14) (write-char #\T) (write-char #\F))
