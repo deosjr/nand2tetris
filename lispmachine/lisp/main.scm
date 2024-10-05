@@ -131,9 +131,21 @@
 #| TODO: if is-pair |#
 (define debugprint (lambda (x)
     (if (null? (cdr x))
-      (display x)
+      (begin
+        (write-char #\0)
+        (write-char #\x)
+        (write-hex x))
       #| why does #\( not work? |#
-      (begin (write-char 40) (debugprint (car x)) (write-char #\.) (debugprint (cdr x)) (write-char 41)) 
+      (begin
+        (write-char 40)
+        (write-char #\space)
+        (debugprint (car x))
+        (write-char #\space)
+        (write-char #\.)
+        (write-char #\space)
+        (debugprint (cdr x))
+        (write-char #\space)
+        (write-char 41)) 
     )))
 
 (define write-hex (lambda (x) (begin
@@ -165,9 +177,3 @@
 (newline)
 (write-str (quote (#\e #\v #\a #\l #\: #\tab)))
 (write-num (eval out))
-(newline)
-(if (bit 0 14) (write-char #\T) (write-char #\F))
-(newline)
-(write-hex 1920)
-(newline)
-(write-num 12)
