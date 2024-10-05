@@ -598,7 +598,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                         instr |= 0b0001000000000000
                     }
                     bly := t.Y.(*ast.BasicLit)
-                    n, _ := strconv.ParseInt(bly.Value, 16, 16)
+                    n, _ := strconv.ParseInt(bly.Value, 10, 16)
                     instr |= uint16(n) << 7
                 }
             }

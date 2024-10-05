@@ -35,6 +35,9 @@
 #| 0x0001 = 0x4000 << 2|#
 (define onebit (<< 0 2))
 
+#| 0x000f = (((0x4780 << 2) & 0x5e00) << 7) |#
+(define last4mask (<< (& (<< 1920 2) 7680) 7))
+
 (define bit (lambda (v index)
     (if (= index 0)
       (& v onebit)

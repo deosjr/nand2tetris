@@ -136,8 +136,17 @@
       (begin (write-char 40) (debugprint (car x)) (write-char #\.) (debugprint (cdr x)) (write-char 41)) 
     )))
 
-#| needs support at builtin level for hexdump |#
-(define write-hex (lambda (x) x))
+(define write-hex (lambda (x) (begin
+    (write-hex-char (+ (& last4mask (<< x 4)) 0))
+    (write-hex-char (+ (& last4mask (<< x 8)) 0))
+    (write-hex-char (+ (& last4mask (<< x 12)) 0))
+    (write-hex-char (+ (& last4mask x) 0))
+    (quote #f))))
+
+(define write-hex-char (lambda (x)
+   (if (> 10 x)
+     (write-char (+ x 48))
+     (write-char (+ x 97)))))
 
 (define write-num (lambda (num) (begin
     (define write-rec (lambda (x stack)
@@ -157,6 +166,8 @@
 (write-str (quote (#\e #\v #\a #\l #\: #\tab)))
 (write-num (eval out))
 (newline)
-(write-num 123)
-(newine)
 (if (bit 0 14) (write-char #\T) (write-char #\F))
+(newline)
+(write-hex 1920)
+(newline)
+(write-num 12)
