@@ -102,7 +102,12 @@ function init
     push label builtin.bitwiseand
     builtin                 // builtin(bitwiseand)
     cons
+    symbol 26
+    push label builtin.ispair
+    builtin                 // builtin(ispair)
+    cons
     cons-on-empty
+    cons
     cons
     cons
     cons

@@ -91,7 +91,7 @@ func parseLine(block *ast.BlockStmt, line string, offset int) {
     line = strings.TrimSpace(split[0])
     // lispinstructions
     switch line {
-    case "SETCAR", "SETCDR", "EQLA", "EQLM", "ACAR", "ACDR", "MCAR", "MCDR", "ISSYMB", "ISPRIM", "ISPROC", "ISBUILTIN", "ISSPECIAL", "ISUSRDEF", "ISEMPTY", "EMPTYCDR", "USRDEFCDR":
+    case "SETCAR", "SETCDR", "EQLA", "EQLM", "ACAR", "ACDR", "MCAR", "MCDR", "ISSYMB", "ISPRIM", "ISPROC", "ISBUILTIN", "ISSPECIAL", "ISUSRDEF", "ISPAIR", "ISEMPTY", "EMPTYCDR", "USRDEFCDR":
         block.List = append(block.List, &ast.ExprStmt{X: &ast.BasicLit{Kind: token.IMAG, Value:line, ValuePos:pos}})
         return
     }
@@ -461,7 +461,7 @@ func assemble(fset *token.FileSet, contents string, parsed *ast.File) ([]uint16,
                 case "ISUSRDEF":
                     program = append(program, 0b1000001100010000)
                 case "ISPAIR":
-                    program = append(program, 0b0) // TODO?
+                    program = append(program, 0b1001010000010000)
                 case "ISEMPTY":
                     program = append(program, 0b1000110000010000)
                 case "EMPTYCDR":

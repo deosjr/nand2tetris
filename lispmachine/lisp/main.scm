@@ -128,24 +128,27 @@
 
 (define out (read-file))
 
-#| TODO: if is-pair |#
 (define debugprint (lambda (x)
-    (if (null? (cdr x))
+    (if (pair? x)
+      #| why does #\( not work? |#
+      (if (null? x)
+        (begin
+            (write-char 40)
+            (write-char 41))
+        (begin
+            (write-char 40)
+            (write-char #\space)
+            (debugprint (car x))
+            (write-char #\space)
+            (write-char #\.)
+            (write-char #\space)
+            (debugprint (cdr x))
+            (write-char #\space)
+            (write-char 41)))
       (begin
         (write-char #\0)
         (write-char #\x)
         (write-hex x))
-      #| why does #\( not work? |#
-      (begin
-        (write-char 40)
-        (write-char #\space)
-        (debugprint (car x))
-        (write-char #\space)
-        (write-char #\.)
-        (write-char #\space)
-        (debugprint (cdr x))
-        (write-char #\space)
-        (write-char 41)) 
     )))
 
 (define write-hex (lambda (x) (begin

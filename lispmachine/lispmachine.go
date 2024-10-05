@@ -277,6 +277,9 @@ func (b *LispCPU) evalALU() (outCar, outCdr uint16, zr, ng bit) {
 // if ISEXPR and ISATOM but not ISSYMBOL then ISPRIMITIVE
 // NOTE: all types have cdr set to 0x0000 except PAIR, for pair thats an error
 // without this we cant distinguish (n . 0) and n in memory!
+// NOTE: above isnt true anymore?
+// looks like 0x0 is emptylist and 0x0000 - 0x3fff are all valid pairs
+
 // this func only checks the prefix of CAR
 // NOTE: this means EQL checks can be fast (1 instr) on pointers
 // but comparing cons cells means comparing both CAR and CDR of each
@@ -343,7 +346,9 @@ func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f, g bit) (car, 
     case 0b1000000: // ISPROC
         out := Mux16(false16, true16, inCarM[0])
         return out, out, true
-    //case 0b: // ISPAIR
+    case 0b1010000: // ISPAIR
+        out := Mux16(false16, true16, And(Not(inCarM[0]), Not(inCarM[1])))
+        return out, out, true
     case 0b0110000: // ISEMPTY
         carIsEmpty := Not(Or16Way(inCarM))
         out := Mux16(false16, true16, carIsEmpty)

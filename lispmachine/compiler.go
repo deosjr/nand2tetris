@@ -37,6 +37,7 @@ var symbolTable = map[string]int{
     "<<": 24,
     // maybe there should be a separate asm/unsafe.asm
     "&": 25,
+    "pair?": 26,
 }
 
 func compile(filenames ...string) (string, error) {

@@ -412,6 +412,18 @@
     @R15
     A=M
     0;JMP
+(BUILTINISPAIR)
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    ISPAIR
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
 (BUILTINCAR)
     @SP
     A=M-1
