@@ -16,6 +16,7 @@
 (add-symbol (quote (#\b #\e #\g #\i #\n)))
 (add-symbol (quote (#\e #\v #\a #\l)))
 (add-symbol (quote (#\+)))
+(add-symbol (quote (#\-)))
 
 (define get-symbol (lambda (symbol) (begin
     (define get (lambda (symbol table)
@@ -68,7 +69,7 @@
       (error 45) #| todo: parselist error |#
       ((lambda (p)
          (if (= p 40)
-           (cons acc stack)
+           (cons acc (cdr stack))
            (list-rec (cons p acc) (cdr stack))
       )) (car stack)))))
   (list-rec (quote ()) stack))))
@@ -126,8 +127,6 @@
           (string-eq? (cdr x) (cdr y))
           (quote #f))))))
 
-(define out (read-file))
-
 (define debugprint (lambda (x)
     (if (pair? x)
       #| why does #\( not work? |#
@@ -174,6 +173,8 @@
 (define write-str (lambda (str) (begin
     (map write-char str)
     (quote #f))))
+
+(define out (read-file))
 
 (write-str (quote (#\d #\e #\b #\u #\g #\: #\tab)))
 (debugprint out)
