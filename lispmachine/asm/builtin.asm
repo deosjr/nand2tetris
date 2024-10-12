@@ -53,6 +53,65 @@
     @R15
     A=M
     0;JMP
+(BUILTINMULT)
+    // (* x y)
+    // will not work for output that overflows even the type header bits
+    @SP
+    A=M-1
+    A=M
+    MCAR
+    @R5     // R5 = sx = x
+    M=D
+    @SP
+    A=M-1
+    A=M
+    ACDR
+    MCAR
+    @R6
+    M=D     // R6 = y
+    @R7
+    M=0     // R7 = sum
+    @R8
+    M=1     // R8 = i'th bit to check
+(BUILTINMULTLOOP)
+    @R8
+    D=M     // we check 13 bits because we ignore the type header!
+    @0x2000 // so exit the loop once we are about to check bit 14 (counting from the right at 1)
+    D=D-A
+    @BUILTINMULTRET
+    D;JEQ
+    @R6
+    D=M
+    @R8
+    D=D&M
+    @BUILTINMULTCONT
+    D;JEQ
+    // here we found a high bit in y
+    @R5
+    D=M
+    @R7
+    M=D+M   // sum += sx
+(BUILTINMULTCONT)
+    @R5
+    D=M
+    M=D+M   // sx += sx
+    @R8
+    M=M<<1  // shift bit to check one to the left
+    @BUILTINMULTLOOP
+    0;JMP
+(BUILTINMULTRET)
+    @R7
+    D=M
+    @0x1fff
+    D=D&A
+    @0x4000
+    D=D|A
+    @SP
+    A=M-1
+    M=D
+    @R15
+    A=M
+    0;JMP
 (BUILTINEQ)
     @SP
     A=M-1

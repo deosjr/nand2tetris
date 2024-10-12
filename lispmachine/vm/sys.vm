@@ -106,7 +106,12 @@ function init
     push label builtin.ispair
     builtin                 // builtin(ispair)
     cons
+    symbol 27
+    push label builtin.mult
+    builtin                 // builtin(mult)
+    cons
     cons-on-empty
+    cons
     cons
     cons
     cons

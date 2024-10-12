@@ -1,4 +1,4 @@
-#|
+#| wayy too slow
 (define * (lambda (x y) (begin
     (define sum 0)
     (define sx x)
@@ -11,11 +11,24 @@
         (mul-loop (+ i 1))
         ))))
     (mul-loop 0))))
-|#
+
 (define * (lambda (x y)
     (if (= x 1)
       y
       (+ y (* (- x 1) y)))))
+|#
+
+#| 0x0001 = 0x4000 << 2|#
+#|(define onebit (<< 0 2))|#
+
+#|
+(define bit (lambda (v index)
+    (if (= index 0)
+      (& v onebit)
+      (& (<< v (- 16 index)) onebit))))
+|#
+#| 0x000f = (((0x4780 << 2) & 0x5e00) << 7) |#
+(define last4mask (<< (& (<< 1920 2) 7680) 7))
 
 (define / (lambda (x y)
     (if (> y x) 0
@@ -32,13 +45,3 @@
 (define times2 (lambda (x)
     (+ x x)))
 
-#| 0x0001 = 0x4000 << 2|#
-(define onebit (<< 0 2))
-
-#| 0x000f = (((0x4780 << 2) & 0x5e00) << 7) |#
-(define last4mask (<< (& (<< 1920 2) 7680) 7))
-
-(define bit (lambda (v index)
-    (if (= index 0)
-      (& v onebit)
-      (& (<< v (- 16 index)) onebit))))

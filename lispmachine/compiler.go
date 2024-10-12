@@ -38,6 +38,7 @@ var symbolTable = map[string]int{
     // maybe there should be a separate asm/unsafe.asm
     "&": 25,
     "pair?": 26,
+    "*": 27,
 }
 
 // lisp -> vm
