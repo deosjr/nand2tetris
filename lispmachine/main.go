@@ -38,18 +38,12 @@ func main() {
         return
     }
 
-    // compile lisp to vm, then to asm, and add it at the bottom
-    compiledMain, err := compile2vm("lisp/list.scm", "lisp/math.scm", "lisp/main.scm")
+    out, err := compile2asm("lisp/list.scm", "lisp/math.scm", "lisp/main.scm")
     if err != nil {
         fmt.Println(err)
         return
     }
 
-    out, err := t.vm2asm([]string{"vm/main.vm"}, []string{compiledMain})
-    if err != nil {
-        fmt.Println(err)
-        return
-    }
     asm := base + out
 
     program, err := assembleFromString(asm)
