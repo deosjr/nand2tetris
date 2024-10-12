@@ -27,8 +27,6 @@
       (& v onebit)
       (& (<< v (- 16 index)) onebit))))
 |#
-#| 0x000f = (((0x4780 << 2) & 0x5e00) << 7) |#
-(define last4mask (<< (& (<< 1920 2) 7680) 7))
 
 (define / (lambda (x y)
     (if (> y x) 0

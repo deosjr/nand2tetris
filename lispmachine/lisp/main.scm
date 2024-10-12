@@ -150,6 +150,9 @@
         (write-hex x))
     )))
 
+#| 0x000f = (((0x4780 << 2) & 0x5e00) << 7) |#
+(define last4mask (<< (& (<< 1920 2) 7680) 7))
+
 (define write-hex (lambda (x) (begin
     (write-hex-char (+ (& last4mask (<< x 4)) 0))
     (write-hex-char (+ (& last4mask (<< x 8)) 0))
@@ -165,7 +168,7 @@
 (define write-num (lambda (num) (begin
     (define write-rec (lambda (x stack)
         (if (> 10 x)
-            (begin (map write-char (cons (+ x 48) stack)) (quote #f))
+            (write-str (cons (+ x 48) stack))
             (write-rec (/ x 10) (cons (+ (% x 10) 48) stack))
     )))
     (write-rec num (quote ())))))
