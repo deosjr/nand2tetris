@@ -40,7 +40,8 @@ var symbolTable = map[string]int{
     "pair?": 26,
 }
 
-func compile(filenames ...string) (string, error) {
+// lisp -> vm
+func compile2vm(filenames ...string) (string, error) {
     s := "function main\n"
     for _, filename := range filenames {
         sexps, err := lisp.ParseFile(filename)

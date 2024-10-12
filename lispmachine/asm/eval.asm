@@ -844,6 +844,7 @@
     0;JMP
 // eval as a special symbol
 // eval could be a builtin, but then builtins would have to use a callstack
+// this is a hack, the whole point of specials is they dont evaluate their args
 (EVALRUNTIMEEVAL)
 	@ENV
 	A=M

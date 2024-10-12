@@ -2,26 +2,55 @@ package main
 
 import (
     "fmt"
+    "os"
     "strconv"
     //"time"
 )
 
 var debug = false
 
+func base2asm(t *vmTranslator) (string, error) {
+    out := preamble(nil)
+    // translating sys.vm first allows us to drop into sys.init at start
+    o, err := t.translateFiles("vm/sys.vm")
+    if err != nil {
+        fmt.Println(err)
+        return "", err
+    }
+    out += o
+    rawasm := []string{"asm/sys.asm", "asm/eval.asm", "asm/gc.asm", "asm/builtin.asm"}
+    for _, filename := range rawasm {
+        data, err := os.ReadFile(filename)
+        if err != nil {
+            return "", err
+        }
+        out += string(data)
+    }
+    return out, nil
+}
+
 func main() {
-    out, err := compile("lisp/list.scm", "lisp/math.scm", "lisp/main.scm")
-    //out, err := compile("lisp/main.scm")
+
+    t := &vmTranslator{}
+    base, err := base2asm(t)
     if err != nil {
         fmt.Println(err)
         return
     }
 
-    //asm, err := Translate([]string{"vm/eval.vm"}, out)
-    asm, err := Translate([]string{}, out)
+    // compile lisp to vm, then to asm, and add it at the bottom
+    compiledMain, err := compile2vm("lisp/list.scm", "lisp/math.scm", "lisp/main.scm")
     if err != nil {
         fmt.Println(err)
         return
     }
+
+    out, err := t.vm2asm([]string{"vm/main.vm"}, []string{compiledMain})
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    asm := base + out
 
     program, err := assembleFromString(asm)
     if err != nil {
