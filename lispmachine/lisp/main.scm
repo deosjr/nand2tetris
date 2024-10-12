@@ -160,7 +160,7 @@
 (define write-hex-char (lambda (x)
    (if (> 10 x)
      (write-char (+ x 48))
-     (write-char (+ x 97)))))
+     (write-char (+ x 87)))))
 
 (define write-num (lambda (num) (begin
     (define write-rec (lambda (x stack)
