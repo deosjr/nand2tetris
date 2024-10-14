@@ -271,6 +271,8 @@ func (b *LispCPU) evalALU() (outCar, outCdr uint16, zr, ng bit) {
 // for isproc, next bit defines whether it is special(1) or not(0)
 // and the one after that defines builtin(1) or userdefined(0)
 // special procs do not eval their arguments before calling
+// special builtin: keywords like define and lambda
+// special userdefined: compiled functions
 // if ISEXPR bit not ISATOM then ISPAIR
 // A pair is a pointer to a cons cell in memory (heap)!
 // if ISPAIR then third bit defines emptylist if set
@@ -321,6 +323,7 @@ func lispALU(regA, regD, inCarM, inCdrM [16]bit, a, b, c, d, e, f, g bit) (car, 
         return out, out, true
     }
     switch selector {
+    // TODO: perhaps SETCAR/CDR should return the address set?
     // SETCAR is an alias for M=D from the normal ALU. setting M to D is implicit, no other options make sense
     // SETCDR: lispALU is only way to write to outCdrM, hence setcdr here.
     // setting both at the same time would need another register (or only write same value to both)

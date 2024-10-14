@@ -262,19 +262,15 @@
 	D=A
 	@ARG
 	A=D+M
-	D=M
-	@SP
-	M=M+1
-	A=M-1
-	M=D
-	@SP
-	A=M-1
-	ISBUILTIN
-	M=D
-	@SP
-	AM=M-1
-	D=M
+    ISBUILTIN
 	@EVALCALLBUILTIN
+	!D;JEQ
+	@4
+	D=A
+	@ARG
+	A=D+M
+    ISCOMPILED
+	@EVALCOMPILED
 	!D;JEQ
 //(EVAL USER DEFINED FUNC)
 	@4
@@ -383,6 +379,35 @@
 	D=M
 	@0x1fff
 	A=D&A
+	0;JMP
+(EVALCOMPILED)
+	@ENV
+	A=M
+	D=M
+	@SP
+	M=M+1
+	A=M-1
+	M=D
+    @R6
+	D=M
+	@SP
+	M=M+1
+	A=M-1
+	M=D
+	@4
+	D=A
+	@ARG
+	A=D+M
+	D=M
+	@0x1fff
+	D=D&A
+    @R13
+    M=D
+	@SYSRETURN
+	D=A
+	@R15
+	M=D
+    @SYSCALL
 	0;JMP
 (EVALSPECIAL)
 	@ARG

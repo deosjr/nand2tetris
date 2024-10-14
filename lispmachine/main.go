@@ -19,6 +19,8 @@ func base2asm(t *vmTranslator) (string, error) {
     }
     out += o
     rawasm := []string{"asm/sys.asm", "asm/eval.asm", "asm/gc.asm", "asm/builtin.asm"}
+    // run a test where we include an example compiled function and main func
+    rawasm = append(rawasm, "asm/compiled.asm")
     for _, filename := range rawasm {
         data, err := os.ReadFile(filename)
         if err != nil {
@@ -38,6 +40,7 @@ func main() {
         return
     }
 
+/*
     out, err := compile2asm("lisp/list.scm", "lisp/math.scm", "lisp/main.scm")
     if err != nil {
         fmt.Println(err)
@@ -45,6 +48,8 @@ func main() {
     }
 
     asm := base + out
+*/
+    asm := base
 
     program, err := assembleFromString(asm)
     if err != nil {

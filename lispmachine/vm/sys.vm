@@ -138,8 +138,8 @@ function init
     cons
     cons
     cons
-    //pop environment
-    //push environment
+    //pop environment       // leave it on the stack?
+    //push environment      // syscall will reposition ENV
     push constant 0         // each func HAS to take one arg!
     call main.main
     goto end
