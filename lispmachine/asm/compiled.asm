@@ -4,6 +4,10 @@
     // ARG 0 = x
     // ARG 1 = y
     // create (x y), then call builtin +
+    // args have already been evalled!
+    // NOTE: this version doesnt deal with scope and shadowing at all
+    // if x and y change during function execution, we have a problem
+    // TODO: 'eval' should be a compiled func rather than a special builtin
     D=0
     @FREE
     A=M
@@ -53,6 +57,7 @@
     D=A
 // COMPILED prefix is 110
 // assumes label is smaller than 0x2000 !
+// that will be a problem fast, but we can jump beyond 0x2000 at func declaration
     @0x7fff
     D=D+A
     @0x4001
@@ -77,7 +82,7 @@
     A=M
     M=D
 // set up and eval interpreted code using compiled funcs
-// we will interpret "(add 5 3)" using compiled add func
+// we will interpret "(add 4 3)" using compiled add func
 	@ENV
 	A=M
 	D=M

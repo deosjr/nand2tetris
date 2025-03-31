@@ -33,6 +33,7 @@ func base2asm(t *vmTranslator) (string, error) {
 
 func main() {
 
+/*
     t := &vmTranslator{}
     base, err := base2asm(t)
     if err != nil {
@@ -40,7 +41,6 @@ func main() {
         return
     }
 
-/*
     out, err := compile2asm("lisp/list.scm", "lisp/math.scm", "lisp/main.scm")
     if err != nil {
         fmt.Println(err)
@@ -49,7 +49,14 @@ func main() {
 
     asm := base + out
 */
-    asm := base
+    //asm := base
+    asm, err := compileToROM("lisp/test.scm")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    fmt.Println(asm)
+    return
 
     program, err := assembleFromString(asm)
     if err != nil {

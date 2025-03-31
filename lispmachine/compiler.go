@@ -2,6 +2,7 @@ package main
 
 import (
     "fmt"
+    "strings"
 
     "github.com/deosjr/whistle/lisp"
 )
@@ -39,6 +40,16 @@ var symbolTable = map[string]int{
     "&": 25,
     "pair?": 26,
     "*": 27,
+}
+
+func getOrAddSymbol(sym string) int {
+    n := len(symbolTable)
+    if i, ok := symbolTable[sym]; ok {
+        n = i
+    } else {
+        symbolTable[sym] = n
+    }
+    return n + 0x6000
 }
 
 // lisp -> vm
@@ -103,13 +114,7 @@ func compileSExp(sexp lisp.SExpression) (string, error) {
         if len(sym) > 2 && sym[0] == '#' && sym[1] == '\\' {
             return compileChar(sym[2:])
         }
-        n := len(symbolTable)
-        if i, ok := symbolTable[sym]; ok {
-            n = i
-        } else {
-            symbolTable[sym] = n
-        }
-        n += 0x6000
+        n := getOrAddSymbol(sym)
         return fmt.Sprintf("\tpush constant %d\n", n), nil
     }
     // guaranteed to be pair!
@@ -164,45 +169,19 @@ func compile2asm(filenames ...string) (string, error) {
             return "", err
         }
         for _, sexp := range sexps {
-            // push environment
-            s += "\t@ENV\n" 
-            s += "\tA=M\n" 
-            s += "\tD=M\n" 
-            s += "\t@SP\n" 
-            s += "\tM=M+1\n" 
-            s += "\tA=M-1\n" 
-            s += "\tM=D\n" 
-            out, err := compileSExp2asm(sexp)
+            ss, err := compileEval(sexp)
             if err != nil {
                 return "", err
             }
-            s += out
-            // push D onto the stack
-            s += "\t@SP\n" 
-            s += "\tM=M+1\n" 
-            s += "\tA=M-1\n" 
-            s += "\tM=D\n" 
-            // call eval.eval
-            s += "\t@EVALEVAL\n" 
-            s += "\tD=A\n" 
-            s += "\t@R13\n" 
-            s += "\tM=D\n" 
-            label := genLabel()
-            s += "\t@"+label+"\n" 
-            s += "\tD=A\n" 
-            s += "\t@R15\n" 
-            s += "\tM=D\n" 
-            s += "\t@SYSCALL\n" 
-            s += "\t0;JMP\n" 
-            s += "("+label+")\n" 
-            // write
-            s += "\t@SP\n" 
-            s += "\tAM=M-1\n" 
-            s += "\tD=M\n" 
-            s += "\t@0x6002\n" 
-            s += "\tM=D\n" 
+            s += ss
         }
     }
+    s += compileReturnVoid()
+    return s, nil
+}
+
+func compileReturnVoid() string {
+    s := ""
     // push constant 0
     s += "\t@SP\n" 
     s += "\tM=M+1\n" 
@@ -211,6 +190,48 @@ func compile2asm(filenames ...string) (string, error) {
     // return
     s += "\t@SYSRETURN\n" 
     s += "\t0;JMP" 
+    return s
+}
+
+func compileEval(sexp lisp.SExpression) (string, error) {
+    s := ""
+    // push environment
+    s += "\t@ENV\n" 
+    s += "\tA=M\n" 
+    s += "\tD=M\n" 
+    s += "\t@SP\n" 
+    s += "\tM=M+1\n" 
+    s += "\tA=M-1\n" 
+    s += "\tM=D\n" 
+    out, err := compileSExp2asm(sexp)
+    if err != nil {
+        return "", err
+    }
+    s += out
+    // push D onto the stack
+    s += "\t@SP\n" 
+    s += "\tM=M+1\n" 
+    s += "\tA=M-1\n" 
+    s += "\tM=D\n" 
+    // call eval.eval
+    s += "\t@EVALEVAL\n" 
+    s += "\tD=A\n" 
+    s += "\t@R13\n" 
+    s += "\tM=D\n" 
+    label := genLabel()
+    s += "\t@"+label+"\n" 
+    s += "\tD=A\n" 
+    s += "\t@R15\n" 
+    s += "\tM=D\n" 
+    s += "\t@SYSCALL\n" 
+    s += "\t0;JMP\n" 
+    s += "("+label+")\n" 
+    // write
+    s += "\t@SP\n" 
+    s += "\tAM=M-1\n" 
+    s += "\tD=M\n" 
+    s += "\t@0x6002\n" 
+    s += "\tM=D\n" 
     return s, nil
 }
 
@@ -233,13 +254,7 @@ func compileSExp2asm(sexp lisp.SExpression) (string, error) {
         if len(sym) > 2 && sym[0] == '#' && sym[1] == '\\' {
             return compileChar2asm(sym[2:])
         }
-        n := len(symbolTable)
-        if i, ok := symbolTable[sym]; ok {
-            n = i
-        } else {
-            symbolTable[sym] = n
-        }
-        n += 0x6000
+        n := getOrAddSymbol(sym)
         return fmt.Sprintf("\t@%d\n\tD=A\n", n), nil
     }
     // guaranteed to be pair!
@@ -328,4 +343,98 @@ func genLabel() string {
     }
     generatedLabels++
     return "CC" + s
+}
+
+func compiledLabel(sym string) string {
+    return "COMPILED" + strings.ToUpper(sym)
+}
+
+func compileToROM(filenames ...string) (string, error) {
+    sexprs := []lisp.SExpression{}
+    for _, filename := range filenames {
+        sexps, err := lisp.ParseFile(filename)
+        if err != nil {
+            return "", err
+        }
+        sexprs = append(sexprs, sexps...)
+    }
+    funcs := "// COMPILED FUNCTIONS\n"
+    s := "(MAINMAIN)\n"
+    for _, e := range sexprs {
+        unpacked, err := lisp.UnpackConsList(e)
+        // test for (define ...)
+        if err == nil && len(unpacked) == 3 && unpacked[0].IsSymbol() && unpacked[0].AsSymbol() == "define" {
+            sym := unpacked[1].AsSymbol()
+            def := unpacked[2]
+            var isFunction bool
+            unpacked, err := lisp.UnpackConsList(def)
+            // test for (lambda ...)
+            if err == nil && len(unpacked) == 3 && unpacked[0].IsSymbol() && unpacked[0].AsSymbol() == "lambda" {
+                // defining a function
+                isFunction = true
+                funcs += compileFunc(sym, unpacked)
+            }
+            if isFunction {
+                // symbol binding to compiled function
+                s += compileDefineFuncSymbol(sym)
+                continue
+            }
+            // normal symbol binding
+            s += compileDefineSymbol(sym)
+            continue
+        }
+        // an expression to be interpreted
+        ss, err := compileEval(e)
+        if err != nil {
+            return "", err
+        }
+        s += ss
+    }
+    s += compileReturnVoid()
+    return funcs + s, nil
+}
+
+func compileFunc(sym string, list []lisp.SExpression) string {
+    return "TODO"
+}
+
+func compileDefineFuncSymbol(sym string) string {
+    s := ""
+    s += fmt.Sprintf("\t@%d\n", getOrAddSymbol(sym))
+    s += "\tD=A\n" 
+    s += "\t@FREE\n" 
+    s += "\tA=M\n" 
+    s += "\tSETCAR\n" 
+    s += "\t@" + compiledLabel(sym) + "\n" 
+    s += "\tD=A\n" 
+    // add compiled prefix 110 to label
+    // assumes label is smaller than 0x2000 !
+    s += "\t@0x7fff\n" 
+    s += "\tD=D+A\n" 
+    s += "\t@0x4001\n" 
+    s += "\tD=D+A\n" 
+    s += "\t@FREE\n" 
+    s += "\tA=M\n" 
+    s += "\tSETCDR\n" 
+    s += "\t@FREE\n" 
+    s += "\tD=M\n" 
+    s += "\tAM=D+1\n" 
+    s += "\tSETCAR\n" 
+    s += "\t@ENV\n" 
+    s += "\tA=M\n" 
+    s += "\tD=M\n" 
+    s += "\t@FREE\n" 
+    s += "\tA=M\n" 
+    s += "\tSETCDR\n" 
+    s += "\t@FREE\n" 
+    s += "\tD=M\n" 
+    s += "\tM=D+1\n" 
+    s += "\t@ENV\n" 
+    s += "\tA=M\n" 
+    s += "\tM=D\n" 
+    return s
+}
+
+func compileDefineSymbol(sym string) string {
+    return "TODO"
 }
