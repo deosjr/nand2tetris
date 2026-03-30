@@ -1,5 +1,7 @@
 run:
-	@go run .
+	@go run . -tags gui
+headless:
+	@go run . -tags !gui
 test:
 	@go test -count=1 .
 testrace:

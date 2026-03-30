@@ -6,9 +6,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/pixelgl"
 )
 
 var stdlib = []string{
@@ -28,7 +25,6 @@ var stdlib = []string{
 	"jack/lisp/parser.jack",
 }
 
-var headless = false
 var debug = false
 
 type charPrinter struct{}
@@ -61,12 +57,7 @@ func main() {
 		debugger = &standardDebugger{}
 	}
 
-	if headless {
-		run(computer, debugger)
-	} else {
-		go run(computer, debugger)
-		pixelgl.Run(runPeripherals(computer))
-	}
+	startComputer(computer, debugger)
 }
 
 type Debugger interface {
@@ -143,26 +134,6 @@ func run(computer *Computer, debugger Debugger) {
 		}
 		pprev = prev
 		prev = computer.cpu.PC()
-	}
-}
-
-func runPeripherals(computer *Computer) func() {
-	return func() {
-		cfg := pixelgl.WindowConfig{
-			Title:  "nand2tetris",
-			Bounds: pixel.R(0, 0, 512, 256),
-			VSync:  true,
-		}
-		win, err := pixelgl.NewWindow(cfg)
-		if err != nil {
-			panic(err)
-		}
-
-		for !win.Closed() {
-			computer.data_mem.keyboard.RunKeyboard(win)
-			computer.data_mem.screen.RunScreen(win)
-			win.Update()
-		}
 	}
 }
 
