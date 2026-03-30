@@ -2,9 +2,11 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -26,6 +28,12 @@ var stdlib = []string{
 }
 
 var debug = false
+var step = false
+
+func init() {
+	flag.BoolVar(&step, "step", false, "run as step-through debugger")
+	flag.BoolVar(&debug, "debug", false, "run with standard debugger")
+}
 
 type charPrinter struct{}
 
@@ -40,6 +48,7 @@ func (cp charPrinter) Write(p []byte) (int, error) {
 }
 
 func main() {
+	flag.Parse()
 	program, err := Compile(append(stdlib, "jack/main.jack")...)
 	if err != nil {
 		fmt.Println(err)
@@ -53,7 +62,10 @@ func main() {
 	computer.data_mem.writer.LoadOutputWriter(charPrinter{})
 
 	var debugger Debugger
-	if debug {
+	switch {
+	case step:
+		debugger = newStepDebugger()
+	case debug:
 		debugger = &standardDebugger{}
 	}
 
@@ -64,6 +76,7 @@ type Debugger interface {
 	BeforeLoop()
 	BeforeTick(*Computer)
 	AfterTick(*Computer)
+	Quit() bool
 }
 
 type standardDebugger struct {
@@ -79,6 +92,8 @@ func (sd *standardDebugger) BeforeTick(c *Computer) {
 	//fmt.Printf("%03d: %04x", cpu.PC(), c.instr_mem.Out())
 	sd.i++
 }
+
+func (*standardDebugger) Quit() bool { return false }
 
 func (sd *standardDebugger) AfterTick(c *Computer) {
 	// after 75 instruction steps, 'free' var is initialized
@@ -106,6 +121,69 @@ func (sd *standardDebugger) AfterTick(c *Computer) {
 	//fmt.Println()
 }
 
+type stepDebugger struct {
+	scanner  *bufio.Scanner
+	stepping bool
+	quit     bool
+	steps 	 int
+}
+
+func newStepDebugger() *stepDebugger {
+	return &stepDebugger{
+		scanner:  bufio.NewScanner(os.Stdin),
+		stepping: true,
+	}
+}
+
+func dRegister(cpu CPU) uint16 {
+	switch c := cpu.(type) {
+	case *BarrelShiftCPU:
+		return c.d.Out()
+	case *PCRegisterCPU:
+		return c.d.Out()
+	case *BuiltinCPU:
+		return c.d.Out()
+	}
+	return 0
+}
+
+func (*stepDebugger) BeforeLoop() {
+	fmt.Println("Step debugger: Enter=step, c=continue, q=quit")
+}
+
+func (sd *stepDebugger) BeforeTick(c *Computer) {
+	pc := c.cpu.PC()
+	instr := c.instr_mem.Out()
+	a := c.cpu.AddressM()
+	d := dRegister(c.cpu)
+	sp := c.data_mem.ram.mem[0]
+	var m uint16
+	if int(a) < len(c.data_mem.ram.mem) {
+		m = c.data_mem.ram.mem[a]
+	}
+	fmt.Printf("PC:%04x  INSTR:%04x  A:%04x  D:%04x  M[A]:%04x  SP:%04x\n", pc, instr, a, d, m, sp)
+
+	if !sd.stepping {
+		return
+	}
+	for sd.scanner.Scan() {
+		line := strings.TrimSpace(sd.scanner.Text())
+		switch line {
+		case "q":
+			sd.quit = true
+			return
+		case "c":
+			sd.stepping = false
+			return
+		default:
+			return
+		}
+	}
+}
+
+func (sd *stepDebugger) Quit() bool    { return sd.quit }
+func (sd *stepDebugger) AfterTick(*Computer) { sd.steps++ }
+
 func run(computer *Computer, debugger Debugger) {
 	computer.SendReset(true)
 	computer.ClockTick()
@@ -119,6 +197,9 @@ func run(computer *Computer, debugger Debugger) {
 	for {
 		if debugger != nil {
 			debugger.BeforeTick(computer)
+			if debugger.Quit() {
+				break
+			}
 		}
 		computer.ClockTick()
 		if debugger != nil {
@@ -135,6 +216,7 @@ func run(computer *Computer, debugger Debugger) {
 		pprev = prev
 		prev = computer.cpu.PC()
 	}
+	fmt.Println("Halted.")
 }
 
 // NOTE: outdated since use of tapereader

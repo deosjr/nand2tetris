@@ -52,6 +52,7 @@ type testDebugger struct {
 
 func (*testDebugger) BeforeLoop()            {}
 func (*testDebugger) BeforeTick(c *Computer) {}
+func (*testDebugger) Quit() bool             { return false }
 func (td *testDebugger) AfterTick(c *Computer) {
 	td.steps++
 	/*
