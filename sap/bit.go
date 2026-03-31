@@ -21,7 +21,7 @@ func toBit(in uint16) bit {
 	panic("expected 0 or 1")
 }
 
-func nthBit(in uint8, n uint8) bit {
+func nthBit8(in uint8, n uint8) bit {
 	if n > 8 {
 		panic("expected 0<=n<8")
 	}
@@ -31,7 +31,7 @@ func nthBit(in uint8, n uint8) bit {
 
 func toBit8(in uint8) (out [8]bit) {
 	for i := 0; i < 8; i++ {
-		out[7-i] = nthBit(in, uint8(i))
+		out[7-i] = nthBit8(in, uint8(i))
 	}
 	return out
 }
@@ -46,8 +46,7 @@ func fromBit8(in [8]bit) uint8 {
 	return out
 }
 
-/*
-func nthBit(in uint16, n uint16) bit {
+func nthBit16(in uint16, n uint16) bit {
 	if n > 16 {
 		panic("expected 0<=n<16")
 	}
@@ -57,7 +56,7 @@ func nthBit(in uint16, n uint16) bit {
 
 func toBit16(in uint16) (out [16]bit) {
 	for i := 0; i < 16; i++ {
-		out[15-i] = nthBit(in, uint16(i))
+		out[15-i] = nthBit16(in, uint16(i))
 	}
 	return out
 }
@@ -72,6 +71,24 @@ func fromBit16(in [16]bit) uint16 {
 	return out
 }
 
+func toBit12(in uint16) (out [12]bit) {
+	for i := 0; i < 12; i++ {
+		out[11-i] = nthBit16(in, uint16(i))
+	}
+	return out
+}
+
+func fromBit12(in [12]bit) uint16 {
+	var out uint16
+	for i := 0; i < 12; i++ {
+		if in[11-i] {
+			out += (1 << i)
+		}
+	}
+	return out
+}
+
+/*
 func toBit16Signed(in int16) [16]bit {
 	if in >= 0 {
 		return toBit16(uint16(in))

@@ -2,16 +2,19 @@ package main
 
 // start by copying some builtins over from the nand2tetris builtin definitions
 
-// renamed Computer
-// TODO: could be an interface instead, see peripherals
+type Computer interface {
+	Halted() bool
+	ClockTick()
+}
+
 type SAP1 struct {
-	PC   *BuiltinCounter
-	A    *BuiltinRegister
-	B    *BuiltinRegister
-	MAR  *BuiltinRegister
+	PC   *BuiltinCounter4
+	A    *BuiltinRegister8
+	B    *BuiltinRegister8
+	MAR  *BuiltinRegister4
 	PROM *ROM16x8
-	IR   *BuiltinRegister
-	O    *BuiltinRegister
+	IR   *BuiltinRegister8
+	O    *BuiltinRegister8
 	// D, 8 LEDs showing output of O
 	// CONtrol unit
 	Ring *RingCounter6
@@ -21,13 +24,13 @@ type SAP1 struct {
 
 func NewSAP1() *SAP1 {
 	return &SAP1{
-		PC:   NewBuiltinCounter(),
-		A:    NewBuiltinRegister(),
-		B:    NewBuiltinRegister(),
-		MAR:  NewBuiltinRegister(),
+		PC:   NewBuiltinCounter4(),
+		A:    NewBuiltinRegister8(),
+		B:    NewBuiltinRegister8(),
+		MAR:  NewBuiltinRegister4(),
 		PROM: NewROM16x8(),
-		IR:   NewBuiltinRegister(),
-		O:    NewBuiltinRegister(),
+		IR:   NewBuiltinRegister8(),
+		O:    NewBuiltinRegister8(),
 		Ring: &RingCounter6{},
 	}
 }
@@ -46,6 +49,10 @@ func (c *SAP1) SendReset(reset bool) {
 	c.PC.SendReset(reset)
 }
 
+func (c *SAP1) Halted() bool {
+	return c.Halt
+}
+
 func (c *SAP1) ClockTick() {
 	// TODO: at start of execution, CON sends CLR to IR and PC
 	// Control Unit sends clock signal to all registers
@@ -58,7 +65,7 @@ func (c *SAP1) ClockTick() {
 		return
 	}
 
-	// Fig 8.11: control matrix
+	// Figure 8.11: control matrix
 	cp := t[2]
 	ep := t[0]
 	lm := Or(Or(t[0], And(lda, t[3])), Or(And(add, t[3]), And(sub, t[3])))
@@ -87,10 +94,7 @@ func (c *SAP1) ClockTick() {
 	// bus is an OR of outputs; architecture ensures only one writes at a time
 	// NOTE: PC and IR only write 4 bits each. PC handles 4 bit numbers in a uint8
 	// but IR needs to mask off the 4 MSB that end up going to CON first
-	outIR[0] = false
-	outIR[1] = false
-	outIR[2] = false
-	outIR[3] = false
+	outIR = toBit8(fromBit8(outIR) & 0xF)
 	w := fromBit8(Or8(Or8(outPC, outPROM), Or8(outIR, Or8(outA, outALU))))
 
 	// NOTE: MAR only takes 4 bits from the bus. Handled by masking outputs, see above

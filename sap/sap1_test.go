@@ -11,10 +11,10 @@ type testDebugger struct {
 }
 
 func (*testDebugger) BeforeLoop() {}
-func (td *testDebugger) BeforeTick(c *SAP1) {
+func (td *testDebugger) BeforeTick(c Computer) {
 	td.i++
 }
-func (td *testDebugger) AfterTick(c *SAP1) {
+func (td *testDebugger) AfterTick(c Computer) {
 	if td.i > 10000 {
 		td.t.Fatalf("%d): took too long", td.index)
 	}

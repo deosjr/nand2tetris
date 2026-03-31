@@ -33,7 +33,7 @@ func main() {
 
 }
 
-func run(computer *SAP1, debugger Debugger) {
+func run(computer Computer, debugger Debugger) {
 	//computer.SendReset(true)
 	//computer.ClockTick()
 	//computer.SendReset(false)
@@ -53,7 +53,7 @@ func run(computer *SAP1, debugger Debugger) {
 		if debugger != nil {
 			debugger.AfterTick(computer)
 		}
-		if computer.Halt {
+		if computer.Halted() {
 			break
 		}
 	}
@@ -62,8 +62,8 @@ func run(computer *SAP1, debugger Debugger) {
 
 type Debugger interface {
 	BeforeLoop()
-	BeforeTick(*SAP1)
-	AfterTick(*SAP1)
+	BeforeTick(Computer)
+	AfterTick(Computer)
 }
 
 type standardDebugger struct {
@@ -74,14 +74,14 @@ type standardDebugger struct {
 func (*standardDebugger) BeforeLoop() {
 }
 
-func (sd *standardDebugger) BeforeTick(c *SAP1) {
+func (sd *standardDebugger) BeforeTick(c Computer) {
 	sd.i++
-	fmt.Println("T:", c.Ring.T())
+	//fmt.Println("T:", c.Ring.T())
 }
 
-func (sd *standardDebugger) AfterTick(c *SAP1) {
-	fmt.Println("IR:", c.IR.Out())
-	fmt.Println("PC:", c.PC.Out())
-	fmt.Println("MAR:", c.MAR.Out())
-	fmt.Println("A:", c.A.Out())
+func (sd *standardDebugger) AfterTick(c Computer) {
+	//fmt.Println("IR:", c.IR.Out())
+	//fmt.Println("PC:", c.PC.Out())
+	//fmt.Println("MAR:", c.MAR.Out())
+	//fmt.Println("A:", c.A.Out())
 }

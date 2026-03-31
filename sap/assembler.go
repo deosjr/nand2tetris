@@ -10,7 +10,7 @@ import (
 func assembleSAP1FromStrings(strs [16]string) ([16]uint8, error) {
 	out := [16]uint8{}
 	for i, s := range strs {
-		instr, err := encodeASM(s)
+		instr, err := encodeASM1(s)
 		if err != nil {
 			return out, err
 		}
@@ -19,7 +19,7 @@ func assembleSAP1FromStrings(strs [16]string) ([16]uint8, error) {
 	return out, nil
 }
 
-func encodeASM(s string) (uint8, error) {
+func encodeASM1(s string) (uint8, error) {
 	if s == "" {
 		return 0, nil
 	}
@@ -49,11 +49,65 @@ func encodeASM(s string) (uint8, error) {
 	}
 	switch split[0] {
 	case "LDA":
-		return uint8(0b00000000) | uint8(dest), nil
+		return 0b00000000 | uint8(dest), nil
 	case "ADD":
-		return uint8(0b00010000) | uint8(dest), nil
+		return 0b00010000 | uint8(dest), nil
 	case "SUB":
-		return uint8(0b00100000) | uint8(dest), nil
+		return 0b00100000 | uint8(dest), nil
+	}
+	return 0, fmt.Errorf("invalid opcode format")
+}
+
+func assembleSAP2FromStrings(strs []string) ([256]uint16, error) {
+	out := [256]uint16{}
+	for i, s := range strs {
+		instr, err := encodeASM2(s)
+		if err != nil {
+			return out, err
+		}
+		out[i] = instr
+	}
+	return out, nil
+}
+
+func encodeASM2(s string) (uint16, error) {
+	if s == "" {
+		return 0, nil
+	}
+	if unicode.IsDigit(rune(s[0])) {
+		n, err := strconv.ParseUint(s, 10, 8)
+		if err != nil {
+			return 0, err
+		}
+		return uint16(n) & 0xFFF, nil
+	}
+	if s == "OUT" {
+		return 0b111111100000, nil
+	}
+	if s == "HLT" {
+		return 0b111111110000, nil
+	}
+	split := strings.Split(s, " ")
+	if len(split) != 2 {
+		return 0, fmt.Errorf("invalid opcode format")
+	}
+	dest, err := strconv.ParseUint(split[1], 10, 16)
+	if err != nil {
+		return 0, err
+	}
+	switch split[0] {
+	case "LDA":
+		return 0b000000000000 | uint16(dest), nil
+	case "ADD":
+		return 0b000100000000 | uint16(dest), nil
+	case "SUB":
+		return 0b001000000000 | uint16(dest), nil
+	case "STA":
+		return 0b001100000000 | uint16(dest), nil
+	case "LDB":
+		return 0b010000000000 | uint16(dest), nil
+	case "LDX":
+		return 0b010100000000 | uint16(dest), nil
 	}
 	return 0, fmt.Errorf("invalid opcode format")
 }
