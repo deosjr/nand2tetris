@@ -90,3 +90,27 @@ func TestSAP2Example9_5(t *testing.T) {
 		t.Errorf("want %v got %v", want, got)
 	}
 }
+
+// Example 9-6 and 9-7 use the interface circuit which is still TODO
+
+func TestSAP2Example9_8(t *testing.T) {
+	// TODO: test JMS/BRB. This halts accidentally because 4095 is 0xFFF, which is also HLT
+	// example moves everything further into mem by prefixing with F
+	s := []string{"LDB 9", "AND", "JAZ 6", "LDA A", "JMP 7", "LDA B", "OUT", "BRB", "1", "4095", "0"}
+	program, err := assembleSAP2FromStrings(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	computer := NewSAP2()
+	computer.LoadProgram(program)
+
+	td := &testDebugger{t: t}
+	run(computer, td)
+
+	got := computer.O.Out()
+	want := uint16(0x0000)
+	if want != got {
+		t.Errorf("want %v got %v", want, got)
+	}
+}

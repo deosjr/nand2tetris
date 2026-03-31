@@ -75,11 +75,11 @@ func encodeASM2(s string) (uint16, error) {
 		return 0, nil
 	}
 	if unicode.IsDigit(rune(s[0])) {
-		n, err := strconv.ParseUint(s, 10, 8)
+		n, err := strconv.ParseUint(s, 10, 12)
 		if err != nil {
 			return 0, err
 		}
-		return uint16(n) & 0xFFF, nil
+		return uint16(n), nil
 	}
 	switch s {
 	case "NOP":
