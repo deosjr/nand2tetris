@@ -14,7 +14,7 @@ func TestSAP2Example9_1(t *testing.T) {
 	}
 
 	a, b, c := uint16(rand.IntN(80)), uint16(rand.IntN(80)), uint16(rand.IntN(80))
-	program[20], program[21], program[22] = a, b, c
+	program[0x20], program[0x21], program[0x22] = a, b, c
 
 	computer := NewSAP2()
 	computer.LoadProgram(program)
@@ -22,7 +22,7 @@ func TestSAP2Example9_1(t *testing.T) {
 	td := &testDebugger{t: t}
 	run(computer, td)
 
-	sum := computer.RAM.mem[23]
+	sum := computer.RAM.mem[0x23]
 	want := a+b+c
 	if want != sum {
 		t.Errorf("(%d+%d+%d): want %v got %v", a, b, c, want, sum)
@@ -66,6 +66,26 @@ func TestSAP2Example9_4(t *testing.T) {
 
 	got := computer.X.Out()
 	want := uint16(0)
+	if want != got {
+		t.Errorf("want %v got %v", want, got)
+	}
+}
+
+func TestSAP2Example9_5(t *testing.T) {
+	s := []string{"NOP", "LDX A", "CLA", "DEX", "ADD 9", "JIZ 7", "JMP 3", "OUT", "HLT", "12", "8"}
+	program, err := assembleSAP2FromStrings(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	computer := NewSAP2()
+	computer.LoadProgram(program)
+
+	td := &testDebugger{t: t}
+	run(computer, td)
+
+	got := computer.O.Out()
+	want := uint16(12 * 8)
 	if want != got {
 		t.Errorf("want %v got %v", want, got)
 	}

@@ -119,7 +119,7 @@ func encodeASM2(s string) (uint16, error) {
 	if len(split) != 2 {
 		return 0, fmt.Errorf("invalid opcode format")
 	}
-	dest, err := strconv.ParseUint(split[1], 10, 16)
+	dest, err := strconv.ParseUint(split[1], 16, 16)
 	if err != nil {
 		return 0, err
 	}
