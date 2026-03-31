@@ -9,7 +9,7 @@ type SAP2 struct {
 	MDR  *BuiltinRegister12
 	RAM  *RAM256x12
 	IR   *BuiltinRegister12
-	X    *BuiltinRegister12 // TODO: has incr/decr builtin!
+	X    *BuiltinCounter12
 	I    *BuiltinRegister12
 	O    *BuiltinRegister12
 	// CONtrol unit
@@ -30,7 +30,7 @@ func NewSAP2() *SAP2 {
 		MDR:  NewBuiltinRegister12(),
 		RAM:  NewRAM256x12(),
 		IR:   NewBuiltinRegister12(),
-		X:    NewBuiltinRegister12(),
+		X:    NewBuiltinCounter12(),
 		I:    NewBuiltinRegister12(),
 		O:    NewBuiltinRegister12(),
 		JMSFlag: NewBuiltinJK(),
@@ -73,8 +73,8 @@ func (c *SAP2) ClockTick() {
 	//nop := And(opr, And(And(n0, n1), And(n2, n3)))
 	cla := And(opr, And(And(n0, n1), And(n2, x3)))
 	xch := And(opr, And(And(n0, n1), And(x2, n3)))
-	//dex := And(opr, And(And(n0, n1), And(x2, x3)))
-	//inx := And(opr, And(And(n0, x1), And(n2, n3)))
+	dex := And(opr, And(And(n0, n1), And(x2, x3)))
+	inx := And(opr, And(And(n0, x1), And(n2, n3)))
 	cma := And(opr, And(And(n0, x1), And(n2, x3)))
 	cmb := And(opr, And(And(n0, x1), And(x2, n3)))
 	ior := And(opr, And(And(n0, x1), And(x2, x3)))
@@ -311,7 +311,8 @@ func (c *SAP2) ClockTick() {
 	c.B.SendLoad(bool(lb))
 	c.X.SendIn(w)
 	c.X.SendLoad(bool(lx))
-	// TODO: X register incr/decr!
+	c.X.SendIncr(bool(inx))
+	c.X.SendDecr(bool(dex))
 	c.O.SendIn(w)
 	c.O.SendLoad(bool(lo))
 

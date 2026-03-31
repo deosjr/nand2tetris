@@ -239,6 +239,49 @@ func (b *BuiltinCounter8) ClockTick() {
 	}
 }
 
+type BuiltinCounter12 struct {
+    in   uint16
+    out  uint16
+    inc  bool
+    dec  bool
+    load bool
+}
+
+func NewBuiltinCounter12() *BuiltinCounter12 {
+	return &BuiltinCounter12{}
+}
+
+func (b *BuiltinCounter12) SendIn(in uint16) {
+	b.in = in
+}
+
+func (b *BuiltinCounter12) SendLoad(load bool) {
+	b.load = load
+}
+
+func (b *BuiltinCounter12) SendIncr(inc bool) {
+	b.inc = inc
+}
+
+func (b *BuiltinCounter12) SendDecr(dec bool) {
+	b.dec = dec
+}
+
+func (b *BuiltinCounter12) Out() uint16 {
+	return b.out
+}
+
+func (b *BuiltinCounter12) ClockTick() {
+    switch {
+    case b.load:
+        b.out = b.in & 0xFFF
+    case b.inc:
+        b.out = (b.out + 1) & 0xFFF
+    case b.dec:
+        b.out = (b.out - 1) & 0xFFF
+    }
+}
+
 type RAM256x12 struct {
 	address uint8
 	in      uint16
