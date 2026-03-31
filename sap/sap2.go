@@ -270,6 +270,8 @@ func (c *SAP2) ClockTick() {
 
 	alu := SAP2Alu(toBit12(c.A.Out()), toBit12(c.B.Out()), s3, s2, s1, s0)
 
+	c.RAM.SendAddress(c.MAR.Out())
+
 	// 12-bit bus W
 	low := toBit12(0)
 	outSC := Mux12(low, toBit12(uint16(c.SC.Out())), es)
@@ -295,7 +297,6 @@ func (c *SAP2) ClockTick() {
 	c.PC.SendLoad(bool(lp))
 	c.MAR.SendIn(wLSB)
 	c.MAR.SendLoad(bool(lm))
-	c.RAM.SendAddress(c.MAR.Out())
 	c.RAM.SendLoad(bool(And(we, me)))
 	c.RAM.SendIn(c.MDR.Out())
 	c.MDR.SendIn(w)
