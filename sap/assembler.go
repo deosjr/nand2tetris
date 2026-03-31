@@ -81,10 +81,38 @@ func encodeASM2(s string) (uint16, error) {
 		}
 		return uint16(n) & 0xFFF, nil
 	}
-	if s == "OUT" {
+	switch s {
+	case "NOP":
+		return 0b111100000000, nil
+	case "CLA":
+		return 0b111100010000, nil
+	case "XCH":
+		return 0b111100100000, nil
+	case "DEX":
+		return 0b111100110000, nil
+	case "INX":
+		return 0b111101000000, nil
+	case "CMA":
+		return 0b111101010000, nil
+	case "CMB":
+		return 0b111101100000, nil
+	case "IOR":
+		return 0b111101110000, nil
+	case "AND":
+		return 0b111110000000, nil
+	case "NOR":
+		return 0b111110010000, nil
+	case "NAN":
+		return 0b111110100000, nil
+	case "XOR":
+		return 0b111110110000, nil
+	case "BRB":
+		return 0b111111000000, nil
+	case "INP":
+		return 0b111111010000, nil
+	case "OUT":
 		return 0b111111100000, nil
-	}
-	if s == "HLT" {
+	case "HLT":
 		return 0b111111110000, nil
 	}
 	split := strings.Split(s, " ")
@@ -108,6 +136,18 @@ func encodeASM2(s string) (uint16, error) {
 		return 0b010000000000 | uint16(dest), nil
 	case "LDX":
 		return 0b010100000000 | uint16(dest), nil
+	case "JMP":
+		return 0b011000000000 | uint16(dest), nil
+	case "JAM":
+		return 0b011100000000 | uint16(dest), nil
+	case "JAZ":
+		return 0b100000000000 | uint16(dest), nil
+	case "JIM":
+		return 0b100100000000 | uint16(dest), nil
+	case "JIZ":
+		return 0b101000000000 | uint16(dest), nil
+	case "JMS":
+		return 0b101100000000 | uint16(dest), nil
 	}
 	return 0, fmt.Errorf("invalid opcode format")
 }

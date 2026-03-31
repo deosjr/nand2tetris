@@ -28,3 +28,45 @@ func TestSAP2Example9_1(t *testing.T) {
 		t.Errorf("(%d+%d+%d): want %v got %v", a, b, c, want, sum)
 	}
 }
+
+func TestSAP2Example9_2(t *testing.T) {
+	s := []string{"LDA 6", "SUB 7", "JAM 5", "JAZ 5", "JMP 1", "HLT", "25", "9"}
+	program, err := assembleSAP2FromStrings(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	computer := NewSAP2()
+	computer.LoadProgram(program)
+
+	td := &testDebugger{t: t}
+	run(computer, td)
+
+	got := computer.A.Out()
+	want := (uint16(0xFFFF) - 1) & 0xFFF // -2 in 12 bits
+	if want != got {
+		t.Errorf("want %v got %v", want, got)
+	}
+}
+
+// Example 9-3 relies on built-in square-root and log subroutines
+
+func TestSAP2Example9_4(t *testing.T) {
+	s := []string{"LDX 5", "DEX", "JIZ 4", "JMP 1", "HLT", "3"}
+	program, err := assembleSAP2FromStrings(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	computer := NewSAP2()
+	computer.LoadProgram(program)
+
+	td := &testDebugger{t: t}
+	run(computer, td)
+
+	got := computer.X.Out()
+	want := uint16(0)
+	if want != got {
+		t.Errorf("want %v got %v", want, got)
+	}
+}

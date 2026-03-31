@@ -8,20 +8,18 @@ var debug = true
 
 func main() {
 
-	//asm := [16]string{"LDA R9", "ADD RA", "OUT", "HLT", "", "", "", "", "", "15", "20", "", "", "", "", ""}
-	asm := [16]string{"LDA R9", "ADD RA", "ADD RB", "ADD RC", "SUB RD", "OUT", "HLT", "", "", "1", "2", "3", "4", "5", "", ""}
-
-	program, err := assembleSAP1FromStrings(asm)
+	s := []string{"LDX 5", "DEX", "JIZ 4", "JMP 1", "HLT", "3"}
+	program, err := assembleSAP2FromStrings(s)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	for _, a := range program {
-		fmt.Printf("%08b\n", a)
+	for _, a := range program[:10] {
+		fmt.Printf("%03x\n", a)
 	}
 
-	computer := NewSAP1()
+	computer := NewSAP2()
 	fmt.Println("loading ROM")
 	computer.LoadProgram(program)
 
@@ -76,7 +74,7 @@ func (*standardDebugger) BeforeLoop() {
 
 func (sd *standardDebugger) BeforeTick(c Computer) {
 	sd.i++
-	//fmt.Println("T:", c.Ring.T())
+	//fmt.Println("T:", c.(*SAP2).Ring.T())
 }
 
 func (sd *standardDebugger) AfterTick(c Computer) {
@@ -84,4 +82,5 @@ func (sd *standardDebugger) AfterTick(c Computer) {
 	//fmt.Println("PC:", c.PC.Out())
 	//fmt.Println("MAR:", c.MAR.Out())
 	//fmt.Println("A:", c.A.Out())
+	fmt.Println("X:", c.(*SAP2).X.Out())
 }

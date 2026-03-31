@@ -311,8 +311,8 @@ func (c *SAP2) ClockTick() {
 	c.B.SendLoad(bool(lb))
 	c.X.SendIn(w)
 	c.X.SendLoad(bool(lx))
-	c.X.SendIncr(bool(inx))
-	c.X.SendDecr(bool(dex))
+	c.X.SendIncr(bool(And(inx, t[3])))
+	c.X.SendDecr(bool(And(dex, t[3])))
 	c.O.SendIn(w)
 	c.O.SendLoad(bool(lo))
 
