@@ -327,6 +327,7 @@ func (c *SAP2) ClockTick() {
 	c.B.ClockTick()
 	c.X.ClockTick()
 	c.O.ClockTick()
+	c.JMSFlag.ClockTick()
 	c.Ring.ClockTick()
 }
 
