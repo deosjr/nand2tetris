@@ -101,3 +101,38 @@ func Or12Way(in [12]bit) bit {
 	}
 	return out
 }
+
+func Not16(in [16]bit) (out [16]bit) {
+	for i := 0; i < 16; i++ {
+		out[i] = Not(in[i])
+	}
+	return out
+}
+
+func And16(a, b [16]bit) (out [16]bit) {
+	for i := 0; i < 16; i++ {
+		out[i] = And(a[i], b[i])
+	}
+	return out
+}
+
+func Or16(a, b [16]bit) (out [16]bit) {
+	for i := 0; i < 16; i++ {
+		out[i] = Or(a[i], b[i])
+	}
+	return out
+}
+
+func Xor16(a, b [16]bit) (out [16]bit) {
+	for i := 0; i < 16; i++ {
+		out[i] = Or(a[i], b[i])
+	}
+	return out
+}
+
+func Mux16(a, b [16]bit, sel bit) (out [16]bit) {
+	if sel {
+		return b
+	}
+	return a
+}
