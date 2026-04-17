@@ -172,8 +172,8 @@ func encodeASM3(s string) (uint16, error) {
 	if s == "" {
 		return 0, nil
 	}
-	if unicode.IsDigit(rune(s[0])) {
-		n, err := strconv.ParseUint(s, 10, 16)
+	if len(s) > 2 && s[0] == '0' && s[1] == 'x' {
+		n, err := strconv.ParseUint(s[2:], 16, 16)
 		if err != nil {
 			return 0, err
 		}
