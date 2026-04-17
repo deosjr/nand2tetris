@@ -16,6 +16,9 @@ type SAP3 struct {
 	Ring *RingCounter6
 	Halt bool
 	// ALU
+	// I/O devices and mapping
+	inputDevices  [8]InputDevice
+	outputDevices [8]OutputDevice
 }
 
 func NewSAP3() *SAP3 {
@@ -49,6 +52,28 @@ func (c *SAP3) SendReset(reset bool) {
 
 func (c *SAP3) Halted() bool {
 	return c.Halt
+}
+
+func (c *SAP3) RegisterInputDevice(d InputDevice, i int) {
+	if i > 7 {
+		panic("input index out of bounds")
+	}
+	if c.inputDevices[i] != nil {
+		panic("input index already registered")
+	}
+	c.inputDevices[i] = d
+	// kickstart the tape
+	d.OnPortRead(c.P[i])
+}
+
+func (c *SAP3) RegisterOutputDevice(d OutputDevice, i int) {
+	if i < 8 || i > 15 {
+		panic("output index out of bounds")
+	}
+	if c.outputDevices[i] != nil {
+		panic("output index already registered")
+	}
+	c.outputDevices[i] = d
 }
 
 func (c *SAP3) ClockTick() {
@@ -171,8 +196,11 @@ func (c *SAP3) ClockTick() {
 
 	// 16-bit I/O bus
 	var ioBus uint16
-	if s < 8 {
+	if con.eport && s < 8 {
 		ioBus |= lowMux(con.eport, c.P[s].Out())
+		if c.inputDevices[s] != nil {
+			c.inputDevices[s].OnPortRead(c.P[s])
+		}
 	}
 	ioBus |= lowMux(con.eo, c.O.Out())
 
@@ -263,6 +291,12 @@ func (c *SAP3) ClockTick() {
 		p.ClockTick()
 	}
 	c.Ring.ClockTick()
+
+	if con.lport && s >= 8 {
+		if device := c.outputDevices[s-8]; device != nil {
+			device.OnPortWrite(c.P[s-8])
+		}
+	}
 }
 
 func (c *SAP3) LoadProgram(program [4096]uint16) {
