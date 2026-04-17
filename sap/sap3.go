@@ -4,7 +4,7 @@ type SAP3 struct {
 	S   *Stack4x12
 	A   *ShiftRegister16
 	B   *BuiltinRegister16
-	MAR *BuiltinRegister12
+	MAR *IPLCounter12 // counting part (incr/decr) ignored
 	MDR *BuiltinRegister16
 	RAM *RAM4096x16
 	IR  *BuiltinRegister16
@@ -31,7 +31,7 @@ func NewSAP3() *SAP3 {
 		S:    NewBuiltinStack4x12(),
 		A:    NewShiftRegister16(),
 		B:    NewBuiltinRegister16(),
-		MAR:  NewBuiltinRegister12(),
+		MAR:  NewIPLCounter12(),
 		MDR:  NewBuiltinRegister16(),
 		RAM:  NewRAM4096x16(),
 		IR:   NewBuiltinRegister16(),
@@ -131,10 +131,24 @@ func (c *SAP3) ClockTick() {
 		con = table[instr][2]
 	}
 
+	// port / x register select bits depending on instruction
+	var s uint16
+	switch instr {
+	case DSZ, ISZ, LDX, JIM, JIZ:
+		// first 4 bits have already been sliced off by IR
+		s = (outIR & 0xF00) >> 8
+	case XCH, DEX, INX, INP, OUT, LDN, ADN, SBN, STN, JSN:
+		// first 4 bits of remaining 12 taken by opr select bits
+		s = (outIR & 0xF0) >> 4
+	}
+	// will default to x[0] for other instructions, but ignored by eX=false
+	xOut := c.X[s].Out()
+
 	// Figure 10-14. SAP-3 architecture
 	alu := SAP3Alu(toBit16(c.A.Out()), toBit16(c.B.Out()), bit(con.s3), bit(con.s2), bit(con.s1), bit(con.s0))
 
 	c.RAM.SendAddress(c.MAR.Out())
+	c.S.SendEmit(con.ek)
 
 	// 16-bit bus W
 	var w uint16
@@ -151,17 +165,17 @@ func (c *SAP3) ClockTick() {
 	w |= lowMux(con.ei, c.IR.Out()&0xFFF) // 12-bit out
 	w |= lowMux(con.ea, c.A.Out())
 	w |= lowMux(con.eu, alu)
-	// todo: x registers
+	w |= lowMux(con.ex, xOut)
+
 	wLSB := w & 0xFFF
 
 	// todo: 16-bit I/O bus
 
-	// todo: jump logic
-
-	// conditional count/load
+	// jump logic: conditional count/load
 	a := toBit12(c.A.Out())
-	//x := toBit12(c.X.Out())
-	var ck, lk bool
+	x := toBit12(xOut)
+	var lk bool
+	ck := con.ck
 	switch {
 	case con.lkun:
 		lk = true // load unconditionally
@@ -169,14 +183,14 @@ func (c *SAP3) ClockTick() {
 		lk = bool(a[0]) // load if accumulator minus
 	case con.lkaz:
 		lk = bool(Not(Or12Way(a))) // load if accumulator zero
-	//case con.lkim:
-	// load if index minus
-	//case con.lkiz:
-	// load if index zero
+	case con.lkim:
+		lk = bool(x[0]) // load if index minus
+	case con.lkiz:
+		lk = bool(Not(Or12Way(x))) // load if index zero
 	case con.ckun:
 		ck = true // count unconditional
-		//case con.ckiz:
-		// count if index zero
+	case con.ckiz:
+		ck = bool(Not(Or12Way(x))) // count if index zero
 	}
 
 	// send inputs, tick clock
@@ -187,11 +201,10 @@ func (c *SAP3) ClockTick() {
 	c.S.SendPD(bit(con.pd))
 	c.S.SendInc(ck)
 	c.S.SendLoad(lk)
-	c.S.SendEmit(con.ek)
-	//c.S.SendIPL(bool(con.ipl))
+	c.S.SendIPL(con.ipl)
 	c.MAR.SendIn(w)
 	c.MAR.SendLoad(con.lm)
-	//c.MAR.SendIPL(con.ipl)
+	c.MAR.SendIPL(con.ipl)
 	c.RAM.SendIn(c.MDR.Out())
 	c.RAM.SendLoad(con.we && con.me)
 	c.MDR.SendIn(w)
@@ -208,9 +221,39 @@ func (c *SAP3) ClockTick() {
 	c.A.SendRAR(con.rar)
 	c.B.SendIn(w)
 	c.B.SendLoad(con.lb)
-	// todo: x registers
+
+	// x register inputs
+	for i, x := range c.X {
+		x.SendIn(w)
+		if i != int(s) {
+			x.SendLoad(false)
+			x.SendIncr(false)
+			x.SendDecr(false)
+			continue
+		}
+		x.SendLoad(con.lx)
+		x.SendIncr(con.ix)
+		x.SendDecr(con.dx)
+	}
+
 	// todo: port registers
-	// todo: clock tick all components
+
+	c.S.ClockTick()
+	c.MAR.ClockTick()
+	c.RAM.ClockTick()
+	c.MDR.ClockTick()
+	c.IR.ClockTick()
+	c.I.ClockTick()
+	c.A.ClockTick()
+	c.B.ClockTick()
+	c.O.ClockTick()
+	for _, x := range c.X {
+		x.ClockTick()
+	}
+	for _, p := range c.P {
+		p.ClockTick()
+	}
+	c.Ring.ClockTick()
 }
 
 func (c *SAP3) LoadProgram(program [4096]uint16) {

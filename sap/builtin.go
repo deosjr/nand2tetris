@@ -448,16 +448,48 @@ func (r *RAM4096x16) ClockTick() {
 	r.out = r.mem[r.address]
 }
 
+type IPLCounter12 struct {
+	BuiltinCounter12
+	ipl bool
+}
+
+func NewIPLCounter12() *IPLCounter12 {
+	return &IPLCounter12{}
+}
+
+func (c *IPLCounter12) SendIPL(ipl bool) {
+	c.ipl = ipl
+}
+
+func (c *IPLCounter12) ClockTick() {
+	switch {
+	case c.load:
+		in := c.in & 0xFFF
+		if c.ipl {
+			// page bits stay unchanged
+			in = in & 0xFF
+			page := c.out & 0xF00
+			in = in | page
+		}
+		c.out = in
+	case c.inc:
+		c.out = (c.out + 1) & 0xFFF
+	case c.dec:
+		c.out = (c.out - 1) & 0xFFF
+	}
+}
+
 // Figure 10-7: Stack registers and internal bus
 type Stack4x12 struct {
-	PC   *BuiltinCounter12
-	SC1  *BuiltinCounter12
-	SC2  *BuiltinCounter12
-	SC3  *BuiltinCounter12
+	PC   *IPLCounter12
+	SC1  *IPLCounter12
+	SC2  *IPLCounter12
+	SC3  *IPLCounter12
 	in   uint16
 	load bool
 	inc  bool
 	emit bool
+	ipl  bool
 	out  uint16
 	// 2-bit up/down counter
 	q0, q1 bit
@@ -466,10 +498,10 @@ type Stack4x12 struct {
 
 func NewBuiltinStack4x12() *Stack4x12 {
 	return &Stack4x12{
-		PC:  NewBuiltinCounter12(),
-		SC1: NewBuiltinCounter12(),
-		SC2: NewBuiltinCounter12(),
-		SC3: NewBuiltinCounter12(),
+		PC:  NewIPLCounter12(),
+		SC1: NewIPLCounter12(),
+		SC2: NewIPLCounter12(),
+		SC3: NewIPLCounter12(),
 	}
 }
 
@@ -499,6 +531,10 @@ func (s *Stack4x12) SendInc(inc bool) {
 
 func (s *Stack4x12) SendEmit(e bool) {
 	s.emit = e
+}
+
+func (s *Stack4x12) SendIPL(ipl bool) {
+	s.ipl = ipl
 }
 
 func (s *Stack4x12) Out() uint16 {
@@ -547,15 +583,19 @@ func (s *Stack4x12) ClockTick() {
 	// Figure 10-10: stack demultiplexer
 	l, c := bit(s.load), bit(s.inc)
 	s.PC.SendIn(w)
+	s.PC.SendIPL(s.ipl)
 	s.PC.SendLoad(bool(And(l, p0)))
 	s.PC.SendIncr(bool(And(c, p0)))
 	s.SC1.SendIn(w)
+	s.SC1.SendIPL(s.ipl)
 	s.SC1.SendLoad(bool(And(l, p1)))
 	s.SC1.SendIncr(bool(And(c, p1)))
 	s.SC2.SendIn(w)
+	s.SC2.SendIPL(s.ipl)
 	s.SC2.SendLoad(bool(And(l, p2)))
 	s.SC2.SendIncr(bool(And(c, p2)))
 	s.SC3.SendIn(w)
+	s.SC3.SendIPL(s.ipl)
 	s.SC3.SendLoad(bool(And(l, p3)))
 	s.SC3.SendIncr(bool(And(c, p3)))
 

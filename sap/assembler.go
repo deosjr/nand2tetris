@@ -248,7 +248,7 @@ func encodeASM3(s string) (uint16, error) {
 			return 0, err
 		}
 		idx := uint16(x)
-		x, err = strconv.ParseUint(splitcomma[0], 16, 8)
+		x, err = strconv.ParseUint(splitcomma[1], 16, 8)
 		if err != nil {
 			return 0, err
 		}
