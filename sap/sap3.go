@@ -111,7 +111,7 @@ func (c *SAP3) ClockTick() {
 		XOR: {{eu: true, la: true, s3: true, s0: true}, nop, nop},
 		BRB: {{pd: true}, nop, nop},
 		INP: {{eport: true, ln: true}, {en: true, la: true}, nop},
-		OUT: {{ea: true, l0: true}, {e0: true, lport: true}, nop},
+		OUT: {{ea: true, lo: true}, {eo: true, lport: true}, nop},
 		HLT: {nop, nop, {hlt: true}},
 	}
 
@@ -169,7 +169,12 @@ func (c *SAP3) ClockTick() {
 
 	wLSB := w & 0xFFF
 
-	// todo: 16-bit I/O bus
+	// 16-bit I/O bus
+	var ioBus uint16
+	if s < 8 {
+		ioBus |= lowMux(con.eport, c.P[s].Out())
+	}
+	ioBus |= lowMux(con.eo, c.O.Out())
 
 	// jump logic: conditional count/load
 	a := toBit12(c.A.Out())
@@ -194,7 +199,7 @@ func (c *SAP3) ClockTick() {
 	}
 
 	// send inputs, tick clock
-	//c.I.SendIn(ioBus)
+	c.I.SendIn(ioBus)
 	c.I.SendLoad(bool(con.ln))
 	c.S.SendIn(wLSB)
 	c.S.SendPU(bit(con.pu))
@@ -212,7 +217,7 @@ func (c *SAP3) ClockTick() {
 	c.IR.SendIn(w)
 	c.IR.SendLoad(con.li)
 	c.O.SendIn(w)
-	c.O.SendLoad(con.lport)
+	c.O.SendLoad(con.lo)
 	c.A.SendIn(w)
 	c.A.SendLoad(con.la)
 	c.A.SendSHL(con.shl)
@@ -236,7 +241,11 @@ func (c *SAP3) ClockTick() {
 		x.SendDecr(con.dx)
 	}
 
-	// todo: port registers
+	// port registers
+	for i, p := range c.P[8:] {
+		p.SendIn(ioBus)
+		p.SendLoad(con.lport && i+8 == int(s))
+	}
 
 	c.S.ClockTick()
 	c.MAR.ClockTick()
@@ -263,8 +272,8 @@ func (c *SAP3) LoadProgram(program [4096]uint16) {
 type conWord struct {
 	// SAP3 has 86 bit CON output, with x/port arguments x10
 	// everything defaults to false, only true needs to be set
-	e0, ea, ed, ei, ek, en, eu, ex bool
-	l0, la, lb, ld, lm, ln, lx, li bool
+	ea, ed, ei, ek, en, eo, eu, ex bool
+	la, lb, ld, lm, ln, lo, lx, li bool
 	me, we                         bool
 	s0, s1, s2, s3                 bool
 	ck, ipl                        bool
