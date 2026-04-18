@@ -136,3 +136,11 @@ func Mux16(a, b [16]bit, sel bit) (out [16]bit) {
 	}
 	return a
 }
+
+func Or16Way(in [16]bit) bit {
+	out := in[0]
+	for i := 1; i < 16; i++ {
+		out = Or(out, in[i])
+	}
+	return out
+}

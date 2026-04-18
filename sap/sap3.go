@@ -94,7 +94,7 @@ func (c *SAP3) ClockTick() {
 		// mnemonic: T3, T4, T5 phase
 		LDA: {{ei: true, lm: true}, {me: true, la: true}, nop},
 		ADD: {{ei: true, lm: true}, {me: true, lb: true}, {eu: true, la: true, s0: true}},
-		SUB: {{ei: true, lm: true}, {me: true, lb: true}, {eu: true, la: true, s0: true}},
+		SUB: {{ei: true, lm: true}, {me: true, lb: true}, {eu: true, la: true, s1: true}},
 		STA: {{ei: true, lm: true}, {ea: true, ld: true}, {we: true, me: true}},
 		LDB: {{ei: true, lm: true}, {me: true, lb: true}, nop},
 		LDX: {{ei: true, lm: true, ipl: true}, {me: true, lx: true}, nop},
@@ -205,8 +205,8 @@ func (c *SAP3) ClockTick() {
 	ioBus |= lowMux(con.eo, c.O.Out())
 
 	// jump logic: conditional count/load
-	a := toBit12(c.A.Out())
-	x := toBit12(xOut)
+	a := toBit16(c.A.Out())
+	x := toBit16(xOut)
 	var lk bool
 	ck := con.ck
 	switch {
@@ -215,15 +215,15 @@ func (c *SAP3) ClockTick() {
 	case con.lkam:
 		lk = bool(a[0]) // load if accumulator minus
 	case con.lkaz:
-		lk = bool(Not(Or12Way(a))) // load if accumulator zero
+		lk = bool(Not(Or16Way(a))) // load if accumulator zero
 	case con.lkim:
 		lk = bool(x[0]) // load if index minus
 	case con.lkiz:
-		lk = bool(Not(Or12Way(x))) // load if index zero
+		lk = bool(Not(Or16Way(x))) // load if index zero
 	case con.ckun:
 		ck = true // count unconditional
 	case con.ckiz:
-		ck = bool(Not(Or12Way(x))) // count if index zero
+		ck = bool(Not(Or16Way(x))) // count if index zero
 	}
 
 	// send inputs, tick clock

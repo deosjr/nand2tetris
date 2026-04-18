@@ -133,3 +133,51 @@ func TestBootstrapLoader(t *testing.T) {
 		}
 	}
 }
+
+func TestSAP3Multiplication(t *testing.T) {
+	// stores each cycle, seems very wasteful!
+	s := []string{"LDX 1,7", "CLA", "ADD 8", "STA 9", "DSZ 1", "JMP 2", "HLT"}
+	program, err := assembleSAP3FromStrings(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	program[0x7] = 35
+	program[0x8] = 15
+
+	computer := NewSAP3()
+	computer.LoadProgram(program)
+
+	td := &testDebugger{t: t}
+	run(computer, td)
+
+	got := computer.RAM.mem[9]
+	want := uint16(35 * 15)
+	if got != want {
+		t.Errorf("got %d want %d", got, want)
+	}
+}
+
+func TestSAP3Division(t *testing.T) {
+	// terrible, terrible division algorithm.. and book had no HLT either
+	s := []string{"CLA", "XCH 1", "LDA B", "SUB C", "INX 1", "JAM 8", "JAZ 8", "JMP 3", "XCH 1", "STA D", "HLT"}
+	program, err := assembleSAP3FromStrings(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	program[0xB] = 5280
+	program[0xC] = 17
+
+	computer := NewSAP3()
+	computer.LoadProgram(program)
+
+	td := &testDebugger{t: t}
+	run(computer, td)
+
+	got := computer.RAM.mem[0xD]
+	want := uint16(5280/17) + 1 // +1 because its rounding up...
+	if got != want {
+		t.Errorf("got %d want %d", got, want)
+	}
+}
