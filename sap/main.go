@@ -8,20 +8,18 @@ var debug = true
 
 func main() {
 
-	s := []string{"LDX 5", "DEX", "JIZ 4", "JMP 1", "HLT", "3"}
-	program, err := assembleSAP2FromStrings(s)
+	computer := NewSAP3()
+	computer.LoadProgram(bootloader)
+
+	// Multiplication of 35 and 15 should yield 525
+	s := []string{"LDX 1,7", "CLA", "ADD 8", "DSZ 1", "JMP 2", "OUT 8", "HLT", "0x23", "0xF"}
+	program, err := assembleSAP3FromStrings(s)
 	if err != nil {
-		fmt.Println(err)
-		return
+		panic(err)
 	}
 
-	for _, a := range program[:10] {
-		fmt.Printf("%03x\n", a)
-	}
-
-	computer := NewSAP2()
-	fmt.Println("loading ROM")
-	computer.LoadProgram(program)
+	tapeReader := &TapeReader{tape: program[:]}
+	computer.RegisterInputDevice(tapeReader, 0)
 
 	var debugger Debugger
 	if debug {
@@ -29,6 +27,7 @@ func main() {
 	}
 	run(computer, debugger)
 
+	fmt.Println(computer.P[8].Out())
 }
 
 func run(computer Computer, debugger Debugger) {
@@ -82,5 +81,5 @@ func (sd *standardDebugger) AfterTick(c Computer) {
 	//fmt.Println("PC:", c.PC.Out())
 	//fmt.Println("MAR:", c.MAR.Out())
 	//fmt.Println("A:", c.A.Out())
-	fmt.Println("X:", c.(*SAP2).X.Out())
+	//fmt.Println("X:", c.(*SAP3).X.Out())
 }
