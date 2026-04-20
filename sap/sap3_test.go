@@ -2,6 +2,8 @@ package main
 
 import (
 	"math/rand/v2"
+	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -178,6 +180,86 @@ func TestSAP3Division(t *testing.T) {
 	got := computer.RAM.mem[0xD]
 	want := uint16(5280/17) + 1 // +1 because its rounding up...
 	if got != want {
+		t.Errorf("got %d want %d", got, want)
+	}
+}
+
+// Read ASCII input (one char per 2-byte input read)
+// and pack it into two chars per 2-byte memory slot
+func TestSAP3ReadASCII(t *testing.T) {
+	s := []string{
+		// read ascii and store subroutine
+		// uses X1-3, assumes starting ADDRESS in 0x15
+		"CLA",
+		"XCH 1",         // 0 to start, 0 for store high, 1 for store low bits
+		"LDX 2,ADDRESS", // load address in X2
+		"DEX 2",         // start at ADDRESS-1 because we incr immediately in the loop
+		// start of loop
+		"INP 0", // into A
+		// TODO: 32 (space) ends as well?
+		"JAZ END",
+		"JIZ 1,PREPHIGH", // jump to prep high bits
+		// prepare low bits
+		"LDB TEMP", // load previously stored (shifted) high bits
+		"IOR",
+		"INX 1", // NEXT store high bits
+		"JMP STORE",
+		// prepare high bits
+		"LDX 3,EIGHT", // use idx 3 to count down from 8
+		"SHL",         // shift ascii bits up
+		"DSZ 3",
+		"JMP BACK2",  // continue shifting
+		"STA TEMP",   // save shifted high bits to fixed address for low path
+		"INX 2",      // Go to next ADDRESS
+		"DEX 1",      // NEXT store low bits
+		// store
+		"STN 2",
+		"JMP START", // jump to start of loop
+		"0x8",       // EIGHT
+		"0x100",     // ADDRESS
+		"HLT",       // END, should be BRB when defined as actual subroutine
+		"0x0",       // TEMP
+	}
+	for i, raw := range s {
+		for old, new := range map[string]string{
+			"START":    "4",
+			"PREPHIGH": "B",
+			"STORE":    "12",
+			"EIGHT":    "14",
+			"ADDRESS":  "15",
+			"END":      "16",
+			"BACK2":    "C",
+			"TEMP":     "17",
+		} {
+			raw = strings.ReplaceAll(raw, old, new)
+		}
+		s[i] = raw
+	}
+	program, err := assembleSAP3FromStrings(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	computer := NewSAP3()
+	computer.LoadProgram(program)
+
+	var input []uint16
+	for _, c := range "Hello" {
+		input = append(input, uint16(c))
+	}
+
+	tapeReader := &TapeReader{
+		tape: input,
+	}
+	computer.RegisterInputDevice(tapeReader, 0)
+
+	td := &testDebugger{t: t}
+	run(computer, td)
+
+	got := computer.RAM.mem[0x100:0x103]
+	want := []uint16{input[0]<<8 | input[1], input[2]<<8 | input[3], input[4] << 8}
+
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %d want %d", got, want)
 	}
 }

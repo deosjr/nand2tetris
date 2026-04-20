@@ -234,7 +234,7 @@ func encodeASM3(s string) (uint16, error) {
 	}
 	split := strings.Split(s, " ")
 	if len(split) != 2 {
-		return 0, fmt.Errorf("invalid opcode format")
+		return 0, fmt.Errorf("invalid opcode format %s", s)
 	}
 	x, err := strconv.ParseUint(split[1], 16, 16)
 	if err != nil {
@@ -261,7 +261,7 @@ func encodeASM3(s string) (uint16, error) {
 		case "JIZ":
 			return 0b1010<<12 | idx<<8 | w, nil
 		}
-		return 0, fmt.Errorf("invalid opcode format")
+		return 0, fmt.Errorf("invalid opcode format %s", s)
 	}
 	arg := uint16(x)
 	switch split[0] {
@@ -308,5 +308,5 @@ func encodeASM3(s string) (uint16, error) {
 	case "ISZ":
 		return 0b1101<<12 | arg<<8, nil
 	}
-	return 0, fmt.Errorf("invalid opcode format")
+	return 0, fmt.Errorf("invalid opcode format %s", s)
 }

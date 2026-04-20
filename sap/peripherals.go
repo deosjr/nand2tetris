@@ -22,6 +22,8 @@ type TapeReader struct {
 
 func (tr *TapeReader) OnPortRead(p Port) {
 	if tr.head >= len(tr.tape) {
+		p.SendIn(0)
+		p.SendLoad(true)
 		return
 	}
 	p.SendIn(tr.tape[tr.head])
