@@ -200,25 +200,24 @@ func TestSAP3ReadASCII(t *testing.T) {
 		"JAZ END",
 		"JIZ 1,PREPHIGH", // jump to prep high bits
 		// prepare low bits
-		"LDB TEMP", // load previously stored (shifted) high bits
-		"IOR",
+		"ORM",   // immediate OR
+		"",      // previous high bits stored here
 		"INX 1", // NEXT store high bits
 		"JMP STORE",
 		// prepare high bits
 		"LDX 3,EIGHT", // use idx 3 to count down from 8
 		"SHL",         // shift ascii bits up
 		"DSZ 3",
-		"JMP BACK2",  // continue shifting
-		"STA TEMP",   // save shifted high bits to fixed address for low path
-		"INX 2",      // Go to next ADDRESS
-		"DEX 1",      // NEXT store low bits
+		"JMP BACK2", // continue shifting
+		"STA TEMP",  // save shifted high bits to fixed address for low path
+		"INX 2",     // Go to next ADDRESS
+		"DEX 1",     // NEXT store low bits
 		// store
 		"STN 2",
 		"JMP START", // jump to start of loop
 		"0x8",       // EIGHT
 		"0x100",     // ADDRESS
 		"HLT",       // END, should be BRB when defined as actual subroutine
-		"0x0",       // TEMP
 	}
 	for i, raw := range s {
 		for old, new := range map[string]string{
@@ -229,7 +228,7 @@ func TestSAP3ReadASCII(t *testing.T) {
 			"ADDRESS":  "15",
 			"END":      "16",
 			"BACK2":    "C",
-			"TEMP":     "17",
+			"TEMP":     "8",
 		} {
 			raw = strings.ReplaceAll(raw, old, new)
 		}
