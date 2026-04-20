@@ -189,7 +189,9 @@ func TestSAP3Division(t *testing.T) {
 func TestSAP3ReadASCII(t *testing.T) {
 	s := []string{
 		// read ascii and store subroutine
-		// uses X1-3, assumes starting ADDRESS in 0x15
+		// uses X0-3, assumes starting ADDRESS in 0x18
+		"CLA",
+		"XCH 0", // X0 will contain length of input at the end
 		"CLA",
 		"XCH 1",         // 0 to start, 0 for store high, 1 for store low bits
 		"LDX 2,ADDRESS", // load address in X2
@@ -198,6 +200,7 @@ func TestSAP3ReadASCII(t *testing.T) {
 		"INP 0", // into A
 		// TODO: 32 (space) ends as well?
 		"JAZ END",
+		"INX 0",
 		"JIZ 1,PREPHIGH", // jump to prep high bits
 		// prepare low bits
 		"ORM",   // immediate OR
@@ -221,14 +224,14 @@ func TestSAP3ReadASCII(t *testing.T) {
 	}
 	for i, raw := range s {
 		for old, new := range map[string]string{
-			"START":    "4",
-			"PREPHIGH": "B",
-			"STORE":    "12",
-			"EIGHT":    "14",
-			"ADDRESS":  "15",
-			"END":      "16",
-			"BACK2":    "C",
-			"TEMP":     "8",
+			"START":    "6",
+			"PREPHIGH": "E",
+			"STORE":    "15",
+			"EIGHT":    "17",
+			"ADDRESS":  "18",
+			"END":      "19",
+			"BACK2":    "F",
+			"TEMP":     "B",
 		} {
 			raw = strings.ReplaceAll(raw, old, new)
 		}
@@ -260,5 +263,11 @@ func TestSAP3ReadASCII(t *testing.T) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %d want %d", got, want)
+	}
+
+	gotX := int(computer.X[0].Out())
+	wantX := len(input)
+	if gotX != wantX {
+		t.Errorf("len: got %d want %d", gotX, wantX)
 	}
 }
