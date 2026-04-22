@@ -314,80 +314,106 @@ func packEntry(link uint16, name string, imm bool) []uint16 {
 // FIND subroutine. Claude wrote the test harnass, I did the assembly.
 //
 // FIND contract:
-//   - On entry: X4 = ARG1, length of needle in bytes (not words!).
+//   - On entry: ARG1 = length of needle in bytes (not words!).
 //     The needle follows immediately after in memory.
 //   - Walk the chain starting from the sentinel pointed to by the HEAD sysvar
-//     at 0xFC0. Sentinels have LEN=0 and must be skipped.
+//     at 0xCCC. Sentinels have LEN=0 and must be skipped.
 //   - Terminate the walk when the cursor reaches 0 (root).
-//   - On exit: write the CFA to CFA_OUT (0xFD0), or 0 if the needle is not
-//     found. Write a nonzero value to IMM_OUT (0xFD1) iff the found entry has
+//   - On exit: write the CFA to OUT1 (0xE01), or 0 if the needle is not
+//     found. Write a nonzero value to OUT2 (0xE02) iff the found entry has
 //     the IMMEDIATE bit set (0 otherwise, including on miss).
-//   - End with BRB. Entry point is at address 0x010.
+//   - End with BRB. Entry point is at address 0x102.
 //
 // Replace findAsm below with your implementation.
 func TestSAP3Find(t *testing.T) {
 	const (
-		dictBase   = uint16(0x100)
-		headAddr   = uint16(0xF0)
-		cfaOutAddr = uint16(0xF1)
-		immOutAddr = uint16(0xF2)
+		dictBase   = uint16(0x000)
+		headAddr   = uint16(0xCCC)
 		arg1Addr   = uint16(0xE00)
-		lenAddr    = uint16(0xE01)
+		cfaOutAddr = uint16(0xE01)
+		immOutAddr = uint16(0xE02)
+		lenAddr    = uint16(0xE03)
 		brbEncoded = uint16(0xFC00)
 	)
 
-	// The needle address is already in X4 on entry.
 	findAsm := []string{
-		// START:
-		"LDX 5,HEAD", // X5 stores address found in HEAD, end of dict
-		// LOOP:
-		"XCH 5",
+		// FIND:
+		"LDA ARG1", // ARG1 = address of needle length (needle comes after)
+		"XCH 4",    // STORE that in X4
+		"LDA HEAD", // A stores address found in HEAD, end of dict
+		// LOOP: (assumes HEAD in A)
+		"JAZ FAIL", // if HEAD is 0, give up
 		"STM",
-		"", // SCRATCH
-		"XCH 5",
-		"LDX 6,SCRATCH", // COPY X5 into X6, have to go through A and mem
-		"INX 6",         // X6 now pointing at flags+length word for entry
+		"",              // SCRATCH
+		"LDX 5,SCRATCH", // COPY HEAD into X5, SCRATCH will be used to restore later
+		"INX 5",         // X5 now pointing at flags+length word for entry
 
 		// check if lengths match
-		"LDN 6",     // Load entry length (address pointed at by X6)
+		"LDN 5",     // Load entry length (address pointed at by X5)
 		"SBN 4",     // SUBTRACT needle length (address stored in X4)
 		"JAZ MATCH", // if zero, we have a match!
-		// NOMATCH:
-		"XCH 5",
-		"STA CFA_OUT",
-		"CLA",
-		"STA IMM_OUT",
-		"BRB",
+		// FOLLOW:
 		// continue search
-		// if new HEAD is zero, give up
+		"LDX 5,SCRATCH",
+		"LDN 5", // follow link
+		"JMP LOOP",
 		// MATCH:
 		// check n/2 (rounded up!!!) name words for equivalence
-		// if fail, goto NOMATCH
-		// if success, return CFA address in 0xFD0 and flag into 0xFD1
+		"LDA ARG1",
+		"XCH 6", // X6 = address of needle length
+		"LDN 6", // A = needle length
+		"ADM",
+		"0x1",
+		"SHR",   // A = (A+1) >> 1, i.e. ceil(n/2)
+		"XCH 7", // X7 = A
+		// INNER:
+		"INX 5", // X5++
+		"INX 6", // X6++
+		"LDN 5",
+		"SBN 6",
+		"JAZ CONTINUE",
+		"JMP FOLLOW",
+		// CONTINUE:
+		"DSZ 7", // X7-- and if 0, end loop
+		"JMP INNER",
+		// SUCCESS:
+		"INX 5",
+		"XCH 5",
+		"STA OUT1",
+		"CLA",
+		"STA OUT2",
+		"BRB",
+		// FAIL:
+		"CLA",
+		"STA OUT1",
+		"CLA",
+		"STA OUT2",
 		"BRB",
 	}
 
-	// Harness at 0x000: load needle address into X4, call FIND, halt.
+	// Harness at 0x100: call FIND, halt.
 	src := make([]string, 4096)
-	src[0] = "LDA ARG1" // A = mem[ARG1] = lenAddr
-	src[1] = "XCH 4"    // X4 ↔ A; X3 now = lenAddr
-	src[4] = "JMS FIND" // call FIND
-	src[5] = "HLT"
+	src[0x0] = "JMP 100"    // Jump over the dictionary
+	src[0x100] = "JMS FIND" // call FIND
+	src[0x101] = "HLT"
 	for i, ln := range findAsm {
-		src[0x010+i] = ln
+		src[0x102+i] = ln
 	}
 
 	// Label substitution — expand labels in every source line.
 	labels := map[string]string{
-		"FIND":    "10",
-		"SCRATCH": "13",
-		"MATCH":   "1F",
-		// having these available at same page is a lot easier!
-		"HEAD":    "F0",
-		"CFA_OUT": "F1",
-		"IMM_OUT": "F2",
-		// while this is already read into X4 before call to FIND
-		"ARG1": "E00",
+		"FIND":     "102",
+		"LOOP":     "105",
+		"SCRATCH":  "07", // 0x107, in same-page notation
+		"FOLLOW":   "10D",
+		"MATCH":    "110",
+		"INNER":    "117",
+		"CONTINUE": "11D",
+		"FAIL":     "125",
+		"HEAD":     "CCC",
+		"ARG1":     "E00",
+		"OUT1":     "E01",
+		"OUT2":     "E02",
 	}
 	for i, raw := range src {
 		for old, repl := range labels {
@@ -400,6 +426,7 @@ func TestSAP3Find(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	jump := program[0x0]
 
 	// Build the dictionary: walk a list of entries, chain them via LINK,
 	// place each at consecutive addresses starting at dictBase. Each entry
@@ -415,7 +442,7 @@ func TestSAP3Find(t *testing.T) {
 	}
 
 	cfaOf := map[string]uint16{}
-	prev := uint16(0)
+	prev := jump
 	addr := dictBase
 	for _, e := range entries {
 		hdr := packEntry(prev, e.name, e.imm)
