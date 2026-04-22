@@ -342,20 +342,22 @@ func TestSAP3Find(t *testing.T) {
 		"XCH 4",    // STORE that in X4
 		"LDA HEAD", // A stores address found in HEAD, end of dict
 		// LOOP: (assumes HEAD in A)
-		"JAZ FAIL", // if HEAD is 0, give up
 		"STM",
 		"",              // SCRATCH
 		"LDX 5,SCRATCH", // COPY HEAD into X5, SCRATCH will be used to restore later
 		"INX 5",         // X5 now pointing at flags+length word for entry
 
 		// check if lengths match
-		"LDN 5",     // Load entry length (address pointed at by X5)
+		"LDN 5", // Load entry length word (may have IMM in bit 15)
+		"ANM",
+		"0x7FFF",    // mask off IMM bit before comparing
 		"SBN 4",     // SUBTRACT needle length (address stored in X4)
 		"JAZ MATCH", // if zero, we have a match!
 		// FOLLOW:
 		// continue search
 		"LDX 5,SCRATCH",
-		"LDN 5", // follow link
+		"JIZ 5,REL", // if HEAD was 0, give up. REL=FAIL, but page-relative
+		"LDN 5",     // follow link
 		"JMP LOOP",
 		// MATCH:
 		// check n/2 (rounded up!!!) name words for equivalence
@@ -380,7 +382,12 @@ func TestSAP3Find(t *testing.T) {
 		"INX 5",
 		"XCH 5",
 		"STA OUT1",
-		"CLA",
+		// extract IMM bit from entry's length word
+		"LDX 5,SCRATCH", // X5 = entry addr
+		"INX 5",         // X5 = length word
+		"LDN 5",         // A = length word
+		"ANM",
+		"0x8000", // A = 0 or 0x8000
 		"STA OUT2",
 		"BRB",
 		// FAIL:
@@ -404,12 +411,13 @@ func TestSAP3Find(t *testing.T) {
 	labels := map[string]string{
 		"FIND":     "102",
 		"LOOP":     "105",
-		"SCRATCH":  "07", // 0x107, in same-page notation
-		"FOLLOW":   "10D",
-		"MATCH":    "110",
-		"INNER":    "117",
-		"CONTINUE": "11D",
-		"FAIL":     "125",
+		"SCRATCH":  "06", // 0x106, in same-page notation
+		"FOLLOW":   "10E",
+		"MATCH":    "112",
+		"INNER":    "119",
+		"CONTINUE": "11F",
+		"FAIL":     "12B",
+		"REL":      "2B",
 		"HEAD":     "CCC",
 		"ARG1":     "E00",
 		"OUT1":     "E01",
