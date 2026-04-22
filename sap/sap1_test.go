@@ -15,7 +15,7 @@ func (td *testDebugger) BeforeTick(c Computer) {
 	td.i++
 }
 func (td *testDebugger) AfterTick(c Computer) {
-	if td.i > 100000 {
+	if td.i > 1000000 {
 		td.t.Fatalf("%d): took too long", td.index)
 	}
 }

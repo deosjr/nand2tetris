@@ -184,6 +184,20 @@ func TestSAP3Division(t *testing.T) {
 	}
 }
 
+// packName packs a name into uint16 words, 2 chars per word, high byte first.
+// Odd-length names pad the low byte of the last word with 0.
+func packName(name string) []uint16 {
+	words := []uint16{}
+	for i := 0; i < len(name); i += 2 {
+		w := uint16(name[i]) << 8
+		if i+1 < len(name) {
+			w |= uint16(name[i+1])
+		}
+		words = append(words, w)
+	}
+	return words
+}
+
 // Read ASCII input (one char per 2-byte input read)
 // and pack it into two chars per 2-byte memory slot
 func TestSAP3ReadASCII(t *testing.T) {
@@ -259,7 +273,7 @@ func TestSAP3ReadASCII(t *testing.T) {
 	run(computer, td)
 
 	got := computer.RAM.mem[0x100:0x103]
-	want := []uint16{input[0]<<8 | input[1], input[2]<<8 | input[3], input[4] << 8}
+	want := packName("Hello")
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %d want %d", got, want)
@@ -269,5 +283,212 @@ func TestSAP3ReadASCII(t *testing.T) {
 	wantX := len(input)
 	if gotX != wantX {
 		t.Errorf("len: got %d want %d", gotX, wantX)
+	}
+}
+
+// packEntry builds a dictionary entry header: word 0 + packed name.
+// Simplest packing first: [LINK 16 bits][FLAGS+LEN 16 bits][name...]
+// TODO: Header word 0 layout: [LEN:3][IMM:1][LINK:12], high to low.
+// link is the 12-bit address of the previous entry's header (0 = end of chain).
+func packEntry(link uint16, name string, imm bool) []uint16 {
+	length := uint16(len(name))
+	if imm {
+		length |= 1 << 15
+	}
+	return append([]uint16{link, length}, packName(name)...)
+	/*
+		if len(name) > 7 {
+			panic("name exceeds 7 chars")
+		}
+		var w0 uint16
+		w0 |= uint16(len(name)) << 13
+		if imm {
+			w0 |= 1 << 12
+		}
+		w0 |= link & 0xFFF
+		return append([]uint16{w0}, packName(name)...)
+	*/
+}
+
+// TestSAP3Find scaffolds a hand-built dictionary and exercises a user-authored
+// FIND subroutine. Claude wrote the test harnass, I did the assembly.
+//
+// FIND contract:
+//   - On entry: X4 = ARG1, length of needle in bytes (not words!).
+//     The needle follows immediately after in memory.
+//   - Walk the chain starting from the sentinel pointed to by the HEAD sysvar
+//     at 0xFC0. Sentinels have LEN=0 and must be skipped.
+//   - Terminate the walk when the cursor reaches 0 (root).
+//   - On exit: write the CFA to CFA_OUT (0xFD0), or 0 if the needle is not
+//     found. Write a nonzero value to IMM_OUT (0xFD1) iff the found entry has
+//     the IMMEDIATE bit set (0 otherwise, including on miss).
+//   - End with BRB. Entry point is at address 0x010.
+//
+// Replace findAsm below with your implementation.
+func TestSAP3Find(t *testing.T) {
+	const (
+		dictBase   = uint16(0x100)
+		headAddr   = uint16(0xF0)
+		cfaOutAddr = uint16(0xF1)
+		immOutAddr = uint16(0xF2)
+		arg1Addr   = uint16(0xE00)
+		lenAddr    = uint16(0xE01)
+		brbEncoded = uint16(0xFC00)
+	)
+
+	// The needle address is already in X4 on entry.
+	findAsm := []string{
+		// START:
+		"LDX 5,HEAD", // X5 stores address found in HEAD, end of dict
+		// LOOP:
+		"XCH 5",
+		"STM",
+		"", // SCRATCH
+		"XCH 5",
+		"LDX 6,SCRATCH", // COPY X5 into X6, have to go through A and mem
+		"INX 6",         // X6 now pointing at flags+length word for entry
+
+		// check if lengths match
+		"LDN 6",     // Load entry length (address pointed at by X6)
+		"SBN 4",     // SUBTRACT needle length (address stored in X4)
+		"JAZ MATCH", // if zero, we have a match!
+		// NOMATCH:
+		"XCH 5",
+		"STA CFA_OUT",
+		"CLA",
+		"STA IMM_OUT",
+		"BRB",
+		// continue search
+		// if new HEAD is zero, give up
+		// MATCH:
+		// check n/2 (rounded up!!!) name words for equivalence
+		// if fail, goto NOMATCH
+		// if success, return CFA address in 0xFD0 and flag into 0xFD1
+		"BRB",
+	}
+
+	// Harness at 0x000: load needle address into X4, call FIND, halt.
+	src := make([]string, 4096)
+	src[0] = "LDA ARG1" // A = mem[ARG1] = lenAddr
+	src[1] = "XCH 4"    // X4 ↔ A; X3 now = lenAddr
+	src[4] = "JMS FIND" // call FIND
+	src[5] = "HLT"
+	for i, ln := range findAsm {
+		src[0x010+i] = ln
+	}
+
+	// Label substitution — expand labels in every source line.
+	labels := map[string]string{
+		"FIND":    "10",
+		"SCRATCH": "13",
+		"MATCH":   "1F",
+		// having these available at same page is a lot easier!
+		"HEAD":    "F0",
+		"CFA_OUT": "F1",
+		"IMM_OUT": "F2",
+		// while this is already read into X4 before call to FIND
+		"ARG1": "E00",
+	}
+	for i, raw := range src {
+		for old, repl := range labels {
+			raw = strings.ReplaceAll(raw, old, repl)
+		}
+		src[i] = raw
+	}
+
+	program, err := assembleSAP3FromStrings(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Build the dictionary: walk a list of entries, chain them via LINK,
+	// place each at consecutive addresses starting at dictBase. Each entry
+	// gets a 1-word body (BRB) so its CFA is a legal (unused) primitive.
+	entries := []struct {
+		name string
+		imm  bool
+	}{
+		{"+", false},
+		{"DUP", false},
+		{"OR", false},
+		{"SWAP", true},
+	}
+
+	cfaOf := map[string]uint16{}
+	prev := uint16(0)
+	addr := dictBase
+	for _, e := range entries {
+		hdr := packEntry(prev, e.name, e.imm)
+		for i, w := range hdr {
+			program[int(addr)+i] = w
+		}
+		cfa := addr + uint16(len(hdr))
+		cfaOf[e.name] = cfa
+		program[cfa] = brbEncoded
+		prev = addr
+		addr = cfa + 1
+	}
+
+	// Sentinel: LEN=0, IMM=0, LINK=most-recent-entry.
+	sentinel := addr // <-- HEAD will point here
+	program[sentinel] = prev & 0xFFF
+	program[sentinel+1] = 0x0 // length=0
+
+	// Sysvars.
+	program[headAddr] = sentinel
+	program[arg1Addr] = lenAddr
+
+	cases := []struct {
+		name    string
+		needle  string
+		wantCFA uint16
+		wantIMM bool
+	}{
+		{"most recent (immediate)", "SWAP", cfaOf["SWAP"], true},
+		{"oldest (1-char)", "+", cfaOf["+"], false},
+		{"middle odd-length", "DUP", cfaOf["DUP"], false},
+		{"middle even-length", "OR", cfaOf["OR"], false},
+		{"not found", "BOGUS", 0, false},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			// Sentinel output values so we can detect if FIND didn't run.
+			const sentinelVal = 0xDEAD
+			program[cfaOutAddr] = sentinelVal
+			program[immOutAddr] = sentinelVal
+
+			computer := NewSAP3()
+			computer.LoadProgram(bootloader)
+			tapeReader := &TapeReader{tape: program[:]}
+			computer.RegisterInputDevice(tapeReader, 0)
+			td := &testDebugger{t: t}
+
+			// create the needle in memory, the word we are looking for
+			length := len(tc.needle)
+			program[lenAddr] = uint16(length)
+			for i, v := range packName(tc.needle) {
+				program[lenAddr+1+uint16(i)] = v
+			}
+
+			run(computer, td)
+
+			gotCFA := computer.RAM.mem[cfaOutAddr]
+			gotIMM := computer.RAM.mem[immOutAddr]
+
+			if gotCFA == sentinelVal {
+				t.Fatalf("FIND did not write CFA_OUT (still 0x%X) — stub or missing store?", gotCFA)
+			}
+			if gotIMM == sentinelVal {
+				t.Fatalf("FIND did not write IMM_OUT (still 0x%X) — stub or missing store?", gotIMM)
+			}
+			if gotCFA != tc.wantCFA {
+				t.Errorf("CFA: got 0x%X, want 0x%X", gotCFA, tc.wantCFA)
+			}
+			if (gotIMM != 0) != tc.wantIMM {
+				t.Errorf("IMM: got 0x%X (nonzero=%v), want nonzero=%v", gotIMM, gotIMM != 0, tc.wantIMM)
+			}
+		})
 	}
 }
