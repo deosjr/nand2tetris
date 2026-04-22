@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -154,6 +155,117 @@ func encodeASM2(s string) (uint16, error) {
 		return 0b1011<<8 | uint16(dest), nil
 	}
 	return 0, fmt.Errorf("invalid opcode format")
+}
+
+// labelRe matches a line that is nothing but a label declaration, e.g. "LOOP:".
+// Leading/trailing whitespace on the line is tolerated.
+var labelRe = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*:$`)
+
+// placeholderRe matches a braced symbolic reference inside an instruction.
+//   {FOO}   — 12-bit absolute address of label FOO
+//   {:FOO}  — 8-bit page-relative offset to FOO, must be on the current page
+var placeholderRe = regexp.MustCompile(`\{(:?)([A-Z_][A-Z0-9_]*)\}`)
+
+// parseLabels walks src and extracts label-only lines ("LOOP:") into a label
+// table, returning the source with those lines removed. Each label records
+// the absolute address (base + position-in-output) of the next emitted word.
+// Consecutive labels share that address; a label at the end points one past
+// the final emitted word.
+func parseLabels(base uint16, src []string) ([]string, map[string]uint16, error) {
+	labels := map[string]uint16{}
+	clean := make([]string, 0, len(src))
+	for i, line := range src {
+		trimmed := strings.TrimSpace(line)
+		if labelRe.MatchString(trimmed) {
+			name := trimmed[:len(trimmed)-1]
+			if _, exists := labels[name]; exists {
+				return nil, nil, fmt.Errorf("line %d: duplicate label %q", i, name)
+			}
+			labels[name] = base + uint16(len(clean))
+			continue
+		}
+		clean = append(clean, line)
+	}
+	return clean, labels, nil
+}
+
+// resolve substitutes {FOO} and {:FOO} placeholders in each line with the
+// resolved address, producing concrete assembly text that encodeASM3 accepts.
+// Labels in `labels` (defined within the block) take precedence over
+// `externals` (sysvars, fixed-address symbols). Page-relative references
+// assert that the target lives on the same 256-word page as the referring
+// instruction.
+func resolve(base uint16, src []string, labels, externals map[string]uint16) ([]string, error) {
+	lookup := func(name string) (uint16, bool) {
+		if v, ok := labels[name]; ok {
+			return v, true
+		}
+		v, ok := externals[name]
+		return v, ok
+	}
+	out := make([]string, len(src))
+	for i, line := range src {
+		addr := base + uint16(i)
+		var loopErr error
+		replaced := placeholderRe.ReplaceAllStringFunc(line, func(m string) string {
+			if loopErr != nil {
+				return m
+			}
+			parts := placeholderRe.FindStringSubmatch(m)
+			pageRel := parts[1] == ":"
+			name := parts[2]
+			target, ok := lookup(name)
+			if !ok {
+				loopErr = fmt.Errorf("line %d (addr 0x%X): unresolved label %q in %q", i, addr, name, line)
+				return m
+			}
+			if pageRel {
+				if target&0xFF00 != addr&0xFF00 {
+					loopErr = fmt.Errorf("line %d (addr 0x%X): page-relative {:%s} targets 0x%X which is on a different page", i, addr, name, target)
+					return m
+				}
+				return fmt.Sprintf("%X", target&0xFF)
+			}
+			return fmt.Sprintf("%X", target&0xFFF)
+		})
+		if loopErr != nil {
+			return nil, loopErr
+		}
+		out[i] = replaced
+	}
+	return out, nil
+}
+
+// assembleSAP3Labeled assembles a labeled source block into words placed at
+// base..base+N. The source may contain:
+//
+//   - label-only lines like "LOOP:" that define a symbol pointing at the next
+//     emitted word and emit nothing themselves;
+//   - instructions or data words with {FOO} / {:FOO} placeholders for
+//     symbolic references (absolute vs. same-page respectively);
+//   - ordinary lines in the format encodeASM3 already accepts.
+//
+// `externals` supplies addresses for symbols the block references but does
+// not define (sysvars, fixed-address outputs). Returns the emitted words and
+// the label table resolved during this pass.
+func assembleSAP3Labeled(base uint16, src []string, externals map[string]uint16) ([]uint16, map[string]uint16, error) {
+	clean, labels, err := parseLabels(base, src)
+	if err != nil {
+		return nil, nil, err
+	}
+	resolved, err := resolve(base, clean, labels, externals)
+	if err != nil {
+		return nil, labels, err
+	}
+	out := make([]uint16, len(resolved))
+	for i, line := range resolved {
+		w, err := encodeASM3(line)
+		if err != nil {
+			return nil, labels, fmt.Errorf("line %d (addr 0x%X) %q: %w", i, base+uint16(i), line, err)
+		}
+		out[i] = w
+	}
+	return out, labels, nil
 }
 
 func assembleSAP3FromStrings(strs []string) ([4096]uint16, error) {

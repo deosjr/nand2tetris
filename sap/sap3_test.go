@@ -336,105 +336,97 @@ func TestSAP3Find(t *testing.T) {
 		brbEncoded = uint16(0xFC00)
 	)
 
+	// Harness + FIND as a single labeled block starting at 0x100.
+	// Labels are in-line ("FOO:") and references use {FOO} (absolute) or
+	// {:FOO} (same-page offset). No more hand-maintained address map.
 	findAsm := []string{
-		// FIND:
-		"LDA ARG1", // ARG1 = address of needle length (needle comes after)
-		"XCH 4",    // STORE that in X4
-		"LDA HEAD", // A stores address found in HEAD, end of dict
-		// LOOP: (assumes HEAD in A)
+		// Harness.
+		"JMS {FIND}",
+		"HLT",
+
+		"FIND:",
+		"LDA {ARG1}", // ARG1 = address of needle length (needle comes after)
+		"XCH 4",      // STORE that in X4
+		"LDA {HEAD}", // A stores address found in HEAD, end of dict
+
+		"LOOP:", // (assumes current entry address in A)
 		"STM",
-		"",              // SCRATCH
-		"LDX 5,SCRATCH", // COPY HEAD into X5, SCRATCH will be used to restore later
-		"INX 5",         // X5 now pointing at flags+length word for entry
+		"SCRATCH:", "", // scratch cell; STM writes A here each loop
+		"LDX 5,{:SCRATCH}", // COPY entry addr into X5
+		"INX 5",            // X5 now points at flags+length word
 
 		// check if lengths match
-		"LDN 5", // Load entry length word (may have IMM in bit 15)
-		"ANM",
-		"0x7FFF",    // mask off IMM bit before comparing
-		"SBN 4",     // SUBTRACT needle length (address stored in X4)
-		"JAZ MATCH", // if zero, we have a match!
-		// FOLLOW:
-		// continue search
-		"LDX 5,SCRATCH",
-		"JIZ 5,REL", // if HEAD was 0, give up. REL=FAIL, but page-relative
-		"LDN 5",     // follow link
-		"JMP LOOP",
-		// MATCH:
-		// check n/2 (rounded up!!!) name words for equivalence
-		"LDA ARG1",
+		"LDN 5",         // Load entry length word (may have IMM in bit 15)
+		"ANM", "0x7FFF", // mask off IMM bit before comparing
+		"SBN 4",       // SUBTRACT needle length (via X4)
+		"JAZ {MATCH}", // if zero, we have a match!
+
+		"FOLLOW:",
+		"LDX 5,{:SCRATCH}",
+		"JIZ 5,{:FAIL}", // if entry addr was 0, give up
+		"LDN 5",         // follow link
+		"JMP {LOOP}",
+
+		"MATCH:",
+		// check ceil(n/2) name words for equivalence
+		"LDA {ARG1}",
 		"XCH 6", // X6 = address of needle length
 		"LDN 6", // A = needle length
-		"ADM",
-		"0x1",
-		"SHR",   // A = (A+1) >> 1, i.e. ceil(n/2)
-		"XCH 7", // X7 = A
-		// INNER:
+		"ADM", "0x1",
+		"SHR",   // A = (A+1) >> 1 = ceil(n/2)
+		"XCH 7", // X7 = counter
+
+		"INNER:",
 		"INX 5", // X5++
 		"INX 6", // X6++
 		"LDN 5",
 		"SBN 6",
-		"JAZ CONTINUE",
-		"JMP FOLLOW",
-		// CONTINUE:
-		"DSZ 7", // X7-- and if 0, end loop
-		"JMP INNER",
-		// SUCCESS:
+		"JAZ {CONTINUE}",
+		"JMP {FOLLOW}",
+
+		"CONTINUE:",
+		"DSZ 7", // X7-- and if 0, fall through
+		"JMP {INNER}",
+
+		// SUCCESS (fall-through from CONTINUE)
 		"INX 5",
 		"XCH 5",
-		"STA OUT1",
+		"STA {OUT1}",
 		// extract IMM bit from entry's length word
-		"LDX 5,SCRATCH", // X5 = entry addr
-		"INX 5",         // X5 = length word
-		"LDN 5",         // A = length word
-		"ANM",
-		"0x8000", // A = 0 or 0x8000
-		"STA OUT2",
+		"LDX 5,{:SCRATCH}", // X5 = entry addr
+		"INX 5",            // X5 = length word
+		"LDN 5",            // A = length word
+		"ANM", "0x8000",    // A = 0 or 0x8000
+		"STA {OUT2}",
 		"BRB",
-		// FAIL:
-		"CLA",
-		"STA OUT1",
-		"CLA",
-		"STA OUT2",
+
+		"FAIL:",
+		"CLA", "STA {OUT1}",
+		"CLA", "STA {OUT2}",
 		"BRB",
 	}
 
-	// Harness at 0x100: call FIND, halt.
-	src := make([]string, 4096)
-	src[0x0] = "JMP 100"    // Jump over the dictionary
-	src[0x100] = "JMS FIND" // call FIND
-	src[0x101] = "HLT"
-	for i, ln := range findAsm {
-		src[0x102+i] = ln
+	externals := map[string]uint16{
+		"HEAD": headAddr,
+		"ARG1": arg1Addr,
+		"OUT1": cfaOutAddr,
+		"OUT2": immOutAddr,
 	}
 
-	// Label substitution — expand labels in every source line.
-	labels := map[string]string{
-		"FIND":     "102",
-		"LOOP":     "105",
-		"SCRATCH":  "06", // 0x106, in same-page notation
-		"FOLLOW":   "10E",
-		"MATCH":    "112",
-		"INNER":    "119",
-		"CONTINUE": "11F",
-		"FAIL":     "12B",
-		"REL":      "2B",
-		"HEAD":     "CCC",
-		"ARG1":     "E00",
-		"OUT1":     "E01",
-		"OUT2":     "E02",
-	}
-	for i, raw := range src {
-		for old, repl := range labels {
-			raw = strings.ReplaceAll(raw, old, repl)
-		}
-		src[i] = raw
-	}
-
-	program, err := assembleSAP3FromStrings(src)
+	code, _, err := assembleSAP3Labeled(0x100, findAsm, externals)
 	if err != nil {
 		t.Fatal(err)
 	}
-	jump := program[0x0]
+
+	var program [4096]uint16
+	// JMP 100 at 0x0 — lost once the dictionary overwrites it, but
+	// preserved as the "+"-entry's link so bootloader's JMP 0 still lands
+	// us on the harness (see dict builder below).
+	jmp, err := encodeASM3("JMP 100")
+	if err != nil {
+		t.Fatal(err)
+	}
+	copy(program[0x100:], code)
 
 	// Build the dictionary: walk a list of entries, chain them via LINK,
 	// place each at consecutive addresses starting at dictBase. Each entry
@@ -450,7 +442,7 @@ func TestSAP3Find(t *testing.T) {
 	}
 
 	cfaOf := map[string]uint16{}
-	prev := jump
+	prev := jmp
 	addr := dictBase
 	for _, e := range entries {
 		hdr := packEntry(prev, e.name, e.imm)
