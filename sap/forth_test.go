@@ -337,13 +337,54 @@ func TestSAP3ForthWord(t *testing.T) {
 		// Reads from INP 1. Free to use X0..X7 and same-page scratch cells.
 		// Must NOT touch X8, X9. Must end with BRB.
 		"WORD:",
-		// TODO: implement.
-		"LDM", "0xFFF",
-		"STA {WORDBUF}",
-		// consume leading delimiters
-		// remember address for length
 		// copy most of what ReadASCII is doing
+        "CLA",
+        "XCH 0", // count length in X0
+        "CLA",
+        "XCH 1", // high/low store mode
+        "LDX 2,{:WB_INIT}", // address to store word
+        "LDX 3,{:WB_INIT}", // address to store length
+		// consume leading delimiters
+        "INP 1",
+        "JAZ {END}",   // leading 0 is a parse error
+        "SBM", "0x21",
+        "JAM {WORD}",  // if A - 0x21 is minus, A was 0x20 or less (ignoring 0xFFFF)
+        "ADM", "0x21",
+        
+        "START:", // because of leading parse, input starts in A already
+        "JAZ {END}",
+        "SBM", "0x21",
+        "JAM {END}",    // found a delimiter, end. delimiter is consumed
+        "ADM", "0x21",
+        "INX 0",
+        "JIZ 1,{:PREPHIGH}",
+
+        // PREPLOW:
+        "ORM",
+        "TEMP:", "",
+        "INX 1",
+        "JMP {STORE}",
+
+        "PREPHIGH:",
+        "LDX 4,{:EIGHT}",
+        "SHIFT:",
+        "SHL", // this could be replaced by a single << 8 instr
+        "DSZ 4",
+        "JMP {SHIFT}",
+        "STA {TEMP}",
+        "INX 2",
+        "DEX 1",
+
+        "STORE:",
+        "STN 2",
+        "INP 1",    // read next token here!
+        "JMP {START}",
+        "EIGHT:", "0x8",
+        
 		// add the length value and return
+        "END:",
+        "XCH 0",
+        "STN 3",
 		"BRB",
 	}
 
