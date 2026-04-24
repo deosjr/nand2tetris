@@ -219,7 +219,7 @@ func TestSAP3ReadASCII(t *testing.T) {
 		// prepare low bits
 		"ORM",   // immediate OR
 		"",      // previous high bits stored here
-		"INX 1", // NEXT store high bits
+		"DEX 1", // NEXT store high bits
 		"JMP STORE",
 		// prepare high bits
 		"LDX 3,EIGHT", // use idx 3 to count down from 8
@@ -228,7 +228,7 @@ func TestSAP3ReadASCII(t *testing.T) {
 		"JMP BACK2", // continue shifting
 		"STA TEMP",  // save shifted high bits to fixed address for low path
 		"INX 2",     // Go to next ADDRESS
-		"DEX 1",     // NEXT store low bits
+		"INX 1",     // NEXT store low bits
 		// store
 		"STN 2",
 		"JMP START", // jump to start of loop

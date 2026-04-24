@@ -338,53 +338,54 @@ func TestSAP3ForthWord(t *testing.T) {
 		// Must NOT touch X8, X9. Must end with BRB.
 		"WORD:",
 		// copy most of what ReadASCII is doing
-        "CLA",
-        "XCH 0", // count length in X0
-        "CLA",
-        "XCH 1", // high/low store mode
-        "LDX 2,{:WB_INIT}", // address to store word
-        "LDX 3,{:WB_INIT}", // address to store length
+		"CLA",
+		"XCH 0", // count length in X0
+		"CLA",
+		"XCH 1",            // high/low store mode
+		"LDX 2,{:WB_INIT}", // address to store word
+		"LDX 3,{:WB_INIT}", // address to store length
 		// consume leading delimiters
-        "INP 1",
-        "JAZ {END}",   // leading 0 is a parse error
-        "SBM", "0x21",
-        "JAM {WORD}",  // if A - 0x21 is minus, A was 0x20 or less (ignoring 0xFFFF)
-        "ADM", "0x21",
-        
-        "START:", // because of leading parse, input starts in A already
-        "JAZ {END}",
-        "SBM", "0x21",
-        "JAM {END}",    // found a delimiter, end. delimiter is consumed
-        "ADM", "0x21",
-        "INX 0",
-        "JIZ 1,{:PREPHIGH}",
+		"LEAD:",
+		"INP 1",
+		"JAZ {END}", // leading 0 is a parse error
+		"SBM", "0x21",
+		"JAM {LEAD}", // if A - 0x21 is minus, A was 0x20 or less (ignoring 0xFFFF)
+		"ADM", "0x21",
 
-        // PREPLOW:
-        "ORM",
-        "TEMP:", "",
-        "INX 1",
-        "JMP {STORE}",
+		"START:", // because of leading parse, input starts in A already
+		"JAZ {END}",
+		"SBM", "0x21",
+		"JAM {END}", // found a delimiter, end. delimiter is consumed
+		"ADM", "0x21",
+		"INX 0",
+		"JIZ 1,{:PREPHIGH}",
 
-        "PREPHIGH:",
-        "LDX 4,{:EIGHT}",
-        "SHIFT:",
-        "SHL", // this could be replaced by a single << 8 instr
-        "DSZ 4",
-        "JMP {SHIFT}",
-        "STA {TEMP}",
-        "INX 2",
-        "DEX 1",
+		// PREPLOW:
+		"ORM",
+		"TEMP:", "",
+		"DEX 1",
+		"JMP {STORE}",
 
-        "STORE:",
-        "STN 2",
-        "INP 1",    // read next token here!
-        "JMP {START}",
-        "EIGHT:", "0x8",
-        
+		"PREPHIGH:",
+		"LDX 4,{:EIGHT}",
+		"SHIFT:",
+		"SHL", // this could be replaced by a single << 8 instr
+		"DSZ 4",
+		"JMP {SHIFT}",
+		"STA {TEMP}",
+		"INX 2",
+		"INX 1",
+
+		"STORE:",
+		"STN 2",
+		"INP 1", // read next token here!
+		"JMP {START}",
+		"EIGHT:", "0x8",
+
 		// add the length value and return
-        "END:",
-        "XCH 0",
-        "STN 3",
+		"END:",
+		"XCH 0",
+		"STN 3",
 		"BRB",
 	}
 
@@ -528,6 +529,204 @@ func TestSAP3ForthWord(t *testing.T) {
 					t.Errorf("harness wrote past expected end: snapshot[%d].length = 0x%X, want sentinel 0x%X",
 						len(tc.expect), computer.RAM.mem[beyond], sentinelVal)
 				}
+			}
+		})
+	}
+}
+
+// TestSAP3ForthNumber exercises a user-authored NUMBER subroutine — the
+// "is this a literal?" parser the interpreter calls when FIND comes up
+// empty on a token.
+//
+// NUMBER contract:
+//   - Input: WORDBUF at 0xE10 (same layout WORD writes — length word
+//     followed by packed name words, 2 chars per word, high byte first).
+//     Read-only: NUMBER must not modify WORDBUF.
+//   - Output:
+//       NUMVAL at 0xE30 : parsed value on success (any uint16).
+//       NUMOK  at 0xE31 : nonzero on success, 0 on failure. A separate
+//                         flag is required because NUMVAL=0 is a valid
+//                         result (the literal "0").
+//   - Format (v1): unsigned decimal. Every char must be '0'..'9'.
+//     Any non-digit → failure. length > 0 guaranteed by caller.
+//     Hex prefix / signs / overflow detection are out of scope for now.
+//   - Register discipline: free to clobber A, B, X0..X7.
+//   - Terminate with BRB.
+//
+// Harness shape mirrors FIND: Go pre-fills WORDBUF with the packed test
+// input, the assembly just does JMS NUMBER / HLT, we read the sysvars
+// after the machine halts.
+func TestSAP3ForthNumber(t *testing.T) {
+	const (
+		wordBufAddr = uint16(0xE10)
+		numValAddr  = uint16(0xE30)
+		numOkAddr   = uint16(0xE31)
+	)
+
+	numberAsm := []string{
+		// --- Harness ---
+		"JMS {NUMBER}",
+		"HLT",
+
+		// Data words (these should be globals probably)
+		"WB_INIT:", "0xE10",
+		"EIGHT:", "0x8",
+
+		// --- NUMBER subroutine — FILL IN ---
+		// Free to clobber A, B, X0..X7. Must end with BRB.
+		// Must write NUMVAL and NUMOK on every exit path (success and
+		// failure), otherwise the sentinel check below will flag it.
+		"NUMBER:",
+		"LDX 0,{:WB_INIT}", // X0 contains pointer to WORDBUF
+		"CLA", "XCH 1",     // X1 for high/low read mode (quicker than checking length%2)
+		"CLA", "XCH 2", // X2 will contain our number
+		"LDN 0", "XCH 3", // X3 contains length (assumed nonzero!)
+
+		"LOOP:",
+		"JIZ 3,{:SUCCESS}",
+		"DEX 3", // use DSZ somehow instead?
+		"JIZ 1,{:READHIGH}",
+
+		// READLOW:
+		"DEX 1",
+		"LDN 0",
+		"ANM", "0xFF", // mask off the high bits
+		"LOW:",
+		// ascii->num(A): do we have a digit?
+		// digits: 0-9 in ascii is 0x30 - 0x39
+		"SBM", "0x30",
+		"JAM {FAIL}",
+		"SBM", "0xA",
+		"JAM {DIGITFOUND}",
+		"JMP {FAIL}",
+
+		"DIGITFOUND:",
+		"ADM", "0xA", // we subtracted 0x3A, so + 0xA completes ascii->num conversion
+		// X2 = X2 * 10 + ascii->num(A)
+		"XCH 2",            // new num now in X2, X2 value in A
+		"STM", "TEMP:", "", // TEMP holds old X2
+		"SHL",
+		"SHL",
+		"SHL", // X2 << 3, meaning X2 * 8
+		"ADD {TEMP}",
+		"ADD {TEMP}", // A = (X2 << 3) + X2 + X2
+		"XCH 2",
+		"STA {TEMP}",
+		"XCH 2",
+		"ADD {TEMP}",
+		"XCH 2",
+		"JMP {LOOP}",
+
+		"READHIGH:",
+		"INX 1",
+		"LDX 4,{:EIGHT}",
+		"INX 0", // advance word pointer
+		"LDN 0",
+		"SHIFT:",
+		"SHR", // >> 8, in a loop
+		"DSZ 4",
+		"JMP {SHIFT}",
+		// here A = *X0 >> 8, low bits have fallen off and high bits are zeroes
+		"JMP {LOW}",
+
+		"SUCCESS:",
+		"XCH 2",
+		"STA {NUMVAL}",
+		"XCH 0",
+		"STA {NUMOK}",
+		"BRB",
+
+		"FAIL:",
+		"CLA",
+		"STA {NUMVAL}",
+		"STA {NUMOK}",
+		"BRB",
+	}
+
+	externals := map[string]uint16{
+		"WORDBUF": wordBufAddr,
+		"NUMVAL":  numValAddr,
+		"NUMOK":   numOkAddr,
+	}
+
+	code, _, err := assembleSAP3Labeled(0x100, numberAsm, externals)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	jmp100, err := encodeASM3("JMP 100")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cases := []struct {
+		name    string
+		input   string
+		wantVal uint16
+		wantOK  bool
+	}{
+		// Success cases.
+		{"zero", "0", 0, true},
+		{"single digit", "7", 7, true},
+		{"two digits", "42", 42, true},
+		{"handling zero", "402", 402, true},
+		{"spans two words", "1234", 1234, true}, // exercises unpacking across words
+		{"five digits", "12345", 12345, true},
+		{"max uint16", "65535", 65535, true},
+
+		// Failure cases.
+		{"forth word", "+", 0, false}, // interpreter path: FIND miss → NUMBER must reject
+		{"letter", "A", 0, false},
+		{"digit then letter", "12A3", 0, false}, // non-digit mid-token
+		{"letter then digit", "A12", 0, false},  // non-digit at start
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var program [4096]uint16
+			program[0x0] = jmp100
+			copy(program[0x100:], code)
+
+			// Sentinel the outputs so "NUMBER never ran" is distinguishable
+			// from "NUMBER deliberately wrote 0 on failure".
+			const sentinelVal = uint16(0xDEAD)
+			program[numValAddr] = sentinelVal
+			program[numOkAddr] = sentinelVal
+
+			// Pre-fill WORDBUF with the packed test input.
+			program[wordBufAddr] = uint16(len(tc.input))
+			for i, w := range packName(tc.input) {
+				program[wordBufAddr+1+uint16(i)] = w
+			}
+
+			computer := NewSAP3()
+			computer.LoadProgram(bootloader)
+			tapeReader := &TapeReader{tape: program[:]}
+			computer.RegisterInputDevice(tapeReader, 0)
+			td := &testDebugger{t: t}
+			run(computer, td)
+
+			gotVal := computer.RAM.mem[numValAddr]
+			gotOK := computer.RAM.mem[numOkAddr]
+
+			path := "failure"
+			if tc.wantOK {
+				path = "success"
+			}
+
+			if gotVal == sentinelVal {
+				t.Fatalf("NUMBER did not write NUMVAL (still 0x%X) — stub or missing store on %s path?", gotVal, path)
+			}
+			if gotOK == sentinelVal {
+				t.Fatalf("NUMBER did not write NUMOK (still 0x%X) — stub or missing store on %s path?", gotOK, path)
+			}
+			if (gotOK != 0) != tc.wantOK {
+				t.Errorf("NUMOK: got 0x%X (success=%v), want success=%v", gotOK, gotOK != 0, tc.wantOK)
+			}
+			// Only assert NUMVAL on success — failure paths are free to
+			// write any value (conventionally 0, but not required).
+			if tc.wantOK && gotVal != tc.wantVal {
+				t.Errorf("NUMVAL: got %d (0x%X), want %d (0x%X)", gotVal, gotVal, tc.wantVal, tc.wantVal)
 			}
 		})
 	}
