@@ -803,14 +803,13 @@ func TestSAP3ForthNumber(t *testing.T) {
 //	0x200-0xCBF : future code pages (more primitives, DOCOL, COMPILE, ...)
 //	0xCCC       : HEAD sysvar
 //	0xD00       : data stack (grows up; 256 cells)
-//	0xE00       : ARG1, CFAOUT, IMMOUT   (FIND sysvars)
+//	0xE01       : CFAOUT, IMMOUT         (FIND outputs; 0xE00 free)
 //	0xE10       : WORDBUF                (WORD output / FIND needle / NUMBER input)
 //	0xE30       : NUMVAL, NUMOK          (NUMBER sysvars)
 //	0xE50       : ERRFLAG                (0=ok, 1=unknown token)
 func TestSAP3ForthInterpreter(t *testing.T) {
 	const (
 		wordBufAddr = uint16(0xE10)
-		arg1Addr    = uint16(0xE00)
 		cfaOutAddr  = uint16(0xE01)
 		immOutAddr  = uint16(0xE02)
 		numValAddr  = uint16(0xE30)
@@ -827,11 +826,8 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		// ============================================================
 		// Outer loop — entry point at codeBase.
 		// ============================================================
-		// ARG1 = WORDBUF (stays constant; FIND reads it every iteration).
-		"LDM", fmt.Sprintf("0x%X", wordBufAddr),
-		"STA {ARG1}",
 		// X8 = stackBase (empty stack).
-		"LDX 8,{:SP_INIT}",
+		"LDX 8,{:I_SP_INIT}",
 
 		"I_LOOP:",
 		"JMS {WORD}",
@@ -865,12 +861,12 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		"STA {ERRFLAG}", // failure: ERRFLAG = 1
 		"HLT",
 
-		"SP_INIT:", fmt.Sprintf("0x%X", stackBase),
+		"I_SP_INIT:", fmt.Sprintf("0x%X", stackBase),
 
 		// ============================================================
 		// WORD — reads INP 1, writes WORDBUF. Preserves X8.
-		// Lifted verbatim from TestSAP3ForthWord; renames: SHIFT→W_SHIFT,
-		// TEMP→W_TEMP. WB_INIT and EIGHT dedup to the shared block below.
+		// Lifted verbatim from TestSAP3ForthWord; renames: all internal
+		// labels get W_ prefix. WB_INIT and EIGHT dedup to shared block.
 		// ============================================================
 		"WORD:",
 		"CLA",
@@ -880,28 +876,28 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		"LDX 2,{:WB_INIT}", // address to store word
 		"LDX 3,{:WB_INIT}", // address to store length
 		// consume leading delimiters
-		"LEAD:",
+		"W_LEAD:",
 		"INP 1",
-		"JAZ {END}", // leading 0 is a parse error
+		"JAZ {W_END}", // leading 0 is a parse error
 		"SBM", "0x21",
-		"JAM {LEAD}",
+		"JAM {W_LEAD}",
 		"ADM", "0x21",
 
-		"START:",
-		"JAZ {END}",
+		"W_START:",
+		"JAZ {W_END}",
 		"SBM", "0x21",
-		"JAM {END}", // delimiter ends token; consumed
+		"JAM {W_END}", // delimiter ends token; consumed
 		"ADM", "0x21",
 		"INX 0",
-		"JIZ 1,{:PREPHIGH}",
+		"JIZ 1,{:W_PREPHIGH}",
 
-		// PREPLOW:
+		// W_PREPLOW:
 		"ORM",
 		"W_TEMP:", "",
 		"DEX 1",
-		"JMP {STORE}",
+		"JMP {W_STORE}",
 
-		"PREPHIGH:",
+		"W_PREPHIGH:",
 		"LDX 4,{:EIGHT}",
 		"W_SHIFT:",
 		"SHL",
@@ -911,68 +907,66 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		"INX 2",
 		"INX 1",
 
-		"STORE:",
+		"W_STORE:",
 		"STN 2",
 		"INP 1", // read next char
-		"JMP {START}",
+		"JMP {W_START}",
 
-		"END:",
+		"W_END:",
 		"XCH 0",
 		"STN 3",
 		"BRB",
 
 		// ============================================================
-		// FIND — reads ARG1+HEAD, writes CFAOUT+IMMOUT. Preserves X8.
-		// Lifted verbatim from TestSAP3ForthFind; renames: LOOP→F_LOOP,
-		// FAIL→F_FAIL, OUT1/OUT2→CFAOUT/IMMOUT (external names changed).
+		// FIND — reads WORDBUF+HEAD, writes CFAOUT+IMMOUT. Preserves X8.
+		// Lifted from TestSAP3ForthFind; all internal labels get F_ prefix.
+		// ARG1 indirection dropped — FIND reads WORDBUF directly via WB_INIT.
 		// ============================================================
 		"FIND:",
-		"LDA {ARG1}", // ARG1 = address of needle length (needle follows)
-		"XCH 4",
+		"LDX 4,{:WB_INIT}", // X4 = WORDBUF address (needle length at *X4)
 		"LDA {HEAD}",
 
 		"F_LOOP:", // (assumes current entry address in A)
 		"STM",
-		"SCRATCH:", "", // scratch cell; STM writes A here each loop
-		"LDX 5,{:SCRATCH}",
+		"F_SCRATCH:", "", // scratch cell; STM writes A here each loop
+		"LDX 5,{:F_SCRATCH}",
 		"INX 5", // X5 now points at flags+length word
 
 		"LDN 5",
 		"ANM", "0x7FFF", // mask off IMM bit
 		"SBN 4",
-		"JAZ {MATCH}",
+		"JAZ {F_MATCH}",
 
-		"FOLLOW:",
-		"LDX 5,{:SCRATCH}",
+		"F_FOLLOW:",
+		"LDX 5,{:F_SCRATCH}",
 		"JIZ 5,{:F_FAIL}", // if entry addr was 0, give up
 		"LDN 5",           // follow link
 		"JMP {F_LOOP}",
 
-		"MATCH:",
-		"LDA {ARG1}",
-		"XCH 6",
+		"F_MATCH:",
+		"LDX 6,{:WB_INIT}", // X6 = WORDBUF address (reload for name comparison)
 		"LDN 6",
 		"ADM", "0x1",
 		"SHR",
 		"XCH 7", // X7 = ceil(n/2) counter
 
-		"INNER:",
+		"F_INNER:",
 		"INX 5",
 		"INX 6",
 		"LDN 5",
 		"SBN 6",
-		"JAZ {CONTINUE}",
-		"JMP {FOLLOW}",
+		"JAZ {F_CONTINUE}",
+		"JMP {F_FOLLOW}",
 
-		"CONTINUE:",
+		"F_CONTINUE:",
 		"DSZ 7",
-		"JMP {INNER}",
+		"JMP {F_INNER}",
 
-		// SUCCESS (fall-through).
+		// F_SUCCESS (fall-through).
 		"INX 5",
 		"XCH 5",
 		"STA {CFAOUT}",
-		"LDX 5,{:SCRATCH}",
+		"LDX 5,{:F_SCRATCH}",
 		"INX 5",
 		"LDN 5",
 		"ANM", "0x8000",
@@ -986,32 +980,32 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 
 		// ============================================================
 		// NUMBER — reads WORDBUF, writes NUMVAL+NUMOK. Preserves X8.
-		// Lifted verbatim from TestSAP3ForthNumber; renames: LOOP→N_LOOP,
-		// FAIL→N_FAIL, SHIFT→N_SHIFT, TEMP→N_TEMP.
+		// Lifted verbatim from TestSAP3ForthNumber; all internal labels
+		// get N_ prefix.
 		// ============================================================
 		"NUMBER:",
 		"LDX 0,{:WB_INIT}", // pointer to WORDBUF
 		"CLA", "XCH 1",     // high/low read mode
-		"CLA", "XCH 2", // running number
-		"LDN 0", "XCH 3", // length (assumed nonzero)
+		"CLA", "XCH 2",     // running number
+		"LDN 0", "XCH 3",   // length (assumed nonzero)
 
 		"N_LOOP:",
-		"JIZ 3,{:SUCCESS}",
+		"JIZ 3,{:N_SUCCESS}",
 		"DEX 3",
-		"JIZ 1,{:READHIGH}",
+		"JIZ 1,{:N_READHIGH}",
 
-		// READLOW:
+		// N_READLOW:
 		"DEX 1",
 		"LDN 0",
 		"ANM", "0xFF",
-		"LOW:",
+		"N_LOW:",
 		"SBM", "0x30",
 		"JAM {N_FAIL}",
 		"SBM", "0xA",
-		"JAM {DIGITFOUND}",
+		"JAM {N_DIGITFOUND}",
 		"JMP {N_FAIL}",
 
-		"DIGITFOUND:",
+		"N_DIGITFOUND:",
 		"ADM", "0xA", // complete ascii→num conversion
 		"XCH 2",
 		"STM", "N_TEMP:", "", // TEMP holds old X2
@@ -1025,7 +1019,7 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		"XCH 2",
 		"JMP {N_LOOP}",
 
-		"READHIGH:",
+		"N_READHIGH:",
 		"INX 1",
 		"LDX 4,{:EIGHT}",
 		"INX 0",
@@ -1034,9 +1028,9 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		"SHR",
 		"DSZ 4",
 		"JMP {N_SHIFT}",
-		"JMP {LOW}",
+		"JMP {N_LOW}",
 
-		"SUCCESS:",
+		"N_SUCCESS:",
 		"XCH 2",
 		"STA {NUMVAL}",
 		"XCH 0",
@@ -1058,7 +1052,6 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 
 	externals := map[string]uint16{
 		"WORDBUF": wordBufAddr,
-		"ARG1":    arg1Addr,
 		"CFAOUT":  cfaOutAddr,
 		"IMMOUT":  immOutAddr,
 		"NUMVAL":  numValAddr,
