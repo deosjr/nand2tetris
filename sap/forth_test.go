@@ -986,8 +986,8 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		"NUMBER:",
 		"LDX 0,{:WB_INIT}", // pointer to WORDBUF
 		"CLA", "XCH 1",     // high/low read mode
-		"CLA", "XCH 2",     // running number
-		"LDN 0", "XCH 3",   // length (assumed nonzero)
+		"CLA", "XCH 2", // running number
+		"LDN 0", "XCH 3", // length (assumed nonzero)
 
 		"N_LOOP:",
 		"JIZ 3,{:N_SUCCESS}",
@@ -1089,13 +1089,19 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		"INX 8", // SP++ (one cell lighter than on entry)
 		"BRB",
 	}
-	plusEncoded := make([]uint16, len(plusBody))
-	for i, s := range plusBody {
-		w, encErr := encodeASM3(s)
-		if encErr != nil {
-			t.Fatalf("encoding + primitive %q: %v", s, encErr)
-		}
-		plusEncoded[i] = w
+
+	dupBody := []string{
+		"DEX 8", // SP--
+		"LDN 8", // A = *SP
+		"INX 8", // SP++
+		"STN 8", // *SP = A
+		"INX 8", // SP++
+		"BRB",
+	}
+
+	builtins := map[string][]string{
+		"+":   plusBody,
+		"DUP": dupBody,
 	}
 
 	cases := []struct {
@@ -1111,6 +1117,7 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		{"chained add", "1 2 3 + +", []uint16{6}, 0},
 		{"add zero", "0 7 +", []uint16{7}, 0},
 		{"unknown token", "FOO", nil, 1}, // neither word nor number
+		{"dup number", "42 DUP", []uint16{42, 42}, 0},
 	}
 
 	for _, tc := range cases {
@@ -1123,19 +1130,28 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 			// We encode it as "JMP 100" so the bootloader trampolines to
 			// the outer loop; FIND's walk never follows this LINK (its
 			// JIZ-on-entry-addr termination fires one step earlier).
-			hdr := packEntry(jmp100, "+", false)
-			for i, w := range hdr {
-				program[int(dictBase)+i] = w
+			prev := jmp100
+			base := dictBase
+			for key, body := range builtins {
+				hdr := packEntry(prev, key, false)
+				for i, w := range hdr {
+					program[int(base)+i] = w
+				}
+				cfa := base + uint16(len(hdr))
+				for i, s := range body {
+					w, err := encodeASM3(s)
+					if err != nil {
+						t.Fatalf("encoding + primitive %q: %v", s, err)
+					}
+					program[int(cfa)+i] = w
+				}
+				prev = base
+				base = cfa + uint16(len(body))
 			}
-			plusCfa := dictBase + uint16(len(hdr))
-			for i, w := range plusEncoded {
-				program[int(plusCfa)+i] = w
-			}
-			afterPlus := plusCfa + uint16(len(plusEncoded))
 
 			// Sentinel entry (LEN=0, LINK=most-recent). HEAD points here.
-			sentinel := afterPlus
-			program[sentinel] = dictBase
+			sentinel := base
+			program[sentinel] = prev
 			program[sentinel+1] = 0
 			program[headAddr] = sentinel
 
