@@ -1099,9 +1099,16 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		"BRB",
 	}
 
+	dropBody := []string{
+		"DEX 8", // SP--
+		// no need to overwrite, stack can contain garbage
+		"BRB",
+	}
+
 	builtins := map[string][]string{
-		"+":   plusBody,
-		"DUP": dupBody,
+		"+":    plusBody,
+		"DUP":  dupBody,
+		"DROP": dropBody,
 	}
 
 	cases := []struct {
@@ -1118,6 +1125,8 @@ func TestSAP3ForthInterpreter(t *testing.T) {
 		{"add zero", "0 7 +", []uint16{7}, 0},
 		{"unknown token", "FOO", nil, 1}, // neither word nor number
 		{"dup number", "42 DUP", []uint16{42, 42}, 0},
+		{"dup latest", "1 2 3 DUP", []uint16{1, 2, 3, 3}, 0},
+		{"drop twice", "1 2 3 DROP DROP", []uint16{1}, 0},
 	}
 
 	for _, tc := range cases {
