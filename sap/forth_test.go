@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"fmt"
+	"reflect"
+	"testing"
+)
 
 // This file contains test harnesses written by Claude, implemented by me.
 // In doing so I am learning about Forth by building a Forth on NewSAP3
@@ -543,10 +547,10 @@ func TestSAP3ForthWord(t *testing.T) {
 //     followed by packed name words, 2 chars per word, high byte first).
 //     Read-only: NUMBER must not modify WORDBUF.
 //   - Output:
-//       NUMVAL at 0xE30 : parsed value on success (any uint16).
-//       NUMOK  at 0xE31 : nonzero on success, 0 on failure. A separate
-//                         flag is required because NUMVAL=0 is a valid
-//                         result (the literal "0").
+//     NUMVAL at 0xE30 : parsed value on success (any uint16).
+//     NUMOK  at 0xE31 : nonzero on success, 0 on failure. A separate
+//     flag is required because NUMVAL=0 is a valid
+//     result (the literal "0").
 //   - Format (v1): unsigned decimal. Every char must be '0'..'9'.
 //     Any non-digit → failure. length > 0 guaranteed by caller.
 //     Hex prefix / signs / overflow detection are out of scope for now.
@@ -727,6 +731,468 @@ func TestSAP3ForthNumber(t *testing.T) {
 			// write any value (conventionally 0, but not required).
 			if tc.wantOK && gotVal != tc.wantVal {
 				t.Errorf("NUMVAL: got %d (0x%X), want %d (0x%X)", gotVal, gotVal, tc.wantVal, tc.wantVal)
+			}
+		})
+	}
+}
+
+// TestSAP3ForthInterpreter wires WORD + FIND + NUMBER together into a
+// minimal outer loop and runs small Forth programs like "3 5 +".
+//
+// Interpreter loop (one pass per iteration):
+//
+//  1. WORD                         — next token into WORDBUF; length=0 → clean HLT
+//  2. FIND                         — look it up
+//     hit  → EXECUTE (JSN through an X register, see below)
+//     miss → fall to NUMBER
+//  3. NUMBER ok → push value onto data stack
+//  4. NUMBER fail → set ERRFLAG=1, HLT
+//
+// Data stack: grows up from STACK_BASE (0xD00). SP lives in X8 (chosen
+// because WORD's contract guarantees X8 is preserved across calls — the
+// SP must survive every WORD / FIND / NUMBER invocation). SP points at
+// the next empty slot, so depth = X8 - STACK_BASE and contents live in
+// RAM[STACK_BASE : X8].
+//
+// EXECUTE — calling a CFA held in A: SAP3 has no "JMS indirect through
+// register", but JSN is exactly that — it pushes the return address to
+// the hardware stack and jumps to an X register's full 12-bit value. So
+// the dispatch is just XCH 0 / JSN 0 (swap CFA into X0, indirect-call).
+//
+// Primitive dictionary: one entry, "+". The body is emitted inline at the
+// CFA and pops two stack items, adds, pushes the sum. Enough to exercise
+// the whole pipeline on "3 5 +" and small chains.
+//
+// Why one big assembleSAP3Labeled block rather than four? Measuring the
+// sizes (FIND ~46, WORD ~36, NUMBER ~56, outer loop ~20) the whole Forth
+// runtime fits comfortably in a single 256-word page with ~100 words of
+// headroom for more primitives. Shoving everything onto one page means
+// {:LOCAL} page-relative refs work across the entire runtime, and lets
+// us dedupe the two shared read-only constants (WB_INIT=0xE10, EIGHT=0x8)
+// that both WORD and NUMBER define identically.
+//
+// Cost: label collisions across the three subroutines have to be resolved
+// by renaming. The minimum-viable prefix scheme applied here:
+//   - LOOP  (in outer, FIND, NUMBER) → I_LOOP, F_LOOP, N_LOOP
+//   - FAIL  (in FIND, NUMBER)        → F_FAIL, N_FAIL
+//   - SHIFT (in WORD, NUMBER)        → W_SHIFT, N_SHIFT
+//   - TEMP  (in WORD, NUMBER)        → W_TEMP, N_TEMP
+//
+// TEMP cannot be shared even though the cells look identical: both WORD
+// and NUMBER use the "next-word-immediate" self-modifying pattern (ORM
+// / STM with the immediate cell as the target of a later STA), so each
+// subroutine's TEMP is a distinct cell inside its own code stream.
+//
+// Why dictBase = 0x000? FIND's end-of-chain check is "current entry
+// address is 0" (JIZ on the scratch cell in FOLLOW), which hardwires the
+// oldest entry to live at address 0. That conflicts with the bootloader,
+// which enters at JMP 0. Resolution: the oldest entry's LINK word is
+// FIND's "address of the previous entry" — but FIND stops before ever
+// reading it (the JIZ triggers one step earlier). So we're free to stuff
+// arbitrary bits in that word, and we stuff "JMP 100" — the bootloader
+// lands on the entry's LINK, decodes it as an instruction, and jumps to
+// the outer loop. Dict structure stays valid; bootloader trampoline is
+// invisible to FIND.
+//
+// Layout:
+//
+//	0x000       : dictionary (oldest entry; LINK word = JMP 100 encoding)
+//	            : grows up toward 0x100
+//	0x100       : Forth runtime (outer loop + WORD + FIND + NUMBER)
+//	            : one 256-word page, ~100 words free for future primitives
+//	0x200-0xCBF : future code pages (more primitives, DOCOL, COMPILE, ...)
+//	0xCCC       : HEAD sysvar
+//	0xD00       : data stack (grows up; 256 cells)
+//	0xE00       : ARG1, CFAOUT, IMMOUT   (FIND sysvars)
+//	0xE10       : WORDBUF                (WORD output / FIND needle / NUMBER input)
+//	0xE30       : NUMVAL, NUMOK          (NUMBER sysvars)
+//	0xE50       : ERRFLAG                (0=ok, 1=unknown token)
+func TestSAP3ForthInterpreter(t *testing.T) {
+	const (
+		wordBufAddr = uint16(0xE10)
+		arg1Addr    = uint16(0xE00)
+		cfaOutAddr  = uint16(0xE01)
+		immOutAddr  = uint16(0xE02)
+		numValAddr  = uint16(0xE30)
+		numOkAddr   = uint16(0xE31)
+		headAddr    = uint16(0xCCC)
+		stackBase   = uint16(0xD00)
+		errFlagAddr = uint16(0xE50)
+		dictBase    = uint16(0x000) // FIND requires oldest entry at 0; see docblock
+		codeBase    = uint16(0x100)
+		spXReg      = 8
+	)
+
+	asm := []string{
+		// ============================================================
+		// Outer loop — entry point at codeBase.
+		// ============================================================
+		// ARG1 = WORDBUF (stays constant; FIND reads it every iteration).
+		"LDM", fmt.Sprintf("0x%X", wordBufAddr),
+		"STA {ARG1}",
+		// X8 = stackBase (empty stack).
+		"LDX 8,{:SP_INIT}",
+
+		"I_LOOP:",
+		"JMS {WORD}",
+		"LDA {WORDBUF}", // length word
+		"JAZ {I_DONE}",  // length=0 → clean exit
+
+		"JMS {FIND}",
+		"LDA {CFAOUT}",
+		"JAZ {I_TRY_NUMBER}", // miss → try NUMBER
+
+		// EXECUTE: A holds CFA. JSN indirects through an X register.
+		"XCH 0", // X0 = CFA, A = old X0 (don't care)
+		"JSN 0", // call CFA; returns here via BRB
+		"JMP {I_LOOP}",
+
+		"I_TRY_NUMBER:",
+		"JMS {NUMBER}",
+		"LDA {NUMOK}",
+		"JAZ {I_ERROR}", // not a word, not a number
+		"LDA {NUMVAL}",
+		"STN 8", // *SP = value
+		"INX 8", // SP++
+		"JMP {I_LOOP}",
+
+		"I_DONE:",
+		"CLA", "STA {ERRFLAG}", // success: ERRFLAG = 0
+		"HLT",
+
+		"I_ERROR:",
+		"LDM", "0x1",
+		"STA {ERRFLAG}", // failure: ERRFLAG = 1
+		"HLT",
+
+		"SP_INIT:", fmt.Sprintf("0x%X", stackBase),
+
+		// ============================================================
+		// WORD — reads INP 1, writes WORDBUF. Preserves X8.
+		// Lifted verbatim from TestSAP3ForthWord; renames: SHIFT→W_SHIFT,
+		// TEMP→W_TEMP. WB_INIT and EIGHT dedup to the shared block below.
+		// ============================================================
+		"WORD:",
+		"CLA",
+		"XCH 0", // count length in X0
+		"CLA",
+		"XCH 1",            // high/low store mode
+		"LDX 2,{:WB_INIT}", // address to store word
+		"LDX 3,{:WB_INIT}", // address to store length
+		// consume leading delimiters
+		"LEAD:",
+		"INP 1",
+		"JAZ {END}", // leading 0 is a parse error
+		"SBM", "0x21",
+		"JAM {LEAD}",
+		"ADM", "0x21",
+
+		"START:",
+		"JAZ {END}",
+		"SBM", "0x21",
+		"JAM {END}", // delimiter ends token; consumed
+		"ADM", "0x21",
+		"INX 0",
+		"JIZ 1,{:PREPHIGH}",
+
+		// PREPLOW:
+		"ORM",
+		"W_TEMP:", "",
+		"DEX 1",
+		"JMP {STORE}",
+
+		"PREPHIGH:",
+		"LDX 4,{:EIGHT}",
+		"W_SHIFT:",
+		"SHL",
+		"DSZ 4",
+		"JMP {W_SHIFT}",
+		"STA {W_TEMP}",
+		"INX 2",
+		"INX 1",
+
+		"STORE:",
+		"STN 2",
+		"INP 1", // read next char
+		"JMP {START}",
+
+		"END:",
+		"XCH 0",
+		"STN 3",
+		"BRB",
+
+		// ============================================================
+		// FIND — reads ARG1+HEAD, writes CFAOUT+IMMOUT. Preserves X8.
+		// Lifted verbatim from TestSAP3ForthFind; renames: LOOP→F_LOOP,
+		// FAIL→F_FAIL, OUT1/OUT2→CFAOUT/IMMOUT (external names changed).
+		// ============================================================
+		"FIND:",
+		"LDA {ARG1}", // ARG1 = address of needle length (needle follows)
+		"XCH 4",
+		"LDA {HEAD}",
+
+		"F_LOOP:", // (assumes current entry address in A)
+		"STM",
+		"SCRATCH:", "", // scratch cell; STM writes A here each loop
+		"LDX 5,{:SCRATCH}",
+		"INX 5", // X5 now points at flags+length word
+
+		"LDN 5",
+		"ANM", "0x7FFF", // mask off IMM bit
+		"SBN 4",
+		"JAZ {MATCH}",
+
+		"FOLLOW:",
+		"LDX 5,{:SCRATCH}",
+		"JIZ 5,{:F_FAIL}", // if entry addr was 0, give up
+		"LDN 5",           // follow link
+		"JMP {F_LOOP}",
+
+		"MATCH:",
+		"LDA {ARG1}",
+		"XCH 6",
+		"LDN 6",
+		"ADM", "0x1",
+		"SHR",
+		"XCH 7", // X7 = ceil(n/2) counter
+
+		"INNER:",
+		"INX 5",
+		"INX 6",
+		"LDN 5",
+		"SBN 6",
+		"JAZ {CONTINUE}",
+		"JMP {FOLLOW}",
+
+		"CONTINUE:",
+		"DSZ 7",
+		"JMP {INNER}",
+
+		// SUCCESS (fall-through).
+		"INX 5",
+		"XCH 5",
+		"STA {CFAOUT}",
+		"LDX 5,{:SCRATCH}",
+		"INX 5",
+		"LDN 5",
+		"ANM", "0x8000",
+		"STA {IMMOUT}",
+		"BRB",
+
+		"F_FAIL:",
+		"CLA", "STA {CFAOUT}",
+		"CLA", "STA {IMMOUT}",
+		"BRB",
+
+		// ============================================================
+		// NUMBER — reads WORDBUF, writes NUMVAL+NUMOK. Preserves X8.
+		// Lifted verbatim from TestSAP3ForthNumber; renames: LOOP→N_LOOP,
+		// FAIL→N_FAIL, SHIFT→N_SHIFT, TEMP→N_TEMP.
+		// ============================================================
+		"NUMBER:",
+		"LDX 0,{:WB_INIT}", // pointer to WORDBUF
+		"CLA", "XCH 1",     // high/low read mode
+		"CLA", "XCH 2", // running number
+		"LDN 0", "XCH 3", // length (assumed nonzero)
+
+		"N_LOOP:",
+		"JIZ 3,{:SUCCESS}",
+		"DEX 3",
+		"JIZ 1,{:READHIGH}",
+
+		// READLOW:
+		"DEX 1",
+		"LDN 0",
+		"ANM", "0xFF",
+		"LOW:",
+		"SBM", "0x30",
+		"JAM {N_FAIL}",
+		"SBM", "0xA",
+		"JAM {DIGITFOUND}",
+		"JMP {N_FAIL}",
+
+		"DIGITFOUND:",
+		"ADM", "0xA", // complete ascii→num conversion
+		"XCH 2",
+		"STM", "N_TEMP:", "", // TEMP holds old X2
+		"SHL", "SHL", "SHL", // X2 << 3
+		"ADD {N_TEMP}",
+		"ADD {N_TEMP}", // A = (X2 << 3) + X2 + X2 = X2 * 10
+		"XCH 2",
+		"STA {N_TEMP}",
+		"XCH 2",
+		"ADD {N_TEMP}",
+		"XCH 2",
+		"JMP {N_LOOP}",
+
+		"READHIGH:",
+		"INX 1",
+		"LDX 4,{:EIGHT}",
+		"INX 0",
+		"LDN 0",
+		"N_SHIFT:",
+		"SHR",
+		"DSZ 4",
+		"JMP {N_SHIFT}",
+		"JMP {LOW}",
+
+		"SUCCESS:",
+		"XCH 2",
+		"STA {NUMVAL}",
+		"XCH 0",
+		"STA {NUMOK}",
+		"BRB",
+
+		"N_FAIL:",
+		"CLA",
+		"STA {NUMVAL}",
+		"STA {NUMOK}",
+		"BRB",
+
+		// ============================================================
+		// Shared read-only constants — used by both WORD and NUMBER.
+		// ============================================================
+		"WB_INIT:", fmt.Sprintf("0x%X", wordBufAddr),
+		"EIGHT:", "0x8",
+	}
+
+	externals := map[string]uint16{
+		"WORDBUF": wordBufAddr,
+		"ARG1":    arg1Addr,
+		"CFAOUT":  cfaOutAddr,
+		"IMMOUT":  immOutAddr,
+		"NUMVAL":  numValAddr,
+		"NUMOK":   numOkAddr,
+		"HEAD":    headAddr,
+		"ERRFLAG": errFlagAddr,
+	}
+
+	code, _, err := assembleSAP3Labeled(codeBase, asm, externals)
+	if err != nil {
+		t.Fatalf("assembling Forth runtime: %v", err)
+	}
+
+	// Everything must fit on one 256-word page so {:LOCAL} refs resolve.
+	// (The assembler already rejects cross-page {:LOCAL} — this check
+	// just gives a nicer error than the raw assembler message.)
+	if len(code) > 256 {
+		t.Fatalf("Forth runtime is %d words, exceeds 256-word page", len(code))
+	}
+	t.Logf("Forth runtime: %d words (%d free on page)", len(code), 256-len(code))
+
+	jmp100, err := encodeASM3("JMP 100")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// "+" primitive body — placed inline in the dictionary as the CFA.
+	// Pop two, add, push sum. Uses X8 (the SP) directly.
+	plusBody := []string{
+		"DEX 8", // SP-- (now points at TOS)
+		"LDN 8", // A = *SP (TOS)
+		"DEX 8", // SP-- (now points at NOS)
+		"ADN 8", // A += *SP (NOS)
+		"STN 8", // *SP = sum (overwrites NOS slot)
+		"INX 8", // SP++ (one cell lighter than on entry)
+		"BRB",
+	}
+	plusEncoded := make([]uint16, len(plusBody))
+	for i, s := range plusBody {
+		w, encErr := encodeASM3(s)
+		if encErr != nil {
+			t.Fatalf("encoding + primitive %q: %v", s, encErr)
+		}
+		plusEncoded[i] = w
+	}
+
+	cases := []struct {
+		name      string
+		input     string
+		wantStack []uint16
+		wantErr   uint16
+	}{
+		{"single push", "42", []uint16{42}, 0},
+		{"two pushes", "3 5", []uint16{3, 5}, 0},
+		{"simple add", "3 5 +", []uint16{8}, 0},
+		{"three pushes", "1 2 3", []uint16{1, 2, 3}, 0},
+		{"chained add", "1 2 3 + +", []uint16{6}, 0},
+		{"add zero", "0 7 +", []uint16{7}, 0},
+		{"unknown token", "FOO", nil, 1}, // neither word nor number
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var program [4096]uint16
+			copy(program[codeBase:], code)
+
+			// Dictionary at dictBase=0x000. The oldest entry's LINK word
+			// sits at RAM[0] — also where the bootloader's JMP 0 lands.
+			// We encode it as "JMP 100" so the bootloader trampolines to
+			// the outer loop; FIND's walk never follows this LINK (its
+			// JIZ-on-entry-addr termination fires one step earlier).
+			hdr := packEntry(jmp100, "+", false)
+			for i, w := range hdr {
+				program[int(dictBase)+i] = w
+			}
+			plusCfa := dictBase + uint16(len(hdr))
+			for i, w := range plusEncoded {
+				program[int(plusCfa)+i] = w
+			}
+			afterPlus := plusCfa + uint16(len(plusEncoded))
+
+			// Sentinel entry (LEN=0, LINK=most-recent). HEAD points here.
+			sentinel := afterPlus
+			program[sentinel] = dictBase
+			program[sentinel+1] = 0
+			program[headAddr] = sentinel
+
+			// Sentinel ERRFLAG so "never reached HLT" is distinguishable
+			// from "HLT ran and wrote 0".
+			const errSentinel = uint16(0xDEAD)
+			program[errFlagAddr] = errSentinel
+
+			// Two tapes: port 0 feeds the bootloader, port 1 feeds WORD.
+			programTape := &TapeReader{tape: program[:]}
+			ascii := make([]uint16, len(tc.input))
+			for i, c := range []byte(tc.input) {
+				ascii[i] = uint16(c)
+			}
+			tokenTape := &TapeReader{tape: ascii}
+
+			computer := NewSAP3()
+			computer.LoadProgram(bootloader)
+			computer.RegisterInputDevice(programTape, 0)
+			computer.RegisterInputDevice(tokenTape, 1)
+			td := &testDebugger{t: t}
+			run(computer, td)
+
+			gotErr := computer.RAM.mem[errFlagAddr]
+			if gotErr == errSentinel {
+				t.Fatalf("ERRFLAG still sentinel 0x%X — outer loop never reached HLT. Pipeline stalled (infinite loop, or WORD/FIND/NUMBER stubbed out).", gotErr)
+			}
+			if gotErr != tc.wantErr {
+				t.Errorf("ERRFLAG: got %d, want %d", gotErr, tc.wantErr)
+			}
+
+			sp := computer.X[spXReg].Out()
+			if sp < stackBase {
+				t.Fatalf("SP (X%d = 0x%X) below stackBase 0x%X — stack underflow (pop without push?)",
+					spXReg, sp, stackBase)
+			}
+			depth := int(sp - stackBase)
+			gotStack := make([]uint16, depth)
+			for i := 0; i < depth; i++ {
+				gotStack[i] = computer.RAM.mem[stackBase+uint16(i)]
+			}
+
+			// On error paths the stack state is undefined (depends on
+			// what was pushed before the bad token), so only assert on
+			// successful runs.
+			if tc.wantErr == 0 {
+				if !reflect.DeepEqual(gotStack, tc.wantStack) {
+					t.Errorf("stack: got %v (depth %d), want %v (depth %d)",
+						gotStack, len(gotStack), tc.wantStack, len(tc.wantStack))
+				}
 			}
 		})
 	}
