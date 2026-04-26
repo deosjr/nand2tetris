@@ -12,9 +12,10 @@
 ;
 ; Subroutine calling convention:
 ;   - Called with JMS, return with BRB.
-;   - All subroutines MAY clobber A, B, X0..X7.
+;   - All subroutines MAY clobber A, B, X0..X6.
+;   - X7 = return stack pointer; MUST be preserved by all subroutines.
 ;   - X8 = data stack pointer; MUST be preserved by all subroutines.
-;   - X9 reserved for future use (IP in DOCOL).
+;   - X9 = inner interpreter instruction pointer
 ;
 ; Sysvars (passed as externals to assembleSAP3Labeled):
 ;   WORDBUF, CFAOUT, IMMOUT, NUMVAL, NUMOK, ERRFLAG
@@ -26,6 +27,7 @@ PLUS:
         JMP {OUTER}
         0x1
         0x2B00  ; +
+PLUS_CFA:
         DEX 8   ; SP--
         LDN 8   ; A = top of stack
         DEX 8   ; SP--
@@ -38,6 +40,7 @@ DUP:
         0x3
         0x4455  ; DU
         0x5000  ; P
+DUP_CFA:
         DEX 8
         LDN 8
         INX 8
@@ -49,18 +52,81 @@ DROP:
         0x4
         0x4452  ; DR
         0x4F50  ; OP
+DROP_CFA:
         DEX 8
         BRB
-SENTINEL:
+
+EXIT:
         0x{DROP}
+        0x4
+        0x4558  ; EX
+        0x4954  ; IT
+EXIT_CFA:
+        DEX 7   ; RSP--
+        LDN 7   ; A = saved IP
+        XCH 9   ; X9 = saved IP (restore caller's thread pointer)
+        BRB     ; return to NEXT loop
+
+; : DOUBLE DUP + ;
+DOUBLE:
+        0x{EXIT}
+        0x6
+        0x444F  ; DO
+        0x5542  ; UB
+        0x4C45  ; LE
+DOUBLE_CFA:
+        JMP {DOCOL}
+        0x{DUP_CFA}
+        0x{PLUS_CFA}
+        0x{EXIT_CFA}
+
+SENTINEL:
+        0x{DOUBLE}
         0x0
 
 ; ============================================================
-; Outer interpreter loop 
+; DOCOL — entered via JMP {DOCOL} in a colon word's CFA slot.
+; X0 = CFA address (JMP {DOCOL} lives here; body = X0+1).
+; X9 = caller's IP (will be saved on return stack).
+; ============================================================
+DOCOL:
+        XCH 9                   ; A = caller's IP, X9 = old A (garbage)
+        STN 7                   ; *RSP = caller's IP
+        INX 7                   ; RSP++
+        INX 0                   ; X0 = body start (CFA_addr + 1)
+        XCH 0                   ; A = body start, X0 = caller's IP
+        XCH 9                   ; X9 = body start, A = garbage
+        BRB                     ; return to NEXT
+
+; ============================================================
+; NEXT — the inner interpreter dispatch loop.
+; Fetches the next CFA from *IP, advances IP, calls the CFA.
+; Primitives end with BRB; colon words go through DOCOL/EXIT.
+; ============================================================
+NEXT:
+        LDN 9                   ; A = *IP = next CFA address
+        INX 9                   ; IP++
+        XCH 0                   ; X0 = CFA
+        JSN 0                   ; execute CFA; word returns via BRB
+        JMP {NEXT}              ; loop
+
+; Sentinel thread: the outer loop sets IP here before EXECUTE.
+; When EXIT pops back to this IP, NEXT fetches EXEC_EXIT and
+; jumps to it, returning control to the outer interpret loop.
+EXEC_THREAD_PTR:
+        0x{EXEC_THREAD}         ; value = address of EXEC_THREAD (loaded by LDX)
+EXEC_THREAD:
+        0x{EXEC_EXIT}           ; sentinel CFA: one-element thread
+EXEC_EXIT:
+        JMP {I_LOOP}            ; return to outer loop
+
+; ============================================================
+; Outer interpreter loop
 ; NOTE: WB_INIT and EIGHT need to fit on same page!
 ; ============================================================
 OUTER:
-        LDX 8,{:I_SP_INIT}     ; X8 = stackBase (empty stack)
+        LDX 7,{:I_RSP_INIT}    ; X7 = return stack base (RSP)
+        LDX 8,{:I_SP_INIT}     ; X8 = data stack base (DSP)
 
 I_LOOP:
         JMS {WORD}              ; tokenise next word into WORDBUF
@@ -72,8 +138,9 @@ I_LOOP:
         JAZ {I_TRY_NUMBER}      ; miss → try interpreting as a number
 
         XCH 0                   ; X0 = CFA
-        JSN 0                   ; indirect call through X0; word returns via BRB
-        JMP {I_LOOP}
+        LDX 9,{:EXEC_THREAD_PTR} ; X9 = address of EXEC_THREAD (sentinel IP)
+        JSN 0                   ; execute CFA; returns to JMP {NEXT}
+        JMP {NEXT}              ; dispatch via NEXT loop
 
 I_TRY_NUMBER:
         JMS {NUMBER}
@@ -95,8 +162,10 @@ I_ERROR:
         STA {ERRFLAG}           ; ERRFLAG = 1 (unknown token)
         HLT
 
+I_RSP_INIT:
+        0xC00                   ; return stack base (X7 = RSP)
 I_SP_INIT:
-        0xD00                   ; stackBase — loaded into X8 at startup
+        0xD00                   ; data stack base (X8 = DSP)
 
 ; ============================================================
 ; WORD — reads INP 1, writes WORDBUF
@@ -160,7 +229,7 @@ W_END:
 
 ; ============================================================
 ; FIND — looks up WORDBUF in the dictionary starting from HEAD
-; Preserved: X8 (SP).  Clobbers: X4..X7, A.
+; Preserved: X8 (SP).  Clobbers: X3..X6, A.
 ; Output: CFAOUT = CFA address (0 on miss), IMMOUT = non-zero if IMMEDIATE.
 ; ============================================================
 
@@ -193,7 +262,7 @@ F_MATCH:
         ADM
         0x1
         SHR                     ; A = ceil(length/2) = number of name words to compare
-        XCH 7                   ; X7 = comparison counter
+        XCH 3                   ; X3 = comparison counter
 
 F_INNER:
         INX 5                   ; X5 → next name word in dict entry
@@ -204,7 +273,7 @@ F_INNER:
         JMP {F_FOLLOW}          ; mismatch → this entry fails, keep searching
 
 F_CONTINUE:
-        DSZ 7
+        DSZ 3
         JMP {F_INNER}
 
 ; F_SUCCESS (fall-through from F_CONTINUE)

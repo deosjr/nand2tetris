@@ -61,6 +61,9 @@ func TestSAP3ForthFromFile(t *testing.T) {
 		{"dup number", "42 DUP", []uint16{42, 42}, 0},
 		{"dup latest", "1 2 3 DUP", []uint16{1, 2, 3, 3}, 0},
 		{"drop twice", "1 2 3 DROP DROP", []uint16{1}, 0},
+		// Hardcoded colon def in dictionary: `: DOUBLE DUP + ;`
+		{"colon def DOUBLE", "7 DOUBLE", []uint16{14}, 0},
+		{"nested colon", "3 DOUBLE DOUBLE", []uint16{12}, 0},
 	}
 
 	for _, tc := range cases {
