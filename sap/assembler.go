@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -162,8 +163,9 @@ func encodeASM2(s string) (uint16, error) {
 var labelRe = regexp.MustCompile(`^[A-Z_][A-Z0-9_]*:$`)
 
 // placeholderRe matches a braced symbolic reference inside an instruction.
-//   {FOO}   — 12-bit absolute address of label FOO
-//   {:FOO}  — 8-bit page-relative offset to FOO, must be on the current page
+//
+//	{FOO}   — 12-bit absolute address of label FOO
+//	{:FOO}  — 8-bit page-relative offset to FOO, must be on the current page
 var placeholderRe = regexp.MustCompile(`\{(:?)([A-Z_][A-Z0-9_]*)\}`)
 
 // parseLabels walks src and extracts label-only lines ("LOOP:") into a label
@@ -421,4 +423,28 @@ func encodeASM3(s string) (uint16, error) {
 		return 0b1101<<12 | arg<<8, nil
 	}
 	return 0, fmt.Errorf("invalid opcode format %s", s)
+}
+
+// readAsmFile reads a SAP3 assembly source file and returns a []string
+// compatible with assembleSAP3Labeled. Rules:
+//   - Each non-empty line becomes one element.
+//   - Anything from ';' to end-of-line is a comment and is stripped.
+//   - Blank lines (and comment-only lines) are skipped entirely.
+//   - Leading/trailing whitespace is trimmed.
+func readAsmFile(path string) ([]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var lines []string
+	for _, line := range strings.Split(string(data), "\n") {
+		if i := strings.Index(line, ";"); i >= 0 {
+			line = line[:i]
+		}
+		line = strings.TrimSpace(line)
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return lines, nil
 }
